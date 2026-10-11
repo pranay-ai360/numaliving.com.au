@@ -43,7 +43,7 @@ export default function AboutPage() {
       {/* How delivery works */}
       <section className="py-24">
         <Container>
-          <SectionTitle ghost="I am so funnyyyyy" title={delivery.title} />
+          <SectionTitle ghost="Logistics" title={delivery.title} />
           <div className="mt-12 grid gap-px bg-line md:grid-cols-2">
             {delivery.points.map((p) => (
               <div key={p.name} className="bg-paper p-8">
