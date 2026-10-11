@@ -88,3 +88,17 @@ body {
   outline: 2px solid var(--brand-gold);
   outline-offset: 2px;
 }
+
+/* Gentle pulse on the factory marker; switched off for people who prefer less motion */
+@keyframes map-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.18; }
+  50% { transform: scale(1.8); opacity: 0.05; }
+}
+.map-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-pulse 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-pulse { animation: none; }
+}

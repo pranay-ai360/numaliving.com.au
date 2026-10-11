@@ -9,7 +9,7 @@
 
 // ── Public website ────────────────────────────────────────────────
 
-export type Sector = "Residential" | "Office" | "Multifamily" | "Hospitality";
+export type Sector = "Residences" | "Office" | "Multifamily" | "Hospitality";
 
 /** A material finish used to draw placeholder visuals until photos exist. */
 export type Material = "walnut" | "oak" | "lacquer" | "stone" | "brass" | "linen";

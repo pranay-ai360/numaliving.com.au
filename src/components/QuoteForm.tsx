@@ -6,7 +6,7 @@ import { submitQuote, UPLOAD_LIMITS, validateFiles } from "@/lib/services/quotes
 import { SketchPad } from "./SketchPad";
 
 const roles: QuoteRequest["role"][] = ["Owner / developer", "Architect / designer", "Main contractor", "Other"];
-const types: QuoteRequest["projectType"][] = ["Residential", "Office", "Multifamily", "Hospitality", "Other"];
+const types: QuoteRequest["projectType"][] = ["Residences", "Office", "Multifamily", "Hospitality", "Other"];
 
 const field = "mt-1.5 w-full rounded-sm border border-line bg-paper px-3.5 py-2.5 text-ink outline-none transition-colors focus:border-gold";
 const label = "block text-sm font-medium";
@@ -176,28 +176,7 @@ export function QuoteForm() {
         )}
 
         <div className="mt-6">
-          {!sketchOpen ? (
-            <button type="button" onClick={() => setSketchOpen(true)} className="text-sm font-medium text-gold hover:text-gold-dark">
-              + No drawings yet? Add a hand sketch
-            </button>
-          ) : (
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-medium">Hand sketch</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSketchOpen(false);
-                    setSketch(null);
-                  }}
-                  className="text-sm text-ink-muted hover:text-ink"
-                >
-                  Remove sketch
-                </button>
-              </div>
-              <SketchPad onChange={setSketch} />
-            </div>
-          )}
+          
         </div>
       </fieldset>
 

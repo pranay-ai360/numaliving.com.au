@@ -8,11 +8,6 @@ export const metadata: Metadata = { title: "Projects" };
 export default function ProjectsPage() {
   return (
     <>
-      <PageHero
-        eyebrow="Projects"
-        title="Built and Delivered"
-        lead="Residences, workplaces and multifamily buildings across the Middle East, India and Europe. Filter by sector or country."
-      />
       <section className="py-16">
         <Container>
           <ProjectsGallery projects={projects} />

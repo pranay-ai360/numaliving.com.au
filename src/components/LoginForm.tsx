@@ -33,14 +33,7 @@ export function LoginForm() {
 
   return (
     <div>
-      {!live && (
-        <div className="mb-8 border-l-2 border-gold bg-gold-soft px-5 py-4 text-sm leading-relaxed">
-          <p className="font-medium">The client portal opens soon.</p>
-          <p className="mt-1 text-ink-muted">
-            Project teams will be invited by email when their project starts. Until then, please contact your Numa project manager.
-          </p>
-        </div>
-      )}
+      
 
       <form onSubmit={onSubmit} className="space-y-5">
         <label className="block text-sm font-medium">

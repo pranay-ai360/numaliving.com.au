@@ -5,10 +5,10 @@
  */
 
 export const home = {
-  heroTitle: "Millwork, Mastered",
-  heroSub: "Dubai · India · Worldwide",
+  heroTitle: "Woodwork, Mastered",
+  heroSub: "Australia · India · Qatar · UAE · UK · USA",
   intro:
-    "Numa Living builds the joinery that defines a room: panelled walls, kitchens, wardrobes, doors and statement pieces, engineered in-house and installed anywhere in the world.",
+    "Numa Living crafts details that defines a room: panelled walls, kitchens, wardrobes, doors and statement pieces, engineered in-house and installed anywhere in the world.",
   // SAMPLE figures
   stats: [
     { value: "120+", label: "Projects delivered" },
@@ -33,9 +33,9 @@ export const home = {
 };
 
 export const about = {
-  title: "About Numa Living",
+  title: "From Dubai to the World",
   lead:
-    "Numa Living is the millwork arm of the Condor Group, a family enterprise with decades of experience in contracting, development and hospitality across the UAE, India and Qatar.",
+    "Numa Living is the millwork arm of the Conqueror Group, a family enterprise with decades of experience in contracting, development and hospitality across the world. We craft your dream finishes in Dubai and deliver it around the world.",
   body: [
     "We started Numa because the projects we built as developers needed joinery we could not buy: precise, beautifully finished and delivered on the contractor's programme, not the workshop's.",
     "Today we work directly with owners, architects and main contractors. Our engineers turn design intent into shop drawings, our factory produces to millimetre tolerances, and our site teams install and hand over.",
@@ -101,30 +101,36 @@ export const factory = {
   ],
 };
 
+/**
+ * The 8 steps on the Process page and in its diagram.
+ * `phase` groups steps under a heading (keep each phase's steps next to each other).
+ * `icon` picks the drawing; choose from: enquiry, responsibilities, drawings,
+ * samples, production, quality, shipping, handover.
+ */
 export const process = {
   title: "How We Work",
   lead: "A clear path from first conversation to handover. Once a project starts, every step is tracked in your client portal.",
   steps: [
-    { name: "Enquiry & Tender", text: "Send drawings, a BOQ or even a hand sketch. We review scope and return a priced proposal." },
-    { name: "Responsibilities", text: "At kick-off we agree who on your team uploads drawings, approves samples and signs off quotes." },
-    { name: "Shop Drawings", text: "Our engineers issue shop drawings for review. They are revised until approved." },
-    { name: "Samples & Mock-ups", text: "Finishes, veneers and hardware are sampled and approved before production." },
-    { name: "Production", text: "Items move through machining, assembly and finishing, with photos at each stage." },
-    { name: "Quality Control", text: "Every piece is checked and dry-fitted against approved drawings." },
-    { name: "Packing & Shipping", text: "Export-crated and shipped, with container and tracking details shared online." },
-    { name: "Installation & Handover", text: "Our team installs or supervises installation, then hands over." },
+    { phase: "Brief", icon: "enquiry", name: "Enquiry & Tender", text: "Send drawings, a BOQ or even a hand sketch. We review scope and return a priced proposal." },
+    { phase: "Brief", icon: "responsibilities", name: "Responsibilities", text: "At kick-off we agree who on your team uploads drawings, approves samples and signs off quotes." },
+    { phase: "Approve", icon: "drawings", name: "Shop Drawings", text: "Our engineers issue shop drawings for review. They are revised until approved." },
+    { phase: "Approve", icon: "samples", name: "Samples & Mock-ups", text: "Finishes, veneers and hardware are sampled and approved before production." },
+    { phase: "Make", icon: "production", name: "Production", text: "Items move through machining, assembly and finishing, with photos at each stage." },
+    { phase: "Make", icon: "quality", name: "Quality Control", text: "Every piece is checked and dry-fitted against approved drawings." },
+    { phase: "Deliver", icon: "shipping", name: "Packing & Shipping", text: "Export-crated and shipped, with container and tracking details shared online." },
+    { phase: "Deliver", icon: "handover", name: "Installation & Handover", text: "We provide 24/7 support to your local install team until installation is complete." },
   ],
 };
 
 export const delivery = {
-  title: "Global Delivery",
+  title: "Door to Site",
   lead: "Made in our factory, delivered to your site. We handle export packing, freight and installation.",
   // SAMPLE list — replace with real destinations
   regions: [
-    { name: "Middle East", countries: ["UAE", "Qatar", "Saudi Arabia", "Oman", "Bahrain"] },
-    { name: "South Asia", countries: ["India", "Sri Lanka", "Maldives"] },
-    { name: "Europe", countries: ["United Kingdom", "France", "Switzerland"] },
-    { name: "Elsewhere", countries: ["United States", "Singapore", "Kenya"] },
+    { name: "Middle East", countries: ["UAE", "Qatar"] },
+    { name: "Austalia & Asia", countries: ["Australia", "India"] },
+    { name: "Europe", countries: ["United Kingdom"] },
+    { name: "North America", countries: ["United States"] },
   ],
   points: [
     { name: "Export packing", text: "Moisture-protected, crated and labelled by room and install sequence." },
@@ -133,3 +139,21 @@ export const delivery = {
     { name: "After care", text: "Spare parts, touch-up kits and a defects period on every project." },
   ],
 };
+
+/**
+ * Photos for the craft gallery on the Capabilities page.
+ * To use a real photo: put it in /public/craft/ and set src, e.g. "/craft/veneer-panel.jpg".
+ * While src is "", a wood-tone placeholder shows instead.
+ * The first photo is shown large. `material` only picks the placeholder colour:
+ * walnut, oak, lacquer, stone, brass or linen.
+ */
+export const craft = [
+  { src: "", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
+  { src: "", material: "oak", alt: "Fluted oak panelling detail", caption: "Fluted oak" },
+  { src: "", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
+  { src: "", material: "lacquer", alt: "Hand-finished lacquer door", caption: "Hand-finished lacquer" },
+  { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
+];
+
+/** One wide photo of the factory floor, shown above the factory section. */
+export const factoryPhoto = { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };
