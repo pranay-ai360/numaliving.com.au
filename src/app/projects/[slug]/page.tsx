@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/content/projects";
-import { ButtonLink, Container, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
+import { withBasePath } from "@/lib/assetPath";
+import { ButtonLink, Container, LAZY_IMAGE_PROPS, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -41,7 +42,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
             {project.sector} · {project.city}, {project.country}
           </p>
           <h1 className="display mt-4 max-w-4xl text-2xl sm:text-4xl">{project.name}</h1>
-          <ProjectVisual project={project} className="mt-10 aspect-[16/8] w-full" />
+          <ProjectVisual project={project} photoLoading="priority" className="mt-10 aspect-[16/8] w-full" />
         </Container>
       </section>
 
@@ -82,7 +83,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
               <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {project.images.slice(1).map((src) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={src} src={src} alt={project.name} className="aspect-square w-full object-cover" />
+                  <img key={src} src={withBasePath(src)} alt={project.name} {...LAZY_IMAGE_PROPS} className="aspect-square w-full object-cover" />
                 ))}
               </div>
             )}

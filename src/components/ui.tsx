@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { withBasePath } from "@/lib/assetPath";
 import type { Material, ShowcaseProject } from "@/lib/types";
 import { LineArt } from "./Brand";
 
@@ -78,19 +79,54 @@ export function MaterialVisual({ palette, className = "" }: { palette: Material[
   );
 }
 
-export function ProjectVisual({ project, className = "" }: { project: ShowcaseProject; className?: string }) {
+/** For photos below the fold: fetched only as they near the screen, and decoded off the main thread. */
+export const LAZY_IMAGE_PROPS = { loading: "lazy", decoding: "async" } as const;
+
+/** For photos in view on arrival, such as the first row of project cards: fetched straight away, decoded off the main thread. */
+const EAGER_IMAGE_PROPS = { loading: "eager", decoding: "async" } as const;
+
+/** For the one photo in view on arrival (a project page's main photo): fetched straight away, ahead of other images. */
+const PRIORITY_IMAGE_PROPS = { loading: "eager", fetchPriority: "high" } as const;
+
+/**
+ * How a project photo loads: "lazy" (the default) below the fold, "eager" when it is in view on
+ * arrival, and "priority" for a page's main photo.
+ */
+export type PhotoLoading = "lazy" | "eager" | "priority";
+
+const PHOTO_LOADING_PROPS = {
+  lazy: LAZY_IMAGE_PROPS,
+  eager: EAGER_IMAGE_PROPS,
+  priority: PRIORITY_IMAGE_PROPS,
+} as const satisfies Record<PhotoLoading, object>;
+
+type ProjectVisualProps = {
+  project: ShowcaseProject;
+  className?: string;
+  photoLoading?: PhotoLoading;
+};
+
+export function ProjectVisual({ project, className = "", photoLoading = "lazy" }: ProjectVisualProps) {
   if (project.images.length > 0) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={project.images[0]} alt={project.name} className={`object-cover ${className}`} />;
+    return <img src={withBasePath(project.images[0])} alt={project.name} {...PHOTO_LOADING_PROPS[photoLoading]} className={`object-cover ${className}`} />;
   }
   return <MaterialVisual palette={project.palette} className={className} />;
 }
 
-export function ProjectCard({ project }: { project: ShowcaseProject }) {
+/** A card's photo is never a page's main photo: "eager" for a card in view on arrival, such as the first row on the Projects page. */
+export type CardPhotoLoading = Exclude<PhotoLoading, "priority">;
+
+type ProjectCardProps = {
+  project: ShowcaseProject;
+  photoLoading?: CardPhotoLoading;
+};
+
+export function ProjectCard({ project, photoLoading = "lazy" }: ProjectCardProps) {
   return (
     <Link href={`/projects/${project.slug}`} className="group block">
       <div className="overflow-hidden">
-        <ProjectVisual project={project} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
+        <ProjectVisual project={project} photoLoading={photoLoading} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
       </div>
       <p className="eyebrow mt-5">
         {project.sector} · {project.city}, {project.country}

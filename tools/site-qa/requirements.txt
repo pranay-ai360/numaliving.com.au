@@ -1,0 +1,4 @@
+# CloakBrowser brings Playwright (Python) and its Chromium build; install once with: pip install -r requirements.txt && cloakbrowser install
+cloakbrowser==0.5.11
+pillow
+numpy

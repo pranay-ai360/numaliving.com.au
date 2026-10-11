@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { home, process } from "@/content/pages";
+import { home } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { site } from "@/config/site";
 import { LineArt, Wordmark } from "@/components/Brand";
@@ -118,7 +118,7 @@ export default function HomePage() {
         <Container className="text-center">
           <SectionTitle ghost="Enquire" title="Start a Project" align="center" />
           <p className="mx-auto mt-8 max-w-xl text-lg text-ink-muted">
-            Send drawings, a BOQ or a hand sketch. We reply with scope, programme and a priced proposal.
+            Send drawings, a BOQ or a scanned sketch (PDF). We reply with scope, programme and a priced proposal.
           </p>
           <div className="mt-8">
             <ButtonLink href="/contact">Request a Quote</ButtonLink>

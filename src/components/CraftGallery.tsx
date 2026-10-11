@@ -1,4 +1,5 @@
-import { MATERIAL_FILL } from "./ui";
+import { LAZY_IMAGE_PROPS, MATERIAL_FILL } from "./ui";
+import { withBasePath } from "@/lib/assetPath";
 import type { Material } from "@/lib/types";
 
 type Photo = { src: string; material: string; alt: string; caption: string };
@@ -9,7 +10,7 @@ export function PhotoTile({ photo, className = "" }: { photo: Photo; className?:
     <figure className={`group relative overflow-hidden ${className}`}>
       {photo.src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo.src} alt={photo.alt} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+        <img src={withBasePath(photo.src)} alt={photo.alt} {...LAZY_IMAGE_PROPS} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
       ) : (
         <div role="img" aria-label={photo.alt} className="h-full w-full" style={{ background: MATERIAL_FILL[photo.material as Material] ?? MATERIAL_FILL.oak }} />
       )}

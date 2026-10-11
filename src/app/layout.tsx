@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { site } from "@/config/site";
+import { isIndexable, site } from "@/config/site";
+import { buildRobotsMetadata } from "@/lib/robots";
 import { Header } from "@/components/Header";
 import { Footer, FloatingActions, SampleNotice } from "@/components/Chrome";
 
@@ -19,6 +20,7 @@ const body = localFont({
 export const metadata: Metadata = {
   title: { default: `${site.name} | ${site.tagline}`, template: `%s | ${site.name}` },
   description: site.description,
+  robots: buildRobotsMetadata(isIndexable),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

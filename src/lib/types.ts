@@ -2,10 +2,14 @@
  * Shared data types.
  *
  * The website uses the "Public" types today. The "Portal" types are
- * defined now so the client portal (Phase 2) plugs into the same
- * shapes: a showcase project on the website can later link to a live
- * portal project, and a quote request can be converted into one.
+ * defined ahead of time so the Client Portal, which does not exist yet
+ * (see CONTEXT.md), can reuse the same shapes: a showcase project on the
+ * website could link to a live portal project. A Quote Request is emailed
+ * to Numa and the website stores nothing, so `quoteRequestId` below only
+ * matters once a back office exists. The `QuoteRequest` type itself is
+ * inferred from its schema in `@/lib/quotes/schema`.
  */
+import type { QuoteRequestField } from "@/lib/quotes/fields";
 
 // ── Public website ────────────────────────────────────────────────
 
@@ -33,26 +37,55 @@ export interface ShowcaseProject {
   sample?: boolean;
 }
 
-export interface QuoteRequest {
-  name: string;
-  company?: string;
-  email: string;
-  phone?: string;
-  role: "Owner / developer" | "Architect / designer" | "Main contractor" | "Other";
-  projectType: Sector | "Other";
-  location: string;
-  timeline: string;
-  message: string;
-}
+/** Why a Quote Request was not sent. */
+export type SubmissionFailureReason =
+  /** The details or the Drawings did not pass validation, so nothing was sent. */
+  | "invalid"
+  /** No FormSubmit id is set for this build, so nothing was sent. */
+  | "not-configured"
+  /** FormSubmit has not been activated for this form yet, so nothing was delivered. */
+  | "not-activated"
+  /** The form service could not be reached (offline, blocked by an extension, or refused by the browser). */
+  | "network"
+  /** The form service did not answer in time. */
+  | "timeout"
+  /** The form service refused the request as too large (HTTP 413). */
+  | "too-large"
+  /** The form service answered with an error or refused the request. */
+  | "rejected"
+  /** The form service answered with something unexpected, so delivery is unconfirmed. */
+  | "invalid-response";
 
-/** What a quote submission returns, whichever backend handled it. */
-export interface SubmissionResult {
-  ok: boolean;
-  reference?: string;
-  error?: string;
-  /** True when no backend is configured and nothing was stored. */
-  demo?: boolean;
-}
+/** Reasons that mean the details were fine but sending did not work out. */
+export type SendFailureReason = Exclude<SubmissionFailureReason, "invalid">;
+
+/** The form field a validation problem is about: a Quote Request field, or the attached Drawings. */
+export type InvalidField = QuoteRequestField | "drawings";
+
+/** The details or the Drawings did not pass validation. `error` is safe to show to the visitor. */
+export type ValidationFailure = {
+  ok: false;
+  reason: "invalid";
+  error: string;
+  /** The field to mark and focus, when the problem is about one field. */
+  field?: InvalidField;
+};
+
+/** Sending could not be done or did not work out. `error` is safe to show to the visitor. */
+export type SendFailure = {
+  ok: false;
+  reason: SendFailureReason;
+  error: string;
+  /** Internal, for diagnosis: the HTTP status FormSubmit answered with. Never shown to the visitor. */
+  status?: number;
+  /** Internal, for diagnosis: FormSubmit's own message, if it sent one. Never shown raw to the visitor. */
+  serviceMessage?: string;
+};
+
+export type SubmissionFailure = ValidationFailure | SendFailure;
+
+/** What sending a Quote Request returns. */
+export type SubmissionResult = { ok: true; reference: string } | SubmissionFailure;
 
 // ── Client portal (Phase 2) — not used by the website yet ─────────
 

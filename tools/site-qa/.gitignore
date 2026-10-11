@@ -1,0 +1,7 @@
+# Outputs of the QA tools (regenerate locally; never commit)
+.venv/
+__pycache__/
+logs/
+parity/
+*-check/
+tmp-*/
