@@ -94,6 +94,15 @@ async function fontStates(page: Page): Promise<readonly string[]> {
   });
 }
 
+/**
+ * next/font also declares "<name> Fallback" faces (`src: local(Arial)`) that only tune the
+ * metrics of a system font while the web font loads. Machines without Arial, such as the
+ * Linux CI runners, report them as "error"; that is harmless, so they are left out.
+ */
+function isNextFontFallback(fontState: string): boolean {
+  return /^"?[\w-]+ Fallback"? /.test(fontState);
+}
+
 test.skip(({ isMobile }) => isMobile, "The same files load at every screen size.");
 
 for (const { path, photos } of PAGES_WITH_PHOTOS) {
@@ -110,8 +119,8 @@ for (const { path, photos } of PAGES_WITH_PHOTOS) {
     const shownPhotos = await loadedImagePaths(page);
     expect(photos.map((photo) => `${BASE_PATH}${photo}`).filter((photo) => !shownPhotos.includes(photo))).toEqual([]);
 
-    // Assert: fonts loaded and none failed
-    const fonts = await fontStates(page);
+    // Assert: the site's own fonts loaded and none failed
+    const fonts = (await fontStates(page)).filter((font) => !isNextFontFallback(font));
     expect(fonts.filter((font) => font.endsWith(" error"))).toEqual([]);
     expect(fonts.some((font) => font.endsWith(" loaded"))).toBe(true);
 
