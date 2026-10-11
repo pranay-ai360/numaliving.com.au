@@ -25,28 +25,17 @@ export default function ContactPage() {
                     {site.contact.email}
                   </a>
                 </li>
-                <li>
-                  <a href={`tel:${site.contact.phone.replace(/\s/g, "")}`} className="hover:text-gold">
-                    {site.contact.phone}
-                  </a>
-                </li>
-                <li>
-                  <a href={`https://wa.me/${site.contact.whatsapp}`} className="hover:text-gold">
-                    WhatsApp
-                  </a>
-                </li>
               </ul>
             </div>
-            <div>
-              <p className="eyebrow">Factory</p>
-              <p className="mt-4 text-ink-muted">{site.contact.address}</p>
-            </div>
+            
             <div>
               <p className="eyebrow">What happens next</p>
               <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink-muted">
                 <li>We review your scope within two working days.</li>
-                <li>We send questions or a priced proposal.</li>
+                <li>We will get in touch with you to understand your project better.</li>
+                <li>We provide you with a proposal.</li>
                 <li>Once agreed, your team gets access to the client portal.</li>
+                <li>Progress is updated in the portal until final delivery.</li>
               </ol>
             </div>
           </aside>

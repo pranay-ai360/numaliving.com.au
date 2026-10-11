@@ -6,7 +6,7 @@ export const site = {
   name: "Numa Living",
   wordmark: "NUMA",
   wordmarkSub: "LIVING",
-  group: "A Condor Group company",
+  group: "A Conqueror Group company",
   tagline: "Bespoke millwork, built for the world",
   description:
     "Numa Living designs, engineers and manufactures luxury joinery and millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
@@ -23,10 +23,8 @@ export const site = {
     { label: "Home", href: "/" },
     { label: "About", href: "/about" },
     { label: "Projects", href: "/projects" },
-    { label: "Factory", href: "/factory" },
     { label: "Capabilities", href: "/capabilities" },
     { label: "Process", href: "/process" },
-    { label: "Global Delivery", href: "/global-delivery" },
     { label: "Contact", href: "/contact" },
   ],
 } as const;

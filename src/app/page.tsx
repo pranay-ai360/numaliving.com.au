@@ -33,7 +33,7 @@ export default function HomePage() {
       <section className="py-24">
         <Container className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
-            <SectionTitle ghost="About" eyebrow={site.group} title="The Joinery Behind Great Interiors" />
+            <SectionTitle ghost="About" eyebrow={site.group} title="The Craft Behind Great Interiors" />
             <p className="mt-8 text-lg leading-relaxed text-ink-muted">{home.intro}</p>
             <div className="mt-8">
               <ButtonLink href="/about" variant="outline">
@@ -102,14 +102,14 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <ol className="grid gap-px bg-white/10 sm:grid-cols-2">
-            {process.steps.slice(0, 6).map((s, i) => (
-              <li key={s.name} className="bg-ink p-5">
-                <span className="display text-xs text-gold">{String(i + 1).padStart(2, "0")}</span>
-                <p className="mt-2 font-medium">{s.name}</p>
-              </li>
-            ))}
-          </ol>
+             <ol className="grid gap-px bg-white/10 sm:grid-cols-2">
+     {["Brief", "Approve", "Make", "Deliver"].map((p, i) => (
+       <li key={p} className="bg-ink p-5">
+         <span className="display text-xs text-gold">{String(i + 1).padStart(2, "0")}</span>
+         <p className="mt-2 font-medium">{p}</p>
+       </li>
+     ))}
+   </ol>
         </Container>
       </section>
 

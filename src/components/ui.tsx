@@ -50,7 +50,7 @@ export function ButtonLink({ href, children, variant = "solid" }: { href: string
   );
 }
 
-const MATERIAL_FILL: Record<Material, string> = {
+export const MATERIAL_FILL: Record<Material, string> = {
   walnut:
     "repeating-linear-gradient(96deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 9px), repeating-linear-gradient(88deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 14px), linear-gradient(160deg, #6b4a32, #4a3121 60%, #5c3d29)",
   oak:
