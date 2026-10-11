@@ -6,6 +6,9 @@ import type { ShowcaseProject } from "@/lib/types";
  * SAMPLE CONTENT — every entry below is invented (sample: true).
  * To add a real project: copy one block, change the text, put photos
  * in /public/projects/<slug>/ and list them in `images`.
+ * Name photo files in lowercase with hyphens and no spaces (for example kitchen-01.jpg):
+ * the site is hosted on a case-sensitive server and spaces would need URL-encoding.
+ * Keep each path starting with "/"; the site adds its base path when it shows the photo.
  */
 export const projects: ShowcaseProject[] = [
   {
@@ -71,7 +74,7 @@ export const projects: ShowcaseProject[] = [
     scope: ["Stair cladding", "Bar", "Dressing rooms", "Media wall"],
     materials: ["Smoked oak", "Lacquer", "Onyx", "Antique brass"],
     durationWeeks: 20,
-    images: ["/projects/golf-links/Condor Golf Links18 _ Photo by Intelier1.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier2.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier3.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier4.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier5.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier6.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier7.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier8.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier16.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier24.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier25.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier31.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier32.jpg", "/projects/golf-links/Condor Golf Links18 _ Photo by Intelier33.jpg"],
+    images: ["/projects/golf-links/condor-golf-links18-photo-by-intelier-01.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-02.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-03.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-04.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-05.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-06.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-07.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-08.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-16.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-24.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-25.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-31.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-32.jpg", "/projects/golf-links/condor-golf-links18-photo-by-intelier-33.jpg"],
     palette: ["walnut", "lacquer", "brass"],
     sample: true,
   },

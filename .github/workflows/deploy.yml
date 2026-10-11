@@ -1,0 +1,179 @@
+# Checks every pull request and push, and publishes main to GitHub Pages:
+# https://pranay-ai360.github.io/numaliving.com.au/
+#
+# verify: audit of the production dependencies, lint, type check, unit tests with coverage,
+#         `npm run build:e2e` (a static build below the Pages base path with the test form id
+#         e2e-form-id), and the Playwright end-to-end suite against it (FormSubmit is mocked;
+#         nothing is emailed).
+# build:  on main only, checks the FORMSUBMIT_ID variable, builds with the real form id and uploads
+#         out/ as the Pages artifact. It may only read the repository and the Pages settings.
+# deploy: publishes that artifact to GitHub Pages. It is the only job allowed to write to Pages,
+#         and it runs no code from the repository.
+#
+# Settings it relies on:
+# - Settings > Pages > Source: "GitHub Actions".
+# - Repository variable FORMSUBMIT_ID: the FormSubmit alias the Quote Request form posts to. It ends
+#   up in the public page source, so it is a variable, not a secret. Without it the site still
+#   deploys and the form asks visitors to email instead (the build shows a warning). The build fails
+#   when it is the test id e2e-form-id (that site could not deliver a single Quote Request) or when
+#   it contains "@" (a mailbox address, which would be published in the site's JavaScript).
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push to a pull request makes the older run pointless; runs on main always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # The project site lives below /<repository name>. `npm run build:e2e` and the E2E server both
+      # read this variable, so they always agree.
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only the packages that ship to visitors: advisories in development tools (ESLint, the test
+      # runners) do not fail the run.
+      - name: Audit the production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
+      # The same command as on a Mac. It bakes in the test form id e2e-form-id: the E2E suite mocks
+      # FormSubmit, so nothing is ever sent to it. Never deploy this build.
+      - name: Build the static site for the end-to-end tests
+        run: npm run build:e2e
+
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload the Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  build:
+    name: Build for Pages
+    needs: verify
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Read only: it checks out the code, and actions/configure-pages reads the Pages settings.
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      # First, so a wrong setting fails within seconds. The value arrives through env and is never
+      # pasted into the script, and the messages never repeat it.
+      - name: Check the form setting
+        env:
+          FORMSUBMIT_ID: ${{ vars.FORMSUBMIT_ID }}
+        run: |
+          # Without spaces (the site trims them) and in lower case, so " E2E-Form-Id" is refused as well.
+          form_id="$(printf '%s' "$FORMSUBMIT_ID" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+          where="Settings > Secrets and variables > Actions > Variables"
+          case "$form_id" in
+            "")
+              echo "::warning title=FORMSUBMIT_ID is not set::The repository variable FORMSUBMIT_ID is empty, so the Quote Request form will ask visitors to email instead of sending. Set it to the FormSubmit alias under $where."
+              ;;
+            e2e-form-id)
+              echo "::error title=FORMSUBMIT_ID is the test id::The repository variable FORMSUBMIT_ID is e2e-form-id, the made-up id the end-to-end tests build with. A site built with it could not deliver a single Quote Request. Set FORMSUBMIT_ID to the FormSubmit alias under $where, then re-run this workflow."
+              exit 1
+              ;;
+            *@*)
+              echo "::error title=FORMSUBMIT_ID is a mailbox address::The repository variable FORMSUBMIT_ID contains \"@\", so it looks like a mailbox address, which the site would publish in its JavaScript for anyone (and any spammer) to read. Activate the mailbox with FormSubmit from a terminal (README, Going live, step 2), set FORMSUBMIT_ID to the random-string alias FormSubmit emails you under $where, then re-run this workflow."
+              exit 1
+              ;;
+          esac
+
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Build the static site
+        run: npm run build
+        env:
+          # "/numaliving.com.au" on the project site; empty once a custom domain is set up.
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_PUBLIC_FORMSUBMIT_ID: ${{ vars.FORMSUBMIT_ID }}
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: out
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only these two: write to Pages, and prove to Pages with an OIDC token that this run made the artifact.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      # Never cancel a deployment half way; a newer one waits for it instead.
+      cancel-in-progress: false
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

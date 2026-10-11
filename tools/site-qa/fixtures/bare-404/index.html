@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bad site home</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon.png">
+<script>console.error("boom from index"); console.warn("careful from index");</script>
+<script src="static/missing.js"></script>
+</head><body>
+<header><nav><a href="/about/">root-absolute about (breaks under a prefix)</a>
+<a href="about/">relative about</a> <a href="about">about without slash (redirects)</a>
+<a href="gone/">gone page</a> <a href="multi-h1/">multi h1</a> <a href="#nope">dead anchor</a>
+<a href="https://example.com/">external (must not be fetched)</a></nav></header>
+<main id="main"><h1>Bad site</h1>
+<div style="width:600px;height:20px;background:#c00">wider than a phone</div>
+<img src="img/missing.png" alt="broken above the fold">
+<img src="img/ok.png">
+<img src="img/ok.png" alt="">
+<button></button>
+<button aria-label="named button">x</button>
+<a href="about/"><img src="img/ok.png" alt=""></a>
+<a href="about/"><svg aria-hidden="true" width="10" height="10"></svg></a>
+<img src="http://localhost:4301/icon.png" alt="local second host (counts as third-party)">
+<div style="height:3000px"></div>
+<img loading="lazy" src="img/missing-lazy.png" alt="broken far below the fold">
+<img loading="lazy" src="img/ok.png" alt="fine lazy image">
+</main><footer>footer</footer></body></html>

@@ -11,7 +11,7 @@ export default function ContactPage() {
       <PageHero
         eyebrow="Contact"
         title="Request a Quote"
-        lead="Tell us about the project. Attach drawings as PDFs, or sketch the idea by hand below."
+        lead="Tell us about the project. Attach drawings as PDFs, or paste a link to larger files."
       />
       <section className="py-20">
         <Container className="grid gap-14 lg:grid-cols-[1.6fr_1fr]">

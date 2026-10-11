@@ -111,7 +111,7 @@ export const process = {
   title: "How We Work",
   lead: "A clear path from first conversation to handover. Once a project starts, every step is tracked in your client portal.",
   steps: [
-    { phase: "Brief", icon: "enquiry", name: "Enquiry & Tender", text: "Send drawings, a BOQ or even a hand sketch. We review scope and return a priced proposal." },
+    { phase: "Brief", icon: "enquiry", name: "Enquiry & Tender", text: "Send drawings, a BOQ or even a scanned sketch (PDF). We review scope and return a priced proposal." },
     { phase: "Brief", icon: "responsibilities", name: "Responsibilities", text: "At kick-off we agree who on your team uploads drawings, approves samples and signs off quotes." },
     { phase: "Approve", icon: "drawings", name: "Shop Drawings", text: "Our engineers issue shop drawings for review. They are revised until approved." },
     { phase: "Approve", icon: "samples", name: "Samples & Mock-ups", text: "Finishes, veneers and hardware are sampled and approved before production." },

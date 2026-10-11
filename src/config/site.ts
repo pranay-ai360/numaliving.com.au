@@ -11,7 +11,8 @@ export const site = {
   description:
     "Numa Living designs, engineers and manufactures luxury joinery and millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
 
-  // TODO(Ramya): replace with real contact details
+  // TODO(Ramya): replace with real contact details. Until then, src/config/launchGuard.test.ts
+  // fails the tests (and the deploy) if isIndexable below is set to true.
   contact: {
     email: "projects@numaliving.com",
     phone: "+971 4 000 0000",
@@ -34,3 +35,11 @@ export const site = {
  * Set to false once projects, photos and copy are final.
  */
 export const showSampleNotice = true;
+
+/**
+ * Whether search engines may index the site (the robots meta tag follows this; robots.txt lets
+ * crawlers in either way so they can read that tag, see src/lib/robots.ts).
+ * Keep false while the site is a preview; flip to true when the real domain is live and the
+ * contact details above are real (src/config/launchGuard.test.ts checks the second part).
+ */
+export const isIndexable = false;

@@ -2,9 +2,21 @@
 
 import { useMemo, useState } from "react";
 import type { ShowcaseProject } from "@/lib/types";
-import { ProjectCard } from "./ui";
+import { ProjectCard, type CardPhotoLoading } from "./ui";
 
-export function ProjectsGallery({ projects }: { projects: ShowcaseProject[] }) {
+/** The cards in the first row on a wide screen (three columns), which are in view on arrival. */
+const FIRST_ROW_CARD_COUNT = 3;
+
+/** The first row's photos load at once; the rest as they near the screen. */
+function photoLoadingFor(cardIndex: number): CardPhotoLoading {
+  return cardIndex < FIRST_ROW_CARD_COUNT ? "eager" : "lazy";
+}
+
+type ProjectsGalleryProps = {
+  projects: readonly ShowcaseProject[];
+};
+
+export function ProjectsGallery({ projects }: ProjectsGalleryProps) {
   const [sector, setSector] = useState("All");
   const [country, setCountry] = useState("All");
 
@@ -42,8 +54,8 @@ export function ProjectsGallery({ projects }: { projects: ShowcaseProject[] }) {
         {shown.length} {shown.length === 1 ? "project" : "projects"}
       </p>
       <div className="mt-6 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-        {shown.map((p) => (
-          <ProjectCard key={p.slug} project={p} />
+        {shown.map((p, index) => (
+          <ProjectCard key={p.slug} project={p} photoLoading={photoLoadingFor(index)} />
         ))}
       </div>
       {shown.length === 0 && <p className="py-16 text-center text-ink-muted">No projects match these filters yet.</p>}
