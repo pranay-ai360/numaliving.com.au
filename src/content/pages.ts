@@ -148,12 +148,12 @@ export const delivery = {
  * walnut, oak, lacquer, stone, brass or linen.
  */
 export const craft = [
-  { src: "", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
+  { src: "/craft/Living-01-out-1400x788.jpg", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
   { src: "", material: "oak", alt: "Fluted oak panelling detail", caption: "Fluted oak" },
-  { src: "", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
+  { src:"/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
   { src: "", material: "lacquer", alt: "Hand-finished lacquer door", caption: "Hand-finished lacquer" },
   { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
 ];
 
 /** One wide photo of the factory floor, shown above the factory section. */
-export const factoryPhoto = { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };
+export const factoryPhoto = { src: "/craft/Picture15-1200x800.jpg", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };

@@ -10,6 +10,12 @@ import { getFirebaseApp, isFirebaseConfigured } from "@/lib/firebase";
 /** Flip to true when the Phase 2 portal is ready to receive users. */
 export const PORTAL_LIVE = false;
 
+/**
+ * While the portal is not live, the login page offers a clickable demo
+ * on sample data instead (see src/lib/portal/demo.ts). Set to false to hide it.
+ */
+export const PORTAL_DEMO = true;
+
 export const portalAvailable = () => PORTAL_LIVE && isFirebaseConfigured;
 
 export type AuthResult = { ok: true } | { ok: false; error: string };

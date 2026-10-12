@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { portalAvailable, sendReset, signIn } from "@/lib/services/auth";
+import { PORTAL_DEMO, portalAvailable, sendReset, signIn } from "@/lib/services/auth";
+import { rememberDemoRole } from "@/components/portal/DemoContext";
+import { roles } from "@/lib/portal/demo";
 
 const field = "mt-1.5 w-full rounded-sm border border-line bg-paper px-3.5 py-2.5 outline-none focus:border-gold disabled:bg-linen";
 
@@ -13,6 +15,29 @@ export function LoginForm() {
   const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "info"; text: string } | null>(null);
+
+  // Demo mode: no real accounts yet, so let visitors step into the portal as one of the sample people.
+  if (!live && PORTAL_DEMO) {
+    return (
+      <div className="space-y-4">
+        <p className="text-center text-sm text-ink-muted">Preview the portal with sample project data. Choose who to sign in as:</p>
+        {roles.map((r) => (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => {
+              rememberDemoRole(r.key);
+              router.push("/portal/");
+            }}
+            className="w-full rounded-sm border border-gold py-3 font-medium text-gold-dark transition-colors hover:bg-gold hover:text-white"
+          >
+            Enter as {r.label}
+          </button>
+        ))}
+        <p className="pt-2 text-center text-xs text-ink-muted">Demo only. Nothing you do is saved.</p>
+      </div>
+    );
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

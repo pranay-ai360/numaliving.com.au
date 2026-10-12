@@ -4,6 +4,7 @@ import "./globals.css";
 import { site } from "@/config/site";
 import { Header } from "@/components/Header";
 import { Footer, FloatingActions, SampleNotice } from "@/components/Chrome";
+import { HideOnPortal } from "@/components/HideOnPortal";
 
 // Fonts are self-hosted from src/fonts (both are free Google Fonts, SIL Open Font License).
 // Michroma: wide display face close to the Condor headings. Montserrat: body text.
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <Footer />
-        <FloatingActions />
+        <HideOnPortal>
+          <FloatingActions />
+        </HideOnPortal>
       </body>
     </html>
   );
