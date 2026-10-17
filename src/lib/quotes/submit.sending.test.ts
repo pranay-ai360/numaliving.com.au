@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { site } from "@/config/site";
 import {
   FORM_ID,
   FORM_ID_ENV_NAME,
@@ -218,7 +219,7 @@ describe("submitQuoteRequest, sending", () => {
       // Assert
       for (const result of results) {
         expect(result.ok).toBe(false);
-        expect(!result.ok && result.error).toContain("projects@numaliving.com");
+        expect(!result.ok && result.error).toContain(site.contact.email);
       }
     });
 

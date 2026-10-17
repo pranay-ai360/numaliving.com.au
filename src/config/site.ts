@@ -11,10 +11,10 @@ export const site = {
   description:
     "Numa Living designs, engineers and manufactures luxury joinery and millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
 
-  // TODO(Ramya): replace with real contact details. Until then, src/config/launchGuard.test.ts
-  // fails the tests (and the deploy) if isIndexable below is set to true.
+  // The email is real. TODO(Ramya): replace the placeholder phone, WhatsApp number and address. Until
+  // then, src/config/launchGuard.test.ts fails the tests (and the deploy) if isIndexable below is true.
   contact: {
-    email: "projects@numaliving.com",
+    email: "projects@numaliving.us",
     phone: "+971 4 000 0000",
     whatsapp: "971400000000", // digits only, used for the wa.me link
     address: "Factory address, Dubai, UAE",
