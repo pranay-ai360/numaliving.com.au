@@ -45,3 +45,7 @@ next-env.d.ts
 
 # local credentials (Cloudflare API tokens), never commit
 /api-keys.json
+
+# Claude Code: share the project settings, keep local state (plans, local settings) private
+/.claude/*
+!/.claude/settings.json
