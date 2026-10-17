@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local credentials (Cloudflare API tokens), never commit
+/api-keys.json
