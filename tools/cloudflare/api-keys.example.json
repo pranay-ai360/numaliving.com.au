@@ -1,7 +1,5 @@
 {
   "zone-api-key": "",
   "zone-id": "",
-  "account-id": "",
-  "cloudflare-global-api-key": "",
-  "cloudflare-email": ""
+  "account-id": ""
 }

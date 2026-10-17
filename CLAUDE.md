@@ -19,7 +19,7 @@ Branch, then `gh pr create`, `gh pr checks --watch`, `gh pr merge --merge`. A pu
 
 ## Single sources of truth
 
-- **Contact details:** `site.contact` in `src/config/site.ts`. Never type the email anywhere else; tests read `site.contact.email`. `src/config/launchGuard.test.ts` keeps the old placeholder email as its fixture on purpose.
+- **Contact details:** `site.contact` in `src/config/site.ts`. Change the email only there and in its pin, `src/config/site.test.ts`; every other test reads `site.contact.email`. `src/config/launchGuard.test.ts` keeps the old placeholder email as its fixture on purpose.
 - **Where Quote Requests go:** the FormSubmit alias in the repository variable `FORMSUBMIT_ID`. It is public by design. The deploy fails if it contains `@` or is `e2e-form-id`. Changing it takes effect at the next deploy.
 - **Search visibility:** `isIndexable` in `src/config/site.ts` is `false`, so every page is `noindex`. The launch guard test stops it being set to `true` while placeholder or sample content remains (phone, WhatsApp, address, sample projects, the Preview ribbon).
 - **Base path:** `NEXT_PUBLIC_BASE_PATH`, filled in by `actions/configure-pages` (empty on numaliving.us).
@@ -30,7 +30,7 @@ numaliving.us is registered at GoDaddy, its DNS is on Cloudflare (every site rec
 
 ## Secrets: hard rules
 
-- `api-keys.json` (repository root, git-ignored) holds Cloudflare credentials. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` denies reading it. Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values.
+- `api-keys.json` (repository root, git-ignored) holds Cloudflare credentials. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` blocks the obvious ways to read it (a speed bump, not a boundary, so the rule is yours to keep). Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values; it supports a file outside the repository through `NUMA_KEYS_FILE`.
 - No secret in any committed file, log, commit message or pull request. Every `NEXT_PUBLIC_` value is public.
 
 ## Conventions

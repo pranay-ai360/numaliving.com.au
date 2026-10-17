@@ -51,7 +51,7 @@ Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password o
 | Messages shown when a Quote Request cannot be sent | `src/lib/quotes/messages.ts` |
 | The mailbox that receives Quote Requests | The repository variable `FORMSUBMIT_ID`, set to the mailbox's FormSubmit alias, never the address itself (see [Going live](#going-live), steps 2 and 3) |
 
-**Adding project photos:** put the images in `public/projects/<project-slug>/`, then list them in that project's `images`, for example `images: ["/projects/marina-villa/Marina-View-0001.jpg"]`. The first image is the cover. Name new files in lowercase with hyphens and no spaces (for example `kitchen-01.jpg`). GitHub Pages treats capitals as different letters, so a path must match its file name exactly. Keep each path starting with `/`: the site adds `/numaliving.com.au` in front when it shows the photo (through `withBasePath()` in `src/lib/assetPath.ts`). Projects with no photos show a material-swatch placeholder.
+**Adding project photos:** put the images in `public/projects/<project-slug>/`, then list them in that project's `images`, for example `images: ["/projects/marina-villa/Marina-View-0001.jpg"]`. The first image is the cover. Name new files in lowercase with hyphens and no spaces (for example `kitchen-01.jpg`). GitHub Pages treats capitals as different letters, so a path must match its file name exactly. Keep each path starting with `/`: the site adds the base path in front when it shows the photo (empty on numaliving.us, `/numaliving.com.au` on the old project address) (through `withBasePath()` in `src/lib/assetPath.ts`). Projects with no photos show a material-swatch placeholder.
 
 Everything marked `sample: true`, `SAMPLE` or `TODO(Ramya)` is placeholder content to replace.
 
@@ -134,7 +134,7 @@ These were the steps of the first publish (11 October 2026). Today a change ship
 
       The Referer line tells FormSubmit which website the form is for. FormSubmit replies with a short message and emails an activation link to the mailbox.
    3. Open FormSubmit's email and click the activation link.
-   4. FormSubmit then emails you a random-string alias for the mailbox. Copy it. The site uses the alias instead of the address, so the address never appears in the page source.
+   4. FormSubmit then emails you a random-string alias for the mailbox. Copy it. The site uses the alias instead of the address, so the form's own code does not name it. (numaliving.us prints its contact email on every page anyway, so the alias hides nothing while the form's mailbox is that same public address: see [Security notes](#security-notes).)
 
 3. **Save the alias as a repository variable (P3).**
 
@@ -219,7 +219,7 @@ These were the steps of the first publish (11 October 2026). Today a change ship
 
 9. **If the PDF did not arrive: plan B (P8).** The email still lists the file names under "Attached drawings", so you know what the visitor meant to send and can ask for it. Plan B is a small code change: requests with Drawings are sent as an ordinary form post (`multipart/form-data`) to `https://formsubmit.co/<alias>`, the way FormSubmit documents attachments, with `_next` pointing to a static thank-you page at `/contact/thanks/`. Requests without files keep using AJAX. Until that change is live, visitors can still share drawings through the "Link to larger drawings" field.
 
-10. **Record the live URL (P9).** Remove "(after the first deploy)" from the live-site line at the top of this README.
+10. **Record the live URL (P9).** Done: the live-site line at the top of this README gives https://numaliving.us/.
 
 ## Tests and quality checks
 
@@ -256,6 +256,8 @@ python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
   --out-dir "${TMPDIR:-/tmp}/numa-live-check" --expect-https --expect-noindex
 ```
 
+**DNS helper.** `tools/cloudflare/` keeps the Cloudflare DNS records for numaliving.us in line (`check` is read-only; `apply --yes` changes the live zone). Its README explains the token and where to keep the keys file. Its unit tests need no network: `python3 -m unittest discover -s tools/cloudflare/tests`.
+
 **ESLint and the coverage report (waiting for the owner).** After `npm run test:coverage`, `npm run lint` also scans the generated report in `coverage/` and prints a warning about `coverage/block-navigation.js`. The fix is to add `coverage/**`, `playwright-report/**` and `test-results/**` to the `globalIgnores` list in `eslint.config.mjs`. That file is protected in this setup, so the change waits for the owner's decision. CI is not affected, because its lint step runs before the report exists.
 
 ## Search engines and the preview
@@ -275,7 +277,7 @@ The site is served at https://numaliving.us/ (set up on 16 October 2026). The ba
 
 The steps below are how it was done, and how to repeat it for another domain. They follow GitHub's guide [Managing a custom domain for your GitHub Pages site](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site). In short:
 
-1. **Verify the domain with GitHub first.** This stops anyone else's GitHub Pages site from taking the domain over. Open your profile picture > Settings > Pages (your profile settings, not the repository's) > Add a domain. GitHub shows a TXT record named `_github-pages-challenge-pranay-ai360.<your-domain>`. Add it at your DNS provider, wait (up to 24 hours) and click Verify. Keep the TXT record afterwards. (Not yet done for numaliving.us.)
+1. **Verify the domain with GitHub first.** This stops anyone else's GitHub Pages site from taking the domain over. Open your profile picture > Settings > Pages (your profile settings, not the repository's) > Add a domain. GitHub shows a TXT record named `_github-pages-challenge-pranay-ai360.<your-domain>`. Add it at your DNS provider, wait (up to 24 hours) and click Verify. Keep the TXT record afterwards. Do this before anything else, and before ever clearing a domain from the repository: while it is cleared, another GitHub account could claim it.
 2. **Add the domain to the site.** In the repository's Settings > Pages > Custom domain, enter `www.<your-domain>` (or the bare domain) and save. GitHub recommends doing this before adding the DNS records. No `CNAME` file is needed: GitHub ignores it for sites published by a GitHub Actions workflow.
 3. **Add the DNS records** at your DNS provider:
    - for the bare domain, four `A` records (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`) and four `AAAA` records (`2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`);
@@ -303,6 +305,7 @@ The steps below are how it was done, and how to repeat it for another domain. Th
   - Send Quote Requests to a mailbox used only for them (for example `quotes@` on Numa's own domain), not to a personal or admin mailbox.
   - Make sure that mailbox scans attachments for malware (Gmail and Microsoft 365 do by default), and open attached drawings with care.
   - Never put the mailbox address itself into `FORMSUBMIT_ID`: the deploy refuses it (step 2 of [Going live](#going-live)).
+  - For numaliving.us the FormSubmit mailbox is `projects@numaliving.us`, which is also printed on every page. Anyone can therefore post to FormSubmit with the address itself, skipping the alias and every check in the browser. If the form is abused, activate a separate unpublished mailbox for FormSubmit (for example `quotes-<random>@numaliving.us`, forwarding to the same inbox) and switch `FORMSUBMIT_ID` to its alias, or bring in the Turnstile relay (F6, below).
 - **Follow-ups** (F6 and F9 to F12):
   - **Turnstile relay (F6):** a small Cloudflare Worker that checks Cloudflare Turnstile (a free challenge) before it passes a Quote Request on, so the FormSubmit alias no longer has to be public. Or Web3Forms Pro, a paid form service with stronger spam controls.
   - **Content Security Policy (F9):** GitHub Pages cannot send security headers, but a `<meta http-equiv="Content-Security-Policy">` tag can still limit where scripts load from and where the page may send data (its own address and `formsubmit.co`). Next.js puts a few scripts inline in each page, so the policy needs their hashes and a careful test.

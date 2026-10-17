@@ -21,7 +21,7 @@ The PDF drawings or bill of quantities (BOQ) a visitor supplies with a Quote Req
 _Avoid_: Plans, uploads
 
 **Contact email**:
-The public address printed on the site and used by every "email us instead" link and error message: `projects@numaliving.us`. It is set in `site.contact.email` (`src/config/site.ts`) and nowhere else. Mail sent to it is received through Forward Email.
+The public address printed on the site and used by every "email us instead" link and error message: `projects@numaliving.us`. It is set in `site.contact.email` (`src/config/site.ts`), and `src/config/site.test.ts` pins it. Mail sent to it is received through Forward Email.
 _Avoid_: Enquiries address, info address
 
 **Form alias**:

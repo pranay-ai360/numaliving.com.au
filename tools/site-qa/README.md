@@ -20,7 +20,8 @@ SP=${TMPDIR:-/tmp}/numa-qa        # scratch folder for baselines and reports
 
 Requirements: Python 3 with the packages in `requirements.txt` (`pip install -r tools/site-qa/requirements.txt`, then
 `cloakbrowser install` once to download its Chromium). On the owner's Mac they are installed for Homebrew's
-`python3.14`; plain `python3` does not have them, so run the tools as `python3.14 tools/site-qa/site_check.py ...`.
+`python3.14`; plain `python3` does not have them, so run the tools as `python3.14 tools/site-qa/site_check.py ...`. Wherever an
+example below says `python3`, use that interpreter (or `tools/site-qa/.venv/bin/python` if you made a virtual environment).
 
 ## One browser at a time (licence limit)
 

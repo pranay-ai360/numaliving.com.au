@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Cloudflare DNS helper for numaliving.us: the records GitHub Pages needs.
 
-Reads Cloudflare credentials from api-keys.json (git-ignored, at the repository root) and never
-prints them.
+Reads a scoped Cloudflare API token from api-keys.json (git-ignored) and never prints it.
 
   check        read-only: validate the credentials and the zone, list the records, show the change plan
-  apply --yes  carry out that plan: delete conflicting records, switch proxying off, create missing ones
+  apply --yes  carry out that plan on the live zone
 
-Only the A, AAAA and CNAME records on the bare domain and on www are managed. Everything else in the
-zone (mail records, verification TXT records, other names) is left alone. Standard library only.
+Only the A, AAAA and CNAME records on the bare domain and on www are managed: any other A, AAAA or
+CNAME record on those two names is deleted. Everything else in the zone (mail records, verification
+TXT records, other names) is left alone. Standard library only.
 """
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import re
@@ -28,16 +29,10 @@ API_BASE = "https://api.cloudflare.com/client/v4"
 DOMAIN = "numaliving.us"
 WWW_HOST = f"www.{DOMAIN}"
 PAGES_HOST = "pranay-ai360.github.io"
-ZONE_TOKEN_KEY_NAMES = ("zone-api-key", "zone-api-token")
-# Older copies of the keys file spell it "cloudlfare"; the correct spelling is accepted as well.
-GLOBAL_KEY_NAMES = (
-    "cloudflare-global-api-key",
-    "cloudlfare-global-api-key",
-    "cloudflare-api-key",
-    "cloudlfare-api-key",
-)
-EMAIL_KEY_NAMES = ("cloudflare-email", "cloudlfare-email", "email")
-SECRET_KEY_NAMES = (*ZONE_TOKEN_KEY_NAMES, *GLOBAL_KEY_NAMES)
+TOKEN_KEY_NAMES = ("zone-api-key", "zone-api-token")
+KNOWN_KEY_NAMES = (*TOKEN_KEY_NAMES, "zone-id", "account-id")
+TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
+ID_PATTERN = re.compile(r"[0-9a-f]{32}")
 KEY_PREFIXES = (("cfk_", "Global API Key"), ("cfut_", "user API token"), ("cfat_", "account API token"))
 LEGACY_KEY_SHAPES = (
     (re.compile(r"[A-Za-z0-9_-]{40}"), "legacy API token"),
@@ -59,7 +54,8 @@ DESIRED_RECORDS = (
     *(("AAAA", DOMAIN, ip) for ip in GITHUB_IPV6),
     ("CNAME", WWW_HOST, PAGES_HOST),
 )
-MANAGED_TYPES = ("A", "AAAA", "CNAME")
+ADDRESS_TYPES = ("A", "AAAA")
+MANAGED_TYPES = (*ADDRESS_TYPES, "CNAME")
 MANAGED_NAMES = (DOMAIN, WWW_HOST)
 
 Credentials = Mapping[str, str]
@@ -68,6 +64,16 @@ Record = Mapping[str, Any]
 
 class CloudflareError(Exception):
     """A failed step. Its message never contains the credentials."""
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect: it would forward the Authorization header to wherever it points."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102
+        return None
+
+
+OPENER = urllib.request.build_opener(_NoRedirect)
 
 
 def default_keys_file() -> Path:
@@ -101,49 +107,53 @@ def key_kind(value: str) -> str:
 
 
 def credentials_from(data: Mapping[str, Any]) -> dict[str, str]:
-    zone_id = first_value(data, ("zone-id",))
-    account_id = first_value(data, ("account-id",))
-    missing = [name for name, value in (("zone-id", zone_id), ("account-id", account_id)) if not value]
+    """The scoped token and the two ids, checked for shape. Errors never include a value."""
+    fields = (
+        ("zone-api-key", first_value(data, TOKEN_KEY_NAMES), TOKEN_PATTERN),
+        ("zone-id", first_value(data, ("zone-id",)), ID_PATTERN),
+        ("account-id", first_value(data, ("account-id",)), ID_PATTERN),
+    )
+    missing = [name for name, value, _ in fields if not value]
     if missing:
         raise CloudflareError("empty or missing in the keys file: " + ", ".join(missing))
-    base = {"zone_id": zone_id, "account_id": account_id}
-    zone_token = first_value(data, ZONE_TOKEN_KEY_NAMES)
-    if zone_token:  # a scoped API token is sent as a Bearer token and needs no email
-        return {**base, "token": zone_token, "email": "", "via": "zone-api-key (Bearer token)"}
-    global_key, email = first_value(data, GLOBAL_KEY_NAMES), first_value(data, EMAIL_KEY_NAMES)
-    if global_key and email:
-        return {**base, "token": global_key, "email": email, "via": "Global API Key + account email"}
-    raise CloudflareError(
-        "no usable credential: fill in zone-api-key, or add cloudflare-email next to the Global API Key"
-    )
+    malformed = [name for name, value, pattern in fields if not pattern.fullmatch(value)]
+    if malformed:
+        raise CloudflareError(
+            "not the expected shape, copy the value again with no spaces or line breaks: " + ", ".join(malformed)
+        )
+    token, zone_id, account_id = (value for _, value, _ in fields)
+    return {"token": token, "zone_id": zone_id, "account_id": account_id}
 
 
 def describe_keys_file(data: Mapping[str, Any]) -> None:
     print("== keys file (values are never printed)")
-    print("  top-level keys:", ", ".join(sorted(data)) or "(none)")
-    for name in (*SECRET_KEY_NAMES, *EMAIL_KEY_NAMES, "zone-id", "account-id"):
+    for name in KNOWN_KEY_NAMES:
         if name not in data:
             continue
         value = str(data[name]).strip()
-        detail = f", format: {key_kind(value)}" if value and name in SECRET_KEY_NAMES else ""
+        detail = f", format: {key_kind(value)}" if value and name in TOKEN_KEY_NAMES else ""
         print(f"  {name}: {'filled in' if value else 'EMPTY'}, {len(value)} characters{detail}")
+    others = [name for name in data if name not in KNOWN_KEY_NAMES]
+    if others:
+        print(f"  {len(others)} other field(s) ignored by this helper")
+    if any("global" in str(name).lower() for name in others):
+        print("  note: a Global API Key field is present but unused. Delete it from the file and roll that key")
+        print("        in the Cloudflare dashboard (My Profile > API Tokens > Global API Key).")
 
 
 def auth_headers(creds: Credentials) -> dict[str, str]:
-    if creds["email"]:  # a Global API Key travels with the account email
-        return {"X-Auth-Email": creds["email"], "X-Auth-Key": creds["token"]}
     return {"Authorization": f"Bearer {creds['token']}"}
 
 
 def call(
     method: str, path: str, creds: Credentials, body: Mapping[str, Any] | None = None
 ) -> tuple[int, dict[str, Any]]:
-    """Return (HTTP status, parsed JSON body). Network failures raise CloudflareError."""
+    """Return (HTTP status, parsed JSON body). Every other failure raises CloudflareError."""
     headers = {**auth_headers(creds), "Content-Type": "application/json", "User-Agent": USER_AGENT}
     data = None if body is None else json.dumps(body).encode()
     request = urllib.request.Request(f"{API_BASE}{path}", data=data, method=method, headers=headers)
     try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        with OPENER.open(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             return response.status, json.load(response)
     except urllib.error.HTTPError as error:
         with error:  # releases the response body
@@ -153,6 +163,9 @@ def call(
                 return error.code, {}
     except urllib.error.URLError as error:
         raise CloudflareError(f"network error: {error.reason}") from None
+    except (OSError, http.client.HTTPException, ValueError) as error:
+        # Only the type is shown: the message of a bad-header error can contain the token itself.
+        raise CloudflareError(f"the request failed ({type(error).__name__})") from None
 
 
 def error_text(payload: Mapping[str, Any]) -> str:
@@ -167,8 +180,6 @@ def require_ok(status: int, payload: Mapping[str, Any], action: str) -> Mapping[
 
 
 def verify_credentials(creds: Credentials) -> str:
-    if creds["email"]:
-        return "Global API Key with the account email (proved by the zone request below)"
     attempts = (
         ("user token", "/user/tokens/verify"),
         ("account token", f"/accounts/{creds['account_id']}/tokens/verify"),
@@ -183,13 +194,12 @@ def verify_credentials(creds: Credentials) -> str:
 
 
 def fetch_zone(creds: Credentials) -> Mapping[str, Any] | None:
-    """Return the zone, or None when the credentials may not read zone details (no Zone:Read).
+    """Return the zone, or None when the token may not read zone details (no Zone > Zone > Read).
 
-    Without the zone name the wrong-zone guard is weaker, but Cloudflare itself rejects a record whose
-    name lies outside the zone, and the plan only deletes records named after numaliving.us."""
+    A zone that is readable but belongs to another domain is refused outright."""
     status, payload = call("GET", f"/zones/{creds['zone_id']}", creds)
     if status == HTTP_FORBIDDEN:
-        print(f"  note: the credentials cannot read zone details ({error_text(payload)})")
+        print(f"  note: the token cannot read zone details ({error_text(payload)})")
         return None
     zone = require_ok(status, payload, "reading the zone")["result"]
     if zone.get("name") != DOMAIN:
@@ -213,15 +223,33 @@ def record_key(record: Record) -> tuple[str, str, str]:
     return (record["type"], record["name"], record["content"])
 
 
+def belongs_to_domain(records: Sequence[Record]) -> bool:
+    """True when there are records and every one of them is named after the domain."""
+    return bool(records) and all(r["name"] == DOMAIN or r["name"].endswith(f".{DOMAIN}") for r in records)
+
+
+def blocks_creation(stale: Record, creates: Sequence[tuple[str, str, str]]) -> bool:
+    """A CNAME cannot share a name with another record, so a stale record on a name that gets a new
+    CNAME (or a stale CNAME on a name that gets new address records) must be deleted before the create."""
+    return any(
+        name == stale["name"] and not (rtype in ADDRESS_TYPES and stale["type"] in ADDRESS_TYPES)
+        for rtype, name, _ in creates
+    )
+
+
 def build_plan(records: Sequence[Record]) -> dict[str, list[Any]]:
     wanted = set(DESIRED_RECORDS)
     present = {record_key(record) for record in records}
+    creates = [record for record in DESIRED_RECORDS if record not in present]
+    stale = [
+        record for record in records
+        if record["type"] in MANAGED_TYPES and record["name"] in MANAGED_NAMES and record_key(record) not in wanted
+    ]
+    blocking = [record for record in stale if blocks_creation(record, creates)]
     return {
-        "create": [record for record in DESIRED_RECORDS if record not in present],
-        "delete": [
-            record for record in records
-            if record["type"] in MANAGED_TYPES and record["name"] in MANAGED_NAMES and record_key(record) not in wanted
-        ],
+        "create": creates,
+        "delete_first": blocking,
+        "delete_after": [record for record in stale if record not in blocking],
         "unproxy": [record for record in records if record_key(record) in wanted and record.get("proxied")],
     }
 
@@ -229,7 +257,7 @@ def build_plan(records: Sequence[Record]) -> dict[str, list[Any]]:
 def print_zone(zone: Mapping[str, Any] | None, creds: Credentials) -> None:
     print("== zone")
     if zone is None:
-        print("  (zone details not readable with this credential)")
+        print("  (zone details not readable with this token)")
         return
     print(f"  name: {zone['name']}   status: {zone.get('status')}   paused: {zone.get('paused')}")
     print(f"  name servers: {', '.join(zone.get('name_servers') or [])}")
@@ -246,7 +274,7 @@ def print_plan(plan: Mapping[str, Sequence[Any]]) -> None:
     print("== change plan")
     for rtype, name, content in plan["create"]:
         print(f"  create  {rtype:<6}{name:<28}{content}  (DNS only)")
-    for record in plan["delete"]:
+    for record in [*plan["delete_first"], *plan["delete_after"]]:
         print(f"  delete  {record['type']:<6}{record['name']:<28}{record['content']}  (conflicts with GitHub Pages)")
     for record in plan["unproxy"]:
         print(f"  unproxy {record['type']:<6}{record['name']:<28}{record['content']}")
@@ -259,7 +287,6 @@ def check(keys_file: Path) -> None:
     describe_keys_file(data)
     creds = credentials_from(data)
     print("== credentials")
-    print(f"  using: {creds['via']}")
     print("  " + verify_credentials(creds))
     print_zone(fetch_zone(creds), creds)
     records = list_records(creds)
@@ -267,36 +294,70 @@ def check(keys_file: Path) -> None:
     print_plan(build_plan(records))
 
 
+def delete_record(creds: Credentials, record: Record) -> None:
+    path = f"/zones/{creds['zone_id']}/dns_records/{record['id']}"
+    require_ok(*call("DELETE", path, creds), f"deleting {record['type']} {record['name']}")
+    print(f"  deleted   {record['type']:<6}{record['name']:<28}{record['content']}")
+
+
+def unproxy_record(creds: Credentials, record: Record) -> None:
+    path = f"/zones/{creds['zone_id']}/dns_records/{record['id']}"
+    action = f"switching proxy off for {record['type']} {record['name']}"
+    require_ok(*call("PATCH", path, creds, {"proxied": False}), action)
+    print(f"  unproxied {record['type']:<6}{record['name']:<28}{record['content']}")
+
+
+def create_record(creds: Credentials, rtype: str, name: str, content: str) -> None:
+    body = {
+        "type": rtype, "name": name, "content": content,
+        "ttl": AUTO_TTL, "proxied": False, "comment": RECORD_COMMENT,
+    }
+    require_ok(*call("POST", f"/zones/{creds['zone_id']}/dns_records", creds, body), f"creating {rtype} {name}")
+    print(f"  created   {rtype:<6}{name:<28}{content}")
+
+
+def run_plan(creds: Credentials, plan: Mapping[str, Sequence[Any]]) -> None:
+    """Blocking deletes first, then the creates, then the rest of the deletes: the domain keeps answering."""
+    for record in plan["delete_first"]:
+        delete_record(creds, record)
+    for record in plan["unproxy"]:
+        unproxy_record(creds, record)
+    for rtype, name, content in plan["create"]:
+        create_record(creds, rtype, name, content)
+    for record in plan["delete_after"]:
+        delete_record(creds, record)
+
+
 def apply(keys_file: Path) -> None:
     creds = credentials_from(read_keys_file(keys_file))
-    fetch_zone(creds)  # refuses a zone-id that belongs to any other domain, when it can be read
-    plan = build_plan(list_records(creds))
+    zone = fetch_zone(creds)
+    records = list_records(creds)
+    if zone is None and not belongs_to_domain(records):
+        raise CloudflareError(
+            "cannot confirm that the zone-id belongs to numaliving.us: the token cannot read zone details and the "
+            "zone does not hold only numaliving.us records. Give the token Zone > Zone > Read."
+        )
+    plan = build_plan(records)
     print_plan(plan)
-    records_path = f"/zones/{creds['zone_id']}/dns_records"
-    for record in plan["delete"]:
-        require_ok(*call("DELETE", f"{records_path}/{record['id']}", creds),
-                   f"deleting {record['type']} {record['name']}")
-        print(f"  deleted   {record['type']:<6}{record['name']:<28}{record['content']}")
-    for record in plan["unproxy"]:
-        require_ok(*call("PATCH", f"{records_path}/{record['id']}", creds, {"proxied": False}),
-                   f"switching proxy off for {record['type']} {record['name']}")
-        print(f"  unproxied {record['type']:<6}{record['name']:<28}{record['content']}")
-    for rtype, name, content in plan["create"]:
-        body = {"type": rtype, "name": name, "content": content, "ttl": AUTO_TTL, "proxied": False,
-                "comment": RECORD_COMMENT}
-        require_ok(*call("POST", records_path, creds, body), f"creating {rtype} {name}")
-        print(f"  created   {rtype:<6}{name:<28}{content}")
+    try:
+        run_plan(creds, plan)
+    except CloudflareError:
+        print("The zone may be partly changed: run `check`, then `apply --yes` again to finish.")
+        raise
     print_records(list_records(creds))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter, allow_abbrev=False
+    )
     parser.add_argument("--keys-file", type=Path, default=None,
-                        help=f"credentials file (default: ${KEYS_FILE_ENV}, else api-keys.json in the repository root)")
+                        help=f"credentials file, given before the command (default: ${KEYS_FILE_ENV}, "
+                             "else api-keys.json in the repository root)")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("check", help="read-only: validate, list the records, show the change plan")
-    apply_parser = commands.add_parser("apply", help="change the zone to match the plan")
-    apply_parser.add_argument("--yes", action="store_true", help="confirm that the zone may be changed")
+    commands.add_parser("check", allow_abbrev=False, help="read-only: validate, list the records, show the change plan")
+    apply_parser = commands.add_parser("apply", allow_abbrev=False, help="change the zone to match the plan")
+    apply_parser.add_argument("--yes", action="store_true", help="confirm that the live zone may be changed")
     return parser
 
 
@@ -310,6 +371,10 @@ def main(argv: Sequence[str]) -> int:
         (check if args.command == "check" else apply)(keys_file)
     except CloudflareError as error:
         print(f"ERROR: {error}")
+        return EXIT_FAILURE
+    except Exception as error:
+        # Nothing unexpected may leak: show the type only, because a message could contain a credential.
+        print(f"ERROR: unexpected {type(error).__name__}; details are hidden because they could hold credentials")
         return EXIT_FAILURE
     return 0
 

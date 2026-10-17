@@ -3,19 +3,13 @@
   "permissions": {
     "deny": [
       "Read(./api-keys.json)",
+      "Read(**/api-keys.json)",
       "Edit(./api-keys.json)",
-      "Bash(cat *api-keys.json*)",
-      "Bash(less *api-keys.json*)",
-      "Bash(more *api-keys.json*)",
-      "Bash(head *api-keys.json*)",
-      "Bash(tail *api-keys.json*)",
-      "Bash(grep *api-keys.json*)",
-      "Bash(rg *api-keys.json*)",
-      "Bash(sed *api-keys.json*)",
-      "Bash(awk *api-keys.json*)",
-      "Bash(jq *api-keys.json*)",
-      "Bash(cp *api-keys.json*)",
-      "Bash(open *api-keys.json*)"
+      "Edit(**/api-keys.json)",
+      "Bash(*api-keys.json*)",
+      "Bash(gh api -X DELETE *)",
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh repo delete *)"
     ]
   }
 }

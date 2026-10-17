@@ -1,6 +1,6 @@
 /**
  * Site-wide settings: name, contact details, navigation.
- * Edit the values here — no other file needs to change.
+ * Edit the values here. If you change the contact email, update its pin in site.test.ts too.
  */
 export const site = {
   name: "Numa Living",
