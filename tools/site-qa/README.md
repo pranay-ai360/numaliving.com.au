@@ -19,15 +19,18 @@ SP=${TMPDIR:-/tmp}/numa-qa        # scratch folder for baselines and reports
 | `tests/test_qa_tools.py`, `tests/make_fixtures.py` | Browser-free unit tests; builds deliberately broken fixture sites |
 
 Requirements: Python 3 with the packages in `requirements.txt` (`pip install -r tools/site-qa/requirements.txt`, then
-`cloakbrowser install` once to download its Chromium). On the owner's Mac they are already installed for Homebrew's
-`python3`.
+`cloakbrowser install` once to download its Chromium). On the owner's Mac they are installed for Homebrew's
+`python3.14`; plain `python3` does not have them, so run the tools as `python3.14 tools/site-qa/site_check.py ...`. Wherever an
+example below says `python3`, use that interpreter (or `tools/site-qa/.venv/bin/python` if you made a virtual environment).
 
 ## One browser at a time (licence limit)
 
 The free CloakBrowser tier allows ONE concurrent browser. Every script launches exactly one browser, reuses it for
 all pages, and closes it in `finally` (SIGTERM is turned into a clean exit). Never run two browser scripts at once;
 run capture, then check, then compare one after the other. Check the seat count with `cloakbrowser info`
-(`Sessions: 0/1 in use`).
+(`Sessions: 0/1 in use`). A launch that exits with code 76 means another process holds the seat, for example a
+CloakBrowser window left open by another project: find it with the check below, and find out whose it is before
+closing it.
 
 Leftover check. Do not use plain `pgrep -fl Chromium`: it also matches any process whose command line merely
 contains the word (e.g. Claude CLI sessions). Use:
@@ -113,7 +116,7 @@ python3 $QA/site_check.py --base-url http://127.0.0.1:4302/numaliving.com.au/ --
 
 # LIVE site over https (project page or custom domain; the base URL must end at the site root)
 python3 $QA/site_check.py --base-url https://<owner>.github.io/<repo>/ --out-dir $QA/live-check --expect-https
-python3 $QA/site_check.py --base-url https://numaliving.com.au/ --out-dir $QA/live-check --expect-https
+python3 $QA/site_check.py --base-url https://numaliving.us/ --out-dir $QA/live-check --expect-https
 ```
 
 Other options: `--max-pages 60`, `--viewports 320,768,1024,1440`, `--extra-path` (repeatable, relative to the base URL, must

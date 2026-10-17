@@ -157,7 +157,7 @@ describe("submitQuoteRequest", () => {
 
     it.each([
       ["a random-string alias", FORM_ID],
-      ["a mailbox address", "projects@numaliving.com"],
+      ["a mailbox address", "owner@example.com"],
       ["a mailbox address with a plus tag", "first.last+quotes@example.co.uk"],
       ["an alias with dots in it", "a.b.c"],
     ])("accepts %s as the id", async (_label, formId) => {

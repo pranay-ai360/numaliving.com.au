@@ -42,3 +42,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local credentials (Cloudflare API tokens), never commit: the file, its copies, backups and editor swap files
+api-keys*
+.api-keys*
+!api-keys.example.json
+
+# Claude Code: share only the project settings; keep plans, local settings and notes private
+**/.claude/*
+!/.claude/settings.json
+CLAUDE.local.md

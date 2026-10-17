@@ -2,9 +2,9 @@
 
 The public website for Numa Living, a luxury joinery and millwork manufacturer. It has Home, About, Projects (with a page for each project), Capabilities, Process, Request a Quote and Client Login. It is a Next.js site exported as plain static files and published on GitHub Pages by GitHub Actions. Nothing runs on a server and nothing is stored in a database. Quote Requests are emailed to Numa through FormSubmit.co. Client Login is a design-only page standing in for the future Client Portal.
 
-**Live site (after the first deploy):** https://pranay-ai360.github.io/numaliving.com.au/
+**Live site:** https://numaliving.us/ (the earlier preview address, https://pranay-ai360.github.io/numaliving.com.au/, now redirects there).
 
-[`CONTEXT.md`](CONTEXT.md) defines the terms used here (Client Portal, Client Login, Quote Request, Drawings). [`docs/adr/0001-static-hosting-on-github-pages.md`](docs/adr/0001-static-hosting-on-github-pages.md) explains why the site is hosted this way.
+[`CONTEXT.md`](CONTEXT.md) defines the terms used here (Client Portal, Client Login, Quote Request, Drawings, Contact email, Form alias, Custom domain). [`docs/adr/0001-static-hosting-on-github-pages.md`](docs/adr/0001-static-hosting-on-github-pages.md) explains why the site is hosted this way, and [`docs/adr/0002-custom-domain-numaliving-us.md`](docs/adr/0002-custom-domain-numaliving-us.md) why it is served at numaliving.us. [`docs/RUNBOOK.md`](docs/RUNBOOK.md) lists the day-to-day commands (which tool to use, how to install it, what to do without it), and [`CLAUDE.md`](CLAUDE.md) is the short guide for Claude Code.
 
 Built with Next.js 16 (static export), React 19, Tailwind CSS 4 and Zod, and tested with Vitest and Playwright.
 
@@ -26,13 +26,13 @@ Built with Next.js 16 (static export), React 19, Tailwind CSS 4 and Zod, and tes
 | Setting | On your Mac | On GitHub Pages |
 | --- | --- | --- |
 | `NEXT_PUBLIC_FORMSUBMIT_ID` | Leave it empty and the quote form tells visitors to email instead. Put the FormSubmit alias here to send real Quote Requests from your Mac. Never put the mailbox address itself here (see [Going live](#going-live), step 2). | The deploy workflow fills it from the repository variable `FORMSUBMIT_ID`. |
-| `NEXT_PUBLIC_BASE_PATH` | Leave it empty. | The deploy workflow sets it to `/numaliving.com.au`, the base path that `actions/configure-pages` reports. |
+| `NEXT_PUBLIC_BASE_PATH` | Leave it empty. | The deploy workflow sets it from `actions/configure-pages`: empty on the custom domain (numaliving.us), `/numaliving.com.au` on the GitHub Pages project address. |
 
 Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password or secret key in one.
 
 `NEXT_PUBLIC_BASE_PATH` is either empty or a path such as `/numaliving.com.au`: it starts with `/`, does not end with `/`, and uses only letters, digits, `-`, `.`, `_` and `~` between the slashes. Anything else stops the build with a message that names the setting. The build and the photo paths share this one rule (`src/lib/basePath.ts`).
 
-`npm run build` writes the finished site to `out/`. `npm run build:e2e` builds it the way GitHub Pages serves it, below `/numaliving.com.au`, but with the made-up form id `e2e-form-id` that the end-to-end tests expect. Never publish that build: the form could not deliver anything, and the deploy workflow refuses that id. To look at the build in a browser, run `npm run serve:pages` and open http://127.0.0.1:4173/numaliving.com.au/. Opening the files in `out/` directly does not work, because every link starts with `/numaliving.com.au/`.
+`npm run build` writes the finished site to `out/`. `npm run build:e2e` builds it the way GitHub Pages serves a project site, below `/numaliving.com.au`, but with the made-up form id `e2e-form-id` that the end-to-end tests expect. Never publish that build: the form could not deliver anything, and the deploy workflow refuses that id. To look at the build in a browser, run `npm run serve:pages` and open http://127.0.0.1:4173/numaliving.com.au/. Opening the files in `out/` directly does not work, because every link starts with `/numaliving.com.au/`.
 
 ## Where to change things
 
@@ -51,7 +51,7 @@ Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password o
 | Messages shown when a Quote Request cannot be sent | `src/lib/quotes/messages.ts` |
 | The mailbox that receives Quote Requests | The repository variable `FORMSUBMIT_ID`, set to the mailbox's FormSubmit alias, never the address itself (see [Going live](#going-live), steps 2 and 3) |
 
-**Adding project photos:** put the images in `public/projects/<project-slug>/`, then list them in that project's `images`, for example `images: ["/projects/marina-villa/Marina-View-0001.jpg"]`. The first image is the cover. Name new files in lowercase with hyphens and no spaces (for example `kitchen-01.jpg`). GitHub Pages treats capitals as different letters, so a path must match its file name exactly. Keep each path starting with `/`: the site adds `/numaliving.com.au` in front when it shows the photo (through `withBasePath()` in `src/lib/assetPath.ts`). Projects with no photos show a material-swatch placeholder.
+**Adding project photos:** put the images in `public/projects/<project-slug>/`, then list them in that project's `images`, for example `images: ["/projects/marina-villa/Marina-View-0001.jpg"]`. The first image is the cover. Name new files in lowercase with hyphens and no spaces (for example `kitchen-01.jpg`). GitHub Pages treats capitals as different letters, so a path must match its file name exactly. Keep each path starting with `/`: the site adds the base path in front when it shows the photo (empty on numaliving.us, `/numaliving.com.au` on the old project address) (through `withBasePath()` in `src/lib/assetPath.ts`). Projects with no photos show a material-swatch placeholder.
 
 Everything marked `sample: true`, `SAMPLE` or `TODO(Ramya)` is placeholder content to replace.
 
@@ -108,6 +108,8 @@ Pull requests run only the `verify` job. Before building, the `build` job checks
 
 The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing and committing the changes, comes first). Run the commands in Terminal in this folder, with the GitHub CLI (`gh`) signed in as an admin of `pranay-ai360/numaliving.com.au`. Replace anything shown as `you@example.com` or `paste-the-alias-here`.
 
+These were the steps of the first publish (11 October 2026). Today a change ships through a pull request (`gh pr create`, `gh pr checks --watch`, `gh pr merge --merge`; see [`docs/RUNBOOK.md`](docs/RUNBOOK.md)). Steps 2, 3, 7 and 8 still apply whenever the mailbox or the FormSubmit alias changes.
+
 1. **Push the branch and open a pull request (P2).**
 
    ```bash
@@ -119,20 +121,20 @@ The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing a
    The `verify` job audits the packages that ship to visitors (`npm audit --omit=dev --audit-level=high`), then runs lint, typecheck, unit tests with coverage, the build and the end-to-end tests. It must pass before you merge.
 
 2. **Activate FormSubmit from Terminal (P3).** FormSubmit only delivers to a mailbox after its owner confirms it once. Do this with `curl` against the mailbox address, as below, and never by putting the mailbox address into `FORMSUBMIT_ID` (or `NEXT_PUBLIC_FORMSUBMIT_ID`), not even for a quick test: the site would publish the address in its JavaScript for anyone to read. The deploy fails when `FORMSUBMIT_ID` contains `@`.
-   1. Choose the mailbox that should receive Quote Requests, ideally one used only for them (see [Security notes](#security-notes)).
+   1. Choose the mailbox that should receive Quote Requests, ideally one used only for them (see [Security notes](#security-notes)). For numaliving.us it is `projects@numaliving.us` (mail for the domain is handled by Forward Email).
    2. In Terminal, send it a first test, with `you@example.com` replaced by the mailbox:
 
       ```bash
       curl -sS https://formsubmit.co/ajax/you@example.com \
         -H "Accept: application/json" \
         -H "Content-Type: application/json" \
-        -H "Referer: https://pranay-ai360.github.io/" \
+        -H "Referer: https://numaliving.us/" \
         -d '{"name":"Activation test","message":"Activating the Numa Living Quote Request form"}'
       ```
 
       The Referer line tells FormSubmit which website the form is for. FormSubmit replies with a short message and emails an activation link to the mailbox.
    3. Open FormSubmit's email and click the activation link.
-   4. FormSubmit then emails you a random-string alias for the mailbox. Copy it. The site uses the alias instead of the address, so the address never appears in the page source.
+   4. FormSubmit then emails you a random-string alias for the mailbox. Copy it. The site uses the alias instead of the address, so the form's own code does not name it. (numaliving.us prints its contact email on every page anyway, so the alias hides nothing while the form's mailbox is that same public address: see [Security notes](#security-notes).)
 
 3. **Save the alias as a repository variable (P3).**
 
@@ -163,15 +165,15 @@ The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing a
 6. **Check the live site (P6).**
 
    ```bash
-   gh api repos/pranay-ai360/numaliving.com.au/pages --jq '{html_url, https_enforced, build_type}'   # expect "https_enforced": true
-   curl -sI http://pranay-ai360.github.io/numaliving.com.au/ | grep -iE '^(HTTP|location)'   # expect 301 and a location starting https://
-   curl -sI https://pranay-ai360.github.io/numaliving.com.au/ | head -1   # expect HTTP/2 200
-   curl -sI https://pranay-ai360.github.io/numaliving.com.au/ | grep -i '^strict-transport-security'   # expect a max-age
-   curl -s https://pranay-ai360.github.io/numaliving.com.au/ | grep -o '<meta name="robots"[^>]*>'   # expect noindex, nofollow
-   curl -s https://pranay-ai360.github.io/numaliving.com.au/robots.txt   # expect User-Agent: * and Allow: / (see "Search engines and the preview")
+   gh api repos/pranay-ai360/numaliving.com.au/pages --jq '{html_url, https_enforced, build_type}'   # expect "html_url": "https://numaliving.us/" and "https_enforced": true
+   curl -sI http://numaliving.us/ | grep -iE '^(HTTP|location)'   # expect 301 and a location starting https://
+   curl -sI https://numaliving.us/ | head -1   # expect HTTP/2 200
+   curl -sI https://www.numaliving.us/ | grep -iE '^(HTTP|location)'   # expect 301 and a location of https://numaliving.us/
+   curl -s https://numaliving.us/ | grep -o '<meta name="robots"[^>]*>'   # expect noindex, nofollow
+   curl -s https://numaliving.us/robots.txt   # expect User-Agent: * and Allow: / (see "Search engines and the preview")
    ```
 
-   `https_enforced` should be `true`; GitHub always enforces HTTPS on `github.io` addresses. The `strict-transport-security` header (HSTS) tells browsers to use only HTTPS for the site from then on.
+   `https_enforced` should be `true`. On a custom domain GitHub allows it only once the certificate is approved (`gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages -F https_enforced=true`), and it sends no `strict-transport-security` (HSTS) header there, so the 301 from `http` to `https` is what keeps visitors on HTTPS.
 
    Check that only `main` can publish to the site's `github-pages` environment:
 
@@ -182,12 +184,12 @@ The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing a
 
    If the first command prints `null` (every branch may deploy) or the second lists anything besides `main`, open the repository's Settings > Environments > github-pages > Deployment branches and tags, choose "Selected branches and tags" and allow only `main`.
 
-   Then open the site and click through every page: Home, About, Projects and each project page, Capabilities, Process, Contact and Client Login. Check that every photo loads, and that a made-up address such as https://pranay-ai360.github.io/numaliving.com.au/nope/ shows the "Page Not Found" page.
+   Then open the site and click through every page: Home, About, Projects and each project page, Capabilities, Process, Contact and Client Login. Check that every photo loads, and that a made-up address such as https://numaliving.us/nope/ shows the "Page Not Found" page.
 
    For a full check, crawl the live site with the browser QA tools (see [Tests and quality checks](#tests-and-quality-checks)). It visits every linked page at four screen widths and reports broken links and images, console errors, insecure requests, missing noindex tags and a wrong 404 page; it exits with 1 when anything fails:
 
    ```bash
-   python3 tools/site-qa/site_check.py --base-url https://pranay-ai360.github.io/numaliving.com.au/ \
+   python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
      --out-dir "${TMPDIR:-/tmp}/numa-live-check" --expect-https --expect-noindex
    ```
 
@@ -207,7 +209,7 @@ The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing a
    curl -sS https://formsubmit.co/ajax/paste-the-alias-here \
      -H "Accept: application/json" \
      -H "Content-Type: application/json" \
-     -H "Referer: https://pranay-ai360.github.io/" \
+     -H "Referer: https://numaliving.us/" \
      -d '{"name":"CC check","message":"Does FormSubmit honour _cc from a direct post?","_cc":"second-mailbox@example.com"}'
    ```
 
@@ -217,7 +219,7 @@ The one-time steps below are the publishing gates P2 to P9 (gate P1, reviewing a
 
 9. **If the PDF did not arrive: plan B (P8).** The email still lists the file names under "Attached drawings", so you know what the visitor meant to send and can ask for it. Plan B is a small code change: requests with Drawings are sent as an ordinary form post (`multipart/form-data`) to `https://formsubmit.co/<alias>`, the way FormSubmit documents attachments, with `_next` pointing to a static thank-you page at `/contact/thanks/`. Requests without files keep using AJAX. Until that change is live, visitors can still share drawings through the "Link to larger drawings" field.
 
-10. **Record the live URL (P9).** Remove "(after the first deploy)" from the live-site line at the top of this README.
+10. **Record the live URL (P9).** Done: the live-site line at the top of this README gives https://numaliving.us/.
 
 ## Tests and quality checks
 
@@ -250,9 +252,11 @@ Without that variable (as in CI), Playwright uses its own Chromium, which you in
 **Browser QA tools.** `tools/site-qa/` holds CloakBrowser-based Python tools: `serve_pages.py` (a GitHub-Pages-like server), `site_check.py` (crawls every linked page at four screen widths and checks links, images, console errors, insecure requests, noindex tags, sideways scrolling, headings and the 404 page), and `capture.py` with `compare.py` (screenshots and a pixel comparison for before-and-after visual checks). `tools/site-qa/README.md` explains how to install and run them. After each deploy, crawl the live site (step 6 of [Going live](#going-live)):
 
 ```bash
-python3 tools/site-qa/site_check.py --base-url https://pranay-ai360.github.io/numaliving.com.au/ \
+python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
   --out-dir "${TMPDIR:-/tmp}/numa-live-check" --expect-https --expect-noindex
 ```
+
+**DNS helper.** `tools/cloudflare/` keeps the Cloudflare DNS records for numaliving.us in line (`check` is read-only; `apply --yes` changes the live zone). Its README explains the token and where to keep the keys file. Its unit tests need no network: `python3 -m unittest discover -s tools/cloudflare/tests`.
 
 **ESLint and the coverage report (waiting for the owner).** After `npm run test:coverage`, `npm run lint` also scans the generated report in `coverage/` and prints a warning about `coverage/block-navigation.js`. The fix is to add `coverage/**`, `playwright-report/**` and `test-results/**` to the `globalIgnores` list in `eslint.config.mjs`. That file is protected in this setup, so the change waits for the owner's decision. CI is not affected, because its lint step runs before the report exists.
 
@@ -263,15 +267,17 @@ While the site is a preview, `isIndexable` in `src/config/site.ts` is `false`, a
 The generated `robots.txt` (`src/app/robots.ts`, rules in `src/lib/robots.ts`) allows crawling (`User-Agent: *`, `Allow: /`) whether or not the site is indexable. That is deliberate:
 
 - A crawler has to fetch a page to see its noindex tag. If `robots.txt` blocked the page, its address could still appear in search results (found through links elsewhere), just without a description.
-- On the GitHub Pages address, `robots.txt` has no effect anyway. Crawlers only read it at the root of a host (`https://pranay-ai360.github.io/robots.txt`, which this repository does not control), so `/numaliving.com.au/robots.txt` is ignored. On a custom domain it sits at the root and counts, and it already lets crawlers in to read the tag.
+- On the old GitHub Pages address (now a redirect), `robots.txt` had no effect. Crawlers only read it at the root of a host (`https://pranay-ai360.github.io/robots.txt`, which this repository does not control), so `/numaliving.com.au/robots.txt` was ignored. On numaliving.us it sits at the root and counts, and it already lets crawlers in to read the tag.
 
-To make the site public, set `isIndexable = true` (step 4 in the next section): the noindex tag then disappears from every page. Keep it `false` for as long as the site should stay out of search results, on the GitHub Pages address or a new domain. A unit test (`src/config/launchGuard.test.ts`) fails while `isIndexable` is `true` and the site still has placeholder or sample content: the placeholder contact details in `src/config/site.ts`, the "Preview" ribbon (`showSampleNotice`), or any project marked `sample: true` in `src/content/projects.ts`. The tests, and with them the deploy, stop until all of that is real, and the failure names each item.
+To make the site public, set `isIndexable = true` (step 4 in the next section): the noindex tag then disappears from every page. Keep it `false` for as long as the site should stay out of search results, on numaliving.us or any other domain. A unit test (`src/config/launchGuard.test.ts`) fails while `isIndexable` is `true` and the site still has placeholder or sample content: the placeholder contact details in `src/config/site.ts`, the "Preview" ribbon (`showSampleNotice`), or any project marked `sample: true` in `src/content/projects.ts`. The tests, and with them the deploy, stop until all of that is real, and the failure names each item.
 
-## Adding a custom domain later
+## Custom domain: numaliving.us
 
-When Numa has its own domain (for example `numaliving.com.au`), follow GitHub's guide [Managing a custom domain for your GitHub Pages site](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site). In short:
+The site is served at https://numaliving.us/ (set up on 16 October 2026). The bare domain is the main address; `www.numaliving.us` and the old GitHub Pages address redirect to it. The domain is registered at GoDaddy and its DNS is on Cloudflare, with every site record set to "DNS only" (grey cloud): proxying through Cloudflare can stop GitHub checking the domain and issuing its certificate. GitHub issues and renews the certificate itself (Let's Encrypt, free), and mail for the domain is handled by Forward Email. [`docs/adr/0002-custom-domain-numaliving-us.md`](docs/adr/0002-custom-domain-numaliving-us.md) gives the reasons, [`docs/RUNBOOK.md`](docs/RUNBOOK.md) the commands, and `tools/cloudflare/` keeps the DNS records in line.
 
-1. **Verify the domain with GitHub first.** This stops anyone else's GitHub Pages site from taking the domain over. Open your profile picture > Settings > Pages (your profile settings, not the repository's) > Add a domain. GitHub shows a TXT record named `_github-pages-challenge-pranay-ai360.<your-domain>`. Add it at your DNS provider, wait (up to 24 hours) and click Verify. Keep the TXT record afterwards.
+The steps below are how it was done, and how to repeat it for another domain. They follow GitHub's guide [Managing a custom domain for your GitHub Pages site](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site). In short:
+
+1. **Verify the domain with GitHub first.** This stops anyone else's GitHub Pages site from taking the domain over. Open your profile picture > Settings > Pages (your profile settings, not the repository's) > Add a domain. GitHub shows a TXT record named `_github-pages-challenge-pranay-ai360.<your-domain>`. Add it at your DNS provider, wait (up to 24 hours) and click Verify. Keep the TXT record afterwards. Do this before anything else, and before ever clearing a domain from the repository: while it is cleared, another GitHub account could claim it.
 2. **Add the domain to the site.** In the repository's Settings > Pages > Custom domain, enter `www.<your-domain>` (or the bare domain) and save. GitHub recommends doing this before adding the DNS records. No `CNAME` file is needed: GitHub ignores it for sites published by a GitHub Actions workflow.
 3. **Add the DNS records** at your DNS provider:
    - for the bare domain, four `A` records (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`) and four `AAAA` records (`2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`);
@@ -284,8 +290,8 @@ When Numa has its own domain (for example `numaliving.com.au`), follow GitHub's 
    - Update the live URL at the top of this README.
 
    The base path clears itself: with a custom domain, `actions/configure-pages` reports an empty base path, so the deploy builds the site for the domain root with no code change.
-5. **Tick "Enforce HTTPS"** in Settings > Pages. It can take up to 24 hours before the option is available.
-6. **Check the form.** FormSubmit keeps working with the same alias. Send one test Quote Request from the new address. If FormSubmit emails an activation link for it, click it.
+5. **Tick "Enforce HTTPS"** in Settings > Pages, or run `gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages -F https_enforced=true` once `gh api repos/pranay-ai360/numaliving.com.au/pages --jq .https_certificate.state` says `approved`. GitHub says it can take up to 24 hours; if the certificate has not started about 30 minutes after the DNS is right, clear the domain and set it again (see the runbook). Never delete the Pages site itself.
+6. **Check the form.** FormSubmit keeps working with the same alias. Send one test Quote Request from the new address. If FormSubmit emails an activation link for it, click it. To activate a new mailbox, use `Referer: https://numaliving.us/` in the `curl` of [Going live](#going-live), step 2.
 
 ## Client Portal status
 
@@ -299,6 +305,7 @@ When Numa has its own domain (for example `numaliving.com.au`), follow GitHub's 
   - Send Quote Requests to a mailbox used only for them (for example `quotes@` on Numa's own domain), not to a personal or admin mailbox.
   - Make sure that mailbox scans attachments for malware (Gmail and Microsoft 365 do by default), and open attached drawings with care.
   - Never put the mailbox address itself into `FORMSUBMIT_ID`: the deploy refuses it (step 2 of [Going live](#going-live)).
+  - For numaliving.us the FormSubmit mailbox is `projects@numaliving.us`, which is also printed on every page. Anyone can therefore post to FormSubmit with the address itself, skipping the alias and every check in the browser. If the form is abused, activate a separate unpublished mailbox for FormSubmit (for example `quotes-<random>@numaliving.us`, forwarding to the same inbox) and switch `FORMSUBMIT_ID` to its alias, or bring in the Turnstile relay (F6, below).
 - **Follow-ups** (F6 and F9 to F12):
   - **Turnstile relay (F6):** a small Cloudflare Worker that checks Cloudflare Turnstile (a free challenge) before it passes a Quote Request on, so the FormSubmit alias no longer has to be public. Or Web3Forms Pro, a paid form service with stronger spam controls.
   - **Content Security Policy (F9):** GitHub Pages cannot send security headers, but a `<meta http-equiv="Content-Security-Policy">` tag can still limit where scripts load from and where the page may send data (its own address and `formsubmit.co`). Next.js puts a few scripts inline in each page, so the policy needs their hashes and a careful test.
@@ -308,10 +315,10 @@ When Numa has its own domain (for example `numaliving.com.au`), follow GitHub's 
 
 ## Known limitations and follow-ups
 
-- **Placeholder contact details** (`TODO(Ramya)` in `src/config/site.ts`): the email `projects@numaliving.com`, phone `+971 4 000 0000`, WhatsApp number and address. Replace them before launch. The quote form's "Email us instead" link and its error messages use this email address. The launch guard test fails if `isIndexable` is set to `true` before they are replaced.
+- **Placeholder contact details** (`TODO(Ramya)` in `src/config/site.ts`): the phone `+971 4 000 0000`, WhatsApp number and address. Replace them before launch. The email is real: `projects@numaliving.us`, which the quote form's "Email us instead" link and its error messages use. The launch guard test fails if `isIndexable` is set to `true` before the placeholders are replaced.
 - **Sample content and photo rights:** projects, figures and map locations marked `sample: true` or `SAMPLE` are invented. Confirm that Numa may publish the golf-links photos (credited to Intelier and Condor) and the other project photos. Set `showSampleNotice = false` once the content is real. The launch guard test also fails if `isIndexable` is `true` while the ribbon is on or any project is still marked `sample: true`.
 - **Privacy policy page:** needed before the real launch, and ideally before FormSubmit is activated (step 2 of [Going live](#going-live)), because visitors' details and Drawings pass through FormSubmit, a third party. Check the Australian Privacy Act, the UAE PDPL and the GDPR as they apply.
 - **Image weight:** the photos add up to about 15 MB of JPGs. Photos below the fold already load lazily, as they near the screen; the first row of cards on the Projects page and a project page's main photo load straight away. They should still be resized, served as AVIF or WebP, and given explicit dimensions.
-- **Home links cost one redirect.** Because the base path contains dots (`/numaliving.com.au`), Next.js reads `.au` as a file extension and writes Home links without a trailing slash (`/numaliving.com.au`). On GitHub Pages each of them costs one 301 redirect to `/numaliving.com.au/`, and a very fast click, before the router has prefetched the page, can turn into a full page reload (with a 404 for `/numaliving.com.au.txt` in the browser console). Every other link is unaffected. It disappears with a custom domain (empty base path) or a repository name without dots.
+- **Home links cost one redirect.** Because the base path contains dots (`/numaliving.com.au`), Next.js reads `.au` as a file extension and writes Home links without a trailing slash (`/numaliving.com.au`). On GitHub Pages each of them costs one 301 redirect to `/numaliving.com.au/`, and a very fast click, before the router has prefetched the page, can turn into a full page reload (with a 404 for `/numaliving.com.au.txt` in the browser console). Every other link is unaffected. It is gone on numaliving.us (the base path is empty there); it still applies to `npm run build:e2e` and to the old project address.
 - **Spam hardening, if the form is abused:** see the Turnstile relay in [Security notes](#security-notes).
 - **FormSubmit has no service guarantee and no domain lock.** Send a test Quote Request now and then, and act on GitHub Actions failure emails. Dependabot is still to be set up (see [Security notes](#security-notes)).
