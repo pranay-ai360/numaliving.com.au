@@ -1,5 +1,6 @@
 # Checks every pull request and push, and publishes main to GitHub Pages:
-# https://pranay-ai360.github.io/numaliving.com.au/
+# https://numaliving.us/ (the earlier project address, https://pranay-ai360.github.io/numaliving.com.au/,
+# redirects there)
 #
 # verify: audit of the production dependencies, lint, type check, unit tests with coverage,
 #         `npm run build:e2e` (a static build below the Pages base path with the test form id
@@ -147,7 +148,7 @@ jobs:
       - name: Build the static site
         run: npm run build
         env:
-          # "/numaliving.com.au" on the project site; empty once a custom domain is set up.
+          # Empty on the custom domain (numaliving.us); "/numaliving.com.au" on the project address.
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
           NEXT_PUBLIC_FORMSUBMIT_ID: ${{ vars.FORMSUBMIT_ID }}
 

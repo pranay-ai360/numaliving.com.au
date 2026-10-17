@@ -115,7 +115,7 @@ python3 $QA/site_check.py --base-url http://127.0.0.1:4302/numaliving.com.au/ --
 
 # LIVE site over https (project page or custom domain; the base URL must end at the site root)
 python3 $QA/site_check.py --base-url https://<owner>.github.io/<repo>/ --out-dir $QA/live-check --expect-https
-python3 $QA/site_check.py --base-url https://numaliving.com.au/ --out-dir $QA/live-check --expect-https
+python3 $QA/site_check.py --base-url https://numaliving.us/ --out-dir $QA/live-check --expect-https
 ```
 
 Other options: `--max-pages 60`, `--viewports 320,768,1024,1440`, `--extra-path` (repeatable, relative to the base URL, must
