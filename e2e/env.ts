@@ -4,11 +4,19 @@
  * playwright.config.ts and the specs.
  */
 import { parseBasePath } from "../src/lib/basePath";
+import { parsePort } from "../src/lib/port";
 
 const DEFAULT_BASE_PATH = "/numaliving.com.au";
+const DEFAULT_PORT = 4173;
 
 export const SERVER_HOST = "127.0.0.1";
-export const SERVER_PORT = 4173;
+
+/**
+ * The port the site is served on: 4173, or E2E_PORT (a whole number from 1024 to 65535, see
+ * src/lib/port.ts), so that checkouts and worktrees can run their tests side by side. `npm run
+ * serve:pages` reads the same variable.
+ */
+export const SERVER_PORT = parsePort(process.env.E2E_PORT, DEFAULT_PORT, "E2E_PORT");
 export const SERVER_ORIGIN = `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 /**

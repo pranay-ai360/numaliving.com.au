@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:e2e": "NEXT_PUBLIC_BASE_PATH=${PAGES_BASE_PATH-/numaliving.com.au} NEXT_PUBLIC_FORMSUBMIT_ID=e2e-form-id next build",
-    "serve:pages": "node scripts/serve-pages.mjs --root out --prefix=${PAGES_BASE_PATH-/numaliving.com.au} --port 4173",
+    "serve:pages": "node scripts/serve-pages.mjs --root out --prefix=${PAGES_BASE_PATH-/numaliving.com.au} --port ${E2E_PORT-4173}",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",

@@ -1,10 +1,12 @@
 /**
  * Launch guard: fails `npm test` (and so the deploy workflow) if the site is made indexable while it
  * still carries placeholder or sample content: the placeholder contact details in src/config/site.ts,
- * the "Preview" ribbon (`showSampleNotice`), or a project in src/content/projects.ts marked `sample: true`.
+ * the "Preview" ribbon (`showSampleNotice`), a project in src/content/projects.ts marked `sample: true`,
+ * or an invented figure or list still named in `sampleContent` in src/content/pages.ts.
  */
 import { describe, expect, it } from "vitest";
 import { isIndexable, showSampleNotice, site } from "@/config/site";
+import { sampleContent, type SampleContent } from "@/content/pages";
 import { projects } from "@/content/projects";
 import type { ShowcaseProject } from "@/lib/types";
 
@@ -18,6 +20,7 @@ type LaunchState = Readonly<{
   contact: ContactDetails;
   showSampleNotice: boolean;
   projects: readonly ProjectFlags[];
+  sampleContent: readonly SampleContent[];
 }>;
 
 /** The made-up contact details the site shipped with (marked TODO(Ramya) in src/config/site.ts). */
@@ -44,7 +47,14 @@ const READY_STATE: LaunchState = {
   contact: REAL_CONTACT,
   showSampleNotice: false,
   projects: [{ slug: "real-villa" }, { slug: "real-office", sample: false }],
+  sampleContent: [],
 };
+
+/** Invented figures, as sampleContent lists them, for the tests of the guard itself. */
+const LISTED_FIGURES: readonly SampleContent[] = [
+  { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
+  { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines)" },
+];
 
 /** The words of the ribbon that showSampleNotice switches on (src/components/Chrome.tsx). */
 const SAMPLE_RIBBON_TEXT = "Preview: projects, figures and photos on this site are sample content.";
@@ -62,7 +72,10 @@ function sampleContentBlockers(state: LaunchState): readonly string[] {
   const sampleProjects = state.projects
     .filter((project) => project.sample === true)
     .map((project) => `project ${JSON.stringify(project.slug)} in src/content/projects.ts is still marked sample: true`);
-  return [...ribbon, ...sampleProjects];
+  const sampleFigures = state.sampleContent.map(
+    (item) => `${JSON.stringify(item.id)} is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (${item.where})`,
+  );
+  return [...ribbon, ...sampleProjects, ...sampleFigures];
 }
 
 /** Everything that still blocks indexing; nothing while the site is not indexable. */
@@ -75,14 +88,14 @@ function launchGuardMessage(blockers: readonly string[]): string {
   return [
     "isIndexable is true in src/config/site.ts, so search engines may list the site, but it still has placeholder or sample content:",
     ...blockers.map((blocker) => `  - ${blocker}`),
-    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
+    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
   ].join("\n");
 }
 
 describe("launch guard", () => {
   it("keeps the site out of search engines until its placeholder and sample content is replaced", () => {
     // Arrange
-    const state: LaunchState = { isIndexable, contact: site.contact, showSampleNotice, projects };
+    const state: LaunchState = { isIndexable, contact: site.contact, showSampleNotice, projects, sampleContent };
 
     // Act
     const blockers = launchBlockers(state);
@@ -150,6 +163,48 @@ describe("launchBlockers", () => {
     ]);
   });
 
+  it("names every invented figure still listed in sampleContent when the site is indexable", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, sampleContent: LISTED_FIGURES };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toEqual([
+      '"home.stats" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff))',
+      '"factory.facts" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: factory.facts (production floor, machines))',
+    ]);
+  });
+
+  it("blocks on a single listed figure, whatever else is real", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, sampleContent: [LISTED_FIGURES[0]] };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(1);
+  });
+
+  it("reports every kind of blocker together, so the owner sees the whole list at once", () => {
+    // Arrange
+    const state: LaunchState = {
+      isIndexable: true,
+      contact: PLACEHOLDER_CONTACT,
+      showSampleNotice: true,
+      projects: [{ slug: "marina-villa", sample: true }],
+      sampleContent: LISTED_FIGURES,
+    };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(4 + 1 + 1 + 2);
+  });
+
   it("lets the site be indexed once every detail is real and no sample content is left", () => {
     // Arrange
     const state = READY_STATE;
@@ -168,6 +223,7 @@ describe("launchBlockers", () => {
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
+      sampleContent: LISTED_FIGURES,
     };
 
     // Act
@@ -195,5 +251,17 @@ describe("launchBlockers", () => {
     expect(message).toContain("set showSampleNotice to false in src/config/site.ts");
     expect(message).toContain("src/content/projects.ts");
     expect(message).toContain("or set isIndexable back to false");
+  });
+
+  it("tells the owner how to clear a listed figure: replace it, then delete its entry", () => {
+    // Arrange
+    const blockers = launchBlockers({ ...READY_STATE, sampleContent: LISTED_FIGURES });
+
+    // Act
+    const message = launchGuardMessage(blockers);
+
+    // Assert
+    expect(message).toContain('"home.stats" is still listed in sampleContent in src/content/pages.ts');
+    expect(message).toContain("replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry");
   });
 });

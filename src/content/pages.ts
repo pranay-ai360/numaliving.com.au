@@ -1,7 +1,9 @@
 /**
  * Copy for every public page. Edit the words here; the page layouts
  * read from this file. Numbers and claims marked SAMPLE are
- * placeholders and must be replaced with real figures.
+ * placeholders and must be replaced with real figures. Each of them is also
+ * listed in `sampleContent` at the bottom of this file, which keeps the site out
+ * of search engines (src/config/launchGuard.test.ts) until it is replaced and delisted.
  */
 
 export const home = {
@@ -157,3 +159,21 @@ export const craft = [
 
 /** One wide photo of the factory floor, shown above the factory section. */
 export const factoryPhoto = { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };
+
+/** A figure or list that is still invented: `id` is its place in the content (such as "home.stats"), `where` says what to edit. */
+export type SampleContent = Readonly<{ id: string; where: string }>;
+
+/**
+ * The invented figures and lists the pages still show. While any is listed here the launch guard
+ * (src/config/launchGuard.test.ts) refuses to let the site be indexed. To clear an entry: replace the
+ * figures with real ones in the file named, then delete the entry. src/content/pages.test.ts checks that
+ * every id still leads to content, so a rename cannot leave an entry that blocks nothing.
+ */
+export const sampleContent: readonly SampleContent[] = [
+  { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
+  { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines, spray booths, monthly output)" },
+  { id: "delivery.regions", where: "src/content/pages.ts: delivery.regions (the destinations listed on the About page)" },
+  { id: "about.certifications", where: "src/content/pages.ts: about.certifications (ISO 9001 and FSC, both still to be confirmed)" },
+  { id: "locations.destinations", where: "src/content/locations.ts: destinations (the places on the About page map)" },
+];
+
