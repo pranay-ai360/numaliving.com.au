@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildRobots, buildRobotsMetadata } from "@/lib/robots";
 
 const ALLOW_EVERYTHING = { rules: { userAgent: "*", allow: "/" } };
+const SITEMAP_ADDRESS = "https://numaliving.us/sitemap.xml";
 
 describe("buildRobots", () => {
   it("allows every path for every crawler while the site is not indexable, so crawlers can read each page's noindex tag", () => {
@@ -15,7 +16,7 @@ describe("buildRobots", () => {
     expect(robots).toEqual(ALLOW_EVERYTHING);
   });
 
-  it("allows every path for every crawler once the site is indexable", () => {
+  it("allows every path for every crawler once the site is indexable, and points them at the sitemap", () => {
     // Arrange
     const isIndexable = true;
 
@@ -23,7 +24,29 @@ describe("buildRobots", () => {
     const robots = buildRobots(isIndexable);
 
     // Assert
-    expect(robots).toEqual(ALLOW_EVERYTHING);
+    expect(robots).toEqual({ ...ALLOW_EVERYTHING, sitemap: SITEMAP_ADDRESS });
+  });
+
+  it("names no sitemap while the site is not indexable, because the sitemap is empty then", () => {
+    // Arrange
+    const isIndexable = false;
+
+    // Act
+    const robots = buildRobots(isIndexable);
+
+    // Assert
+    expect(robots).not.toHaveProperty("sitemap");
+  });
+
+  it("writes the sitemap address below the base path when the site is served from a sub-path", () => {
+    // Arrange
+    const urls = { basePath: "/numaliving.com.au" };
+
+    // Act
+    const robots = buildRobots(true, urls);
+
+    // Assert
+    expect(robots.sitemap).toBe("https://numaliving.us/numaliving.com.au/sitemap.xml");
   });
 
   it.each([false, true])("never disallows a path (isIndexable: %s)", (isIndexable) => {

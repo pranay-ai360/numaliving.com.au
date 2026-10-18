@@ -1,15 +1,21 @@
 import type { Metadata, MetadataRoute } from "next";
+import { absoluteUrl, type UrlOptions } from "@/lib/seo/canonical";
+
+/** Where the sitemap is served: at the root of the site, written by src/app/sitemap.ts. */
+const SITEMAP_PATH = "/sitemap.xml";
 
 /**
  * The rules served at /robots.txt. They allow crawling whether or not the site is indexable:
  * a crawler has to fetch a page to see its `noindex` tag (`buildRobotsMetadata`), and a page that
  * robots.txt blocks can still be listed in search results from links elsewhere. Crawlers also only
  * read robots.txt at the root of a host, so on a project site (served below a sub-path) this file
- * is not consulted at all. `isIndexable` stays so a sitemap can be listed here once the site is live.
+ * is not consulted at all. The sitemap is named only once the site is indexable: while it is a
+ * preview the sitemap is empty (src/lib/seo/sitemap.ts), and a Sitemap line would invite crawlers
+ * to a file with nothing in it.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for the sitemap, see above
-export function buildRobots(isIndexable: boolean): MetadataRoute.Robots {
-  return { rules: { userAgent: "*", allow: "/" } };
+export function buildRobots(isIndexable: boolean, urls?: UrlOptions): MetadataRoute.Robots {
+  const rules = { userAgent: "*", allow: "/" };
+  return isIndexable ? { rules, sitemap: absoluteUrl(SITEMAP_PATH, urls) } : { rules };
 }
 
 /**
