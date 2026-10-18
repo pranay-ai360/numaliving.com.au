@@ -6,7 +6,7 @@ export const DRAFT_NOTICE = "Draft: a lawyer has not reviewed this page yet.";
 
 type LegalPageProps = {
   legal: LegalDocument;
-  /** The drafts still waiting for a lawyer (src/content/legal.ts); the page says it is a draft while its own entry is in the list. */
+  /** The drafts still open (src/content/legal.ts); the page says it is a draft while any entry for its address is in the list. */
   drafts?: readonly LegalDraft[];
 };
 
@@ -15,7 +15,7 @@ type LegalPageProps = {
  * notice while it is still a draft, then its sections. The words are in src/content/legal.ts.
  */
 export function LegalPage({ legal, drafts = legalDrafts }: LegalPageProps) {
-  const isDraft = drafts.some((draft) => draft.id === legal.id);
+  const isDraft = drafts.some((draft) => draft.page === legal.path);
   return (
     <>
       <Breadcrumbs items={[{ name: legal.title, path: legal.path }]} />

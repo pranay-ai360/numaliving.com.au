@@ -28,6 +28,9 @@ export const PENDING_LEGAL_DRAFTS: readonly LegalDraft[] = [
   { id: "legal.terms", page: "/terms" },
 ];
 
+/** One open point of the privacy notice that the owner or a lawyer still has to settle, as legalDrafts lists it. */
+export const OPEN_LEGAL_POINT: LegalDraft = { id: "legal.privacy.retention", page: "/privacy", needs: "the owner to say how long Quote Requests are kept" };
+
 /** Invented figures, as sampleContent lists them. */
 export const LISTED_FIGURES: readonly SampleContent[] = [
   { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },

@@ -20,7 +20,7 @@ import {
 } from "./quote-form/testSupport";
 
 const PRIVACY_NOTE =
-  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your inquiry.";
+  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used to reply to your inquiry.";
 
 // The classes the form had before this migration; the design must not drift.
 const ORIGINAL_FIELD_CLASS =

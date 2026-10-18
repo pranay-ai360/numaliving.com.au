@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalPage } from "@/components/LegalPage";
-import { PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { OPEN_LEGAL_POINT, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { LEGAL_LAST_UPDATED, legalDrafts, privacyNotice, websiteTerms } from "@/content/legal";
 
 const DRAFT_NOTICE = "Draft: a lawyer has not reviewed this page yet.";
@@ -67,6 +67,17 @@ describe("LegalPage", () => {
 
     // Assert
     expect(notice).not.toBeInTheDocument();
+  });
+
+  it("keeps the draft notice while any entry for the page is left, even after the entry for its review is deleted", () => {
+    // Arrange
+    render(<LegalPage legal={privacyNotice} drafts={[OPEN_LEGAL_POINT]} />);
+
+    // Act
+    const notice = screen.queryByText(DRAFT_NOTICE);
+
+    // Assert
+    expect(notice).toBeInTheDocument();
   });
 
   it("keeps the draft notice on the page that is still waiting when only the other one has been reviewed", () => {

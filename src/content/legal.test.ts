@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
-import { PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { OPEN_LEGAL_POINT, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { LEGAL_LAST_UPDATED, legalDraftBlockers, legalDrafts, privacyNotice, websiteTerms, type LegalDocument, type LegalDraft } from "@/content/legal";
 import { findUkTerms } from "@/lib/vocabulary";
 
@@ -22,6 +24,30 @@ describe("legalDrafts", () => {
 
     // Assert
     expect(blockers).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
+  });
+
+  it("says what is still open for an entry that has something specific to settle, not just that a lawyer must look", () => {
+    // Arrange
+    const drafts: readonly LegalDraft[] = [OPEN_LEGAL_POINT, { id: "legal.terms", page: "/terms" }];
+
+    // Act
+    const blockers = legalDraftBlockers(drafts);
+
+    // Assert
+    expect(blockers).toEqual(["legal.privacy.retention needs the owner to say how long Quote Requests are kept", "legal.terms needs legal review"]);
+  });
+
+  it("describes every open point in the owner pack, under the Privacy and Terms row of Part 2, id by id", () => {
+    // Arrange
+    const pack = readFileSync(path.join(process.cwd(), "docs/seo/owner-input-pack.md"), "utf8");
+    const row = pack.split("\n").find((line) => line.startsWith("| Privacy and Terms")) ?? "";
+
+    // Act
+    const missing = legalDrafts.filter((draft) => !row.includes(draft.id));
+
+    // Assert
+    expect(row).not.toBe("");
+    expect(missing.map((draft) => draft.id)).toEqual([]);
   });
 
   it("reads the live list by default, whatever is left in it once the owner has cleared some entries", () => {
@@ -116,7 +142,11 @@ describe("the privacy notice", () => {
     ["the site keeps no copy: no database and no accounts", /no database and no accounts/],
     ["GitHub Pages hosts the site and keeps its own logs", /GitHub Pages hosts this site\. GitHub keeps its own logs/],
     ["the site sets no cookies and uses no analytics or advertising tools", /sets no cookies and uses no analytics or advertising tools/],
-    ["the details are used only to reply to the inquiry", /only to reply to your inquiry/],
+    ["Forward Email forwards the mail for the address to the team's mailbox", /Forward Email forwards the mail for that address/],
+    ["the visitor's IP address reaches FormSubmit and GitHub", /Your IP address reaches FormSubmit when you send a request, and GitHub whenever you load a page/],
+    ["the site itself keeps no copy while FormSubmit and the mailbox handle what they receive", /FormSubmit and the mailbox that receives the email handle what they receive under their own policies/],
+    ["the team that reads the requests is in the United Arab Emirates", /team that reads the requests is in the United Arab Emirates/],
+    ["the details are used to reply to the inquiry", /use your details to reply to your inquiry/],
   ])("says that %s", (_label, pattern) => {
     // Arrange
     // (the table supplies the pattern)
@@ -137,6 +167,29 @@ describe("the privacy notice", () => {
 
     // Assert
     expect(mentions).toBeGreaterThanOrEqual(2);
+  });
+
+  it("promises no exclusive use: the team also reads a request to prepare a bid, so \"only to reply\" is not written", () => {
+    // Arrange
+    const sentence = privacyNotice.sections.find((section) => section.heading === "How we use it")?.paragraphs.join(" ") ?? "";
+
+    // Act
+    const hasAbsolute = /\bonly\b/i.test(sentence);
+
+    // Assert
+    expect(sentence).not.toBe("");
+    expect(hasAbsolute).toBe(false);
+  });
+
+  it("links no other site's policy: FormSubmit's current notice is an open point for the owner, not a link written here", () => {
+    // Arrange
+    const links = text.match(/https?:\/\/\S+|\b\S+\.(com|co|org|net)\b/gi) ?? [];
+
+    // Act
+    const others = links.filter((link) => !/numaliving\.us/.test(link));
+
+    // Assert
+    expect(others).toEqual([]);
   });
 
   it("states no retention period, no country's privacy law and no right: the owner has not set them", () => {

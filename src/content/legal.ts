@@ -2,7 +2,9 @@
  * The privacy notice and the website terms (pages /privacy and /terms) are drafts: written from what
  * the site actually does, not reviewed by a lawyer. While an entry is in `legalDrafts` the launch guard
  * (src/content/readiness.ts, src/config/launchGuard.test.ts) keeps the site out of search engines, and
- * the page says it is a draft. After a lawyer has reviewed a page, delete its entry here.
+ * the page says it is a draft. There is one entry for each page, waiting for a lawyer's review, and one
+ * for each thing only the owner or a lawyer can settle (below the notice's text). Delete an entry only
+ * once its point is settled and written into the page.
  */
 import { site } from "@/config/site";
 
@@ -11,17 +13,31 @@ const EMAIL = site.contact.email;
 /** The day the drafts were last written: shown on both pages ("Last updated October 18, 2026"), and as a machine-readable date in their markup. */
 export const LEGAL_LAST_UPDATED = { iso: "2026-10-18", text: "October 18, 2026" } as const;
 
-/** A draft page that still needs a lawyer: `id` is its name in the launch guard's list, `page` its path. */
-export type LegalDraft = Readonly<{ id: string; page: string }>;
+/**
+ * A draft page that is not done: `id` is its name in the launch guard's list, `page` its path.
+ * `needs` says what is still open when the entry is a point to settle ("the owner to say how long
+ * Quote Requests are kept"); an entry without it only waits for a lawyer to review the whole page.
+ */
+export type LegalDraft = Readonly<{ id: string; page: string; needs?: string }>;
 
 export const legalDrafts: readonly LegalDraft[] = [
   { id: "legal.privacy", page: "/privacy" },
+  { id: "legal.privacy.retention", page: "/privacy", needs: "the owner to say how long Quote Requests are kept" },
+  { id: "legal.privacy.rights", page: "/privacy", needs: "a lawyer to say which rights visitors have over their details and how they use them" },
+  { id: "legal.privacy.jurisdictions", page: "/privacy", needs: "a lawyer to say which privacy laws apply (US states, the Australian Privacy Act, the UAE PDPL, the GDPR)" },
+  { id: "legal.privacy.postalAddress", page: "/privacy", needs: "the owner's postal address" },
+  { id: "legal.privacy.controller", page: "/privacy", needs: "the owner to give the legal name of the company that receives and controls the requests" },
+  {
+    id: "legal.privacy.notices",
+    page: "/privacy",
+    needs: "links to the current FormSubmit, Forward Email and GitHub privacy notices, and the name of the service that holds the mailbox the alias forwards to",
+  },
   { id: "legal.terms", page: "/terms" },
 ];
 
-/** One sentence for each draft still waiting for legal review; empty once every entry is deleted. */
+/** One sentence for each draft still open; empty once every entry is deleted. */
 export function legalDraftBlockers(drafts: readonly LegalDraft[] = legalDrafts): readonly string[] {
-  return drafts.map((draft) => `${draft.id} needs legal review`);
+  return drafts.map((draft) => `${draft.id} needs ${draft.needs ?? "legal review"}`);
 }
 
 /** A section of a legal page: a heading and its paragraphs. */
@@ -32,12 +48,15 @@ export type LegalDocument = Readonly<{ id: string; path: string; title: string; 
 
 /**
  * Written only from what the site does today (the form posts to FormSubmit, which emails the mailbox;
- * the site has no database or accounts; GitHub Pages hosts it; it sets no cookies, which
- * e2e/privacy.spec.ts checks).
+ * Forward Email forwards the mail; the site has no database or accounts; GitHub Pages hosts it; it sets
+ * no cookies, which e2e/privacy.spec.ts checks). What FormSubmit, Forward Email and the mailbox do with
+ * a request is theirs to say, so the page says only that they handle it under their own policies.
  *
- * Owner supplies, and so is NOT stated on the page: how long quote requests are kept, which countries'
- * privacy laws apply and the rights they give visitors, the legal name of the company that receives the
- * requests, and a postal address. Do not add any of them without the owner's word.
+ * Owner and lawyer supply, and so it is NOT stated on the page (each has an entry in `legalDrafts`):
+ * how long quote requests are kept, the rights visitors have, which countries' privacy laws apply, the
+ * legal name of the company that receives the requests, a postal address, and links to the current
+ * FormSubmit, Forward Email and GitHub privacy notices. Do not add any of them without the owner's word,
+ * and write no link to another site's policy until the owner has checked it is the current one.
  */
 export const privacyNotice: LegalDocument = {
   id: "legal.privacy",
@@ -59,13 +78,14 @@ export const privacyNotice: LegalDocument = {
     {
       heading: "Where it goes",
       paragraphs: [
-        `Your browser sends the request to FormSubmit, a form service, and FormSubmit emails it to our mailbox at ${EMAIL}. Forward Email handles mail for that address. The site keeps no copy: it has no database and no accounts.`,
+        `Your browser sends the request to FormSubmit, a form service, and FormSubmit emails it to our mailbox at ${EMAIL}. Forward Email forwards the mail for that address to the mailbox our team reads. The site itself keeps no copy: it has no database and no accounts. FormSubmit and the mailbox that receives the email handle what they receive under their own policies.`,
         "If you email us directly, your message goes to the same mailbox.",
+        "Your IP address reaches FormSubmit when you send a request, and GitHub whenever you load a page. The team that reads the requests is in the United Arab Emirates.",
       ],
     },
     {
       heading: "How we use it",
-      paragraphs: ["We use your details only to reply to your inquiry."],
+      paragraphs: ["We use your details to reply to your inquiry and to prepare a proposal for your project."],
     },
     {
       heading: "Cookies and tracking",

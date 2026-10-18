@@ -53,7 +53,7 @@ The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the 
 _Avoid_: TODO list, checklist
 
 **Legal draft**:
-The privacy notice or the website terms while a lawyer has not reviewed it. The page says it is a draft, and its entry in `legalDrafts` (`src/content/legal.ts`) is a Launch blocker until the entry is deleted.
+The privacy notice or the website terms while a lawyer has not reviewed it, or while a point only the owner can settle (how long requests are kept, the legal name, a postal address and so on) is open. The page says it is a draft while any entry for it is in `legalDrafts` (`src/content/legal.ts`); each entry is a Launch blocker until it is deleted.
 _Avoid_: Policy, final policy
 
 **Unconfirmed claim**:
