@@ -24,6 +24,20 @@ describe("site office hours", () => {
   });
 });
 
+describe("site description", () => {
+  it("speaks to the United States, where the structured data says Numa serves customers, and promises no delivery worldwide", () => {
+    // Arrange
+    const { description } = site;
+
+    // Act
+    const isWorldwide = /worldwide|around the world|anywhere in the world|globally/i.test(description);
+
+    // Assert
+    expect(isWorldwide).toBe(false);
+    expect(description).toMatch(/United States/);
+  });
+});
+
 describe("site address and language", () => {
   it("serves the site at https://numaliving.us, written without a trailing slash", () => {
     // Arrange / Act

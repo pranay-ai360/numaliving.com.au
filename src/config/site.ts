@@ -13,8 +13,10 @@ export const site = {
   wordmarkSub: "LIVING",
   group: "A Conqueror Group company",
   tagline: "Custom millwork, built for the world",
+  // Written for the United States, where the structured data says Numa serves customers
+  // (src/lib/seo/jsonld.ts); the same positioning as the home page (claims.positioning).
   description:
-    "Numa Living designs, engineers and manufactures luxury custom millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
+    "Numa Living designs, engineers and manufactures luxury custom millwork in Dubai for residences, workplaces and multifamily buildings in the United States.",
 
   // Where the site is served, as an origin: no trailing slash and no path (the base path is separate,
   // see src/lib/seo/canonical.ts). Canonical links, Open Graph URLs, the sitemap and the structured

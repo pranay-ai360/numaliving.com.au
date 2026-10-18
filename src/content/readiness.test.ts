@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_COMPANY_FACTS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { EMPTY_COMPANY_FACTS, LISTED_CLAIMS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { claimBlockers } from "@/content/claims";
 import { companyFactsBlockers } from "@/content/company";
 import { legalDraftBlockers } from "@/content/legal";
 import { sampleContent, type SampleContent } from "@/content/pages";
@@ -45,9 +46,9 @@ describe("sampleContentBlockers", () => {
 });
 
 describe("contentBlockers", () => {
-  it("reads these sources, in this order: the sample figures, the company facts and the legal drafts", () => {
+  it("reads these sources, in this order: the sample figures, the company facts, the legal drafts and the unconfirmed claims", () => {
     // Arrange
-    const expected = [sampleContentBlockers, companyFactsBlockers, legalDraftBlockers];
+    const expected = [sampleContentBlockers, companyFactsBlockers, legalDraftBlockers, claimBlockers];
 
     // Act
     const sources = BLOCKER_SOURCES;
@@ -73,6 +74,7 @@ describe("contentBlockers", () => {
       () => sampleContentBlockers(LISTED_FIGURES),
       () => companyFactsBlockers(EMPTY_COMPANY_FACTS),
       () => legalDraftBlockers(PENDING_LEGAL_DRAFTS),
+      () => claimBlockers(LISTED_CLAIMS),
     ];
 
     // Act
@@ -81,8 +83,9 @@ describe("contentBlockers", () => {
     // Assert
     expect(blockers.slice(0, 2).every((blocker) => blocker.includes("sampleContent"))).toBe(true);
     expect(blockers.slice(2, 9).every((blocker) => blocker.startsWith("company fact"))).toBe(true);
-    expect(blockers.slice(9)).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
-    expect(blockers).toHaveLength(2 + 7 + 2);
+    expect(blockers.slice(9, 11)).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
+    expect(blockers.slice(11).every((blocker) => blocker.startsWith("claims."))).toBe(true);
+    expect(blockers).toHaveLength(2 + 7 + 2 + 2);
   });
 
   it("says each blocker once, in plain words", () => {

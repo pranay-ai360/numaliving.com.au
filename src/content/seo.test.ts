@@ -242,6 +242,22 @@ describe("the search copy of the existing pages", () => {
   });
 });
 
+describe("the Contact page's search description", () => {
+  it("does not read the two-day review as a deadline for the proposal: the review, the conversation and the proposal come in that order", () => {
+    // Arrange
+    const { description } = requirePageSeo("/contact");
+
+    // Act
+    const sentences = description.split(/(?<=\.)\s+/);
+    const reviewSentence = sentences.find((sentence) => /business days/i.test(sentence)) ?? "";
+
+    // Assert
+    expect(reviewSentence).not.toBe("");
+    expect(reviewSentence).toMatch(/review your scope within two business days, then get in touch before we send a proposal/i);
+    expect(reviewSentence).not.toMatch(/business days (and|to) (send|get)/i);
+  });
+});
+
 describe("page registry dates and flags", () => {
   it("writes every last-modified date as a real calendar day, YYYY-MM-DD", () => {
     // Arrange

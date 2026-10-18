@@ -9,7 +9,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { isIndexable, showSampleNotice, site } from "@/config/site";
-import { EMPTY_COMPANY_FACTS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { EMPTY_COMPANY_FACTS, LISTED_CLAIMS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { claimBlockers } from "@/content/claims";
 import { companyFactsBlockers } from "@/content/company";
 import { legalDraftBlockers } from "@/content/legal";
 import { projects } from "@/content/projects";
@@ -67,6 +68,7 @@ const OPEN_CONTENT_BLOCKERS = contentBlockers([
   () => sampleContentBlockers(LISTED_FIGURES),
   () => companyFactsBlockers(EMPTY_COMPANY_FACTS),
   () => legalDraftBlockers(PENDING_LEGAL_DRAFTS),
+  () => claimBlockers(LISTED_CLAIMS),
 ]);
 
 /** The words of the ribbon that showSampleNotice switches on (src/components/Chrome.tsx). */
@@ -98,7 +100,7 @@ function launchGuardMessage(blockers: readonly string[]): string {
   return [
     "isIndexable is true in src/config/site.ts, so search engines may list the site, but it still has placeholder or sample content:",
     ...blockers.map((blocker) => `  - ${blocker}`),
-    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
+    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
   ].join("\n");
 }
 
@@ -278,6 +280,19 @@ describe("launchBlockers", () => {
     expect(blockers).toEqual(OPEN_CONTENT_BLOCKERS);
   });
 
+  it("names every claim the owner has not confirmed when the site is indexable, whatever else is real", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, contentBlockers: contentBlockers([() => claimBlockers(LISTED_CLAIMS)]) };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(2);
+    expect(blockers[0]).toContain("claims.usShipping");
+    expect(blockers[1]).toContain("claims.fireRatedDoors");
+  });
+
   it("takes in the blockers a module registers later, with no change to the guard", () => {
     // Arrange
     const registered = contentBlockers([() => ["guides.cost needs the sales interview"]]);
@@ -290,7 +305,7 @@ describe("launchBlockers", () => {
     expect(blockers).toEqual(["guides.cost needs the sales interview"]);
   });
 
-  it("tells the owner where the company facts and the legal drafts are cleared", () => {
+  it("tells the owner where the company facts, the legal drafts and the claims are cleared", () => {
     // Arrange
     const blockers = launchBlockers({ ...READY_STATE, contentBlockers: OPEN_CONTENT_BLOCKERS });
 
@@ -300,6 +315,7 @@ describe("launchBlockers", () => {
     // Assert
     expect(message).toContain("fill in each company fact in src/content/company.ts");
     expect(message).toContain("delete their entries in `legalDrafts` in src/content/legal.ts");
+    expect(message).toContain("ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry");
   });
 
   it("tells the owner how to clear a listed figure: replace it, then delete its entry", () => {

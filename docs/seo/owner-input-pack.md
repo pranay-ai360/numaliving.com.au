@@ -1,6 +1,6 @@
 # Owner input pack
 
-What the US SEO programme needs from the owner. It has three parts: ten decisions, the facts each page needs, and the questions about the photos and sample projects. Nothing on a page is invented: a page whose facts are missing is not published, and the launch guard keeps the site `noindex` while placeholder or sample content remains. Every line says **Unlocks:** what your answer lets us do. The plan and its phases are described in [ADR 0003](../adr/0003-us-seo-strategy.md); the proposed URLs are the map in that ADR.
+What the US SEO programme needs from the owner. It has three parts: ten decisions, the facts each page needs, and the questions about the photos, the sample projects and the claims the pages make. Nothing on a page is invented: a page whose facts are missing is not published, and the launch guard keeps the site `noindex` while placeholder or sample content remains. Every line says **Unlocks:** what your answer lets us do. The plan and its phases are described in [ADR 0003](../adr/0003-us-seo-strategy.md); the proposed URLs are the map in that ADR.
 
 Answer in any form (a reply, a call, this file filled in). A short answer is enough where the options are given.
 
@@ -109,13 +109,29 @@ Your answer:
 
 Where a fact cannot be provided, say so. The page will then leave the claim out rather than guess.
 
-## Part 3. Photos and the sample project text (found while building Phases 1 and 2)
+## Part 3. Photos, the sample project text and the claims the pages make (found while building Phases 1 and 2)
 
-The 30 project photos and the six sample projects raise questions only the owner can answer. Until they are answered, the guard keeps the site `noindex` (every project is marked `sample: true`), and no new fact is written about them.
+The 30 project photos, the six sample projects and some sentences on the pages raise questions only the owner can answer. Until they are answered, the guard keeps the site `noindex` (every project is marked `sample: true`, and every claim below is listed in `unconfirmedClaims`), and no new fact is written about them.
 
 1. **Who owns the photos, and may Numa publish them?** The credit "Photo by Intelier" on the golf-links photos comes only from old file names. Please say who took each set, who owns it, and what the photographers allow (web, social, print).
 2. **Other companies' logos and signage.** The three `sonate-*` photos carry "Condor Developers / Sonate Residences" logos and two `golf-links-*` photos show "Condor Golflinks" signage. They are not used for the home page photo or any share image. Is permission needed (or given) to show them?
 3. **The sample texts do not match several pictures.** The golf-links summary describes a duplex penthouse (curved stair cladding, a smoked oak bar, dressing rooms) but its photos show a lobby, a gym and apartments; the sonate summary describes a family-office build-out (a reception desk, a boardroom) but its photos show an apartment. The text is invented and flagged as sample, so it was changed only in vocabulary and units. Please send the real facts for each project (name, place, year, scope, materials, size, duration, who may be named) or tell us which photos belong to which project.
 4. **Which project photos are US-deliverable references?** None of the six sample projects is in the US; a real US-delivered project (with permission to name the client and designer) is the strongest single proof the site can carry.
 
-**Unlocks:** replacing the sample projects and figures; using more photos for share images and the home page; and the project pages going live.
+5. **Claims the pages make that nothing in the repository backs.** Each sentence below is on a page now. Each one is an entry in `unconfirmedClaims` (`src/content/claims.ts`) and blocks launch until you answer. For each, say yes, give the wording that is true, or say the sentence should go. On a yes the entry is deleted; on a change or a no the sentence is changed or removed first.
+
+   | Id | The pages say | What you confirm |
+   | --- | --- | --- |
+   | `claims.usShipping` | "Shipped to US job sites" (home first screen) | that Numa ships to job sites in the United States |
+   | `claims.positioning` | "Built for US projects." (home first screen; the home title, the home description and the site description say it too) | that Numa builds for US projects and wants to be described that way (decision 1) |
+   | `claims.fireRatedDoors` | "Fire-rated doors" (Capabilities) | that Numa makes fire-rated doors, with certificates (decision 3 and the Capabilities row of Part 2) |
+   | `claims.support247` | "We provide 24/7 support to your local install team until installation is complete." (Process, last step) | that the support really runs around the clock, in US time zones too |
+   | `claims.warrantyPeriod` | "a warranty period on every project" (Door to Site, After care) | that every project has a warranty period, and how long it lasts (no number is written until you give one) |
+   | `claims.companyHistory` | "a family enterprise with decades of experience in contracting, development and hospitality" (About; the About search description says "family enterprise" too) | that Numa's parent is a family enterprise and has decades of that experience |
+   | `claims.responseTime` | "We review your scope within two business days." (Contact; the Thank You panel and the Contact search description say it too) | that Numa reviews every request within two business days |
+   | `claims.portalInvites` | "Project teams will be invited by email when their project starts." (Client Login) | how project teams get portal access |
+   | `claims.portalOpening` | "The client portal opens soon." (Client Login; the Contact, Process and About pages say it too) | that the portal opens soon (decision 10) |
+   | `claims.pdfAttachments` | "Attach drawings as PDFs, or paste a link to larger files." (Contact) | nothing from you: the live test with real PDFs (README, Going live, step 7) must pass first, otherwise the line changes to links only |
+   | `claims.worldwideDelivery` | "delivered worldwide" (the About search description; "around the world" and "anywhere in the world" on the About and home pages; the tagline "built for the world") | that Numa delivers worldwide and not only to the United States, or the wording to use instead |
+
+**Unlocks:** replacing the sample projects and figures; using more photos for share images and the home page; the claims leaving the launch guard's list; and the project pages going live.

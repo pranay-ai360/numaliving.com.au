@@ -62,7 +62,7 @@ const PAGES: readonly PageSeo[] = [
   {
     path: "/contact",
     title: "Request a Quote for Custom Millwork",
-    description: "Tell us about your project and attach drawings as PDFs, or paste a link to larger files. We review your scope within two business days and send a proposal.",
+    description: "Tell us about your project and attach drawings as PDFs or a link. We review your scope within two business days, then get in touch before we send a proposal.",
     indexable: true,
     updated: US_COPY_DATE,
   },

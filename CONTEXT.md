@@ -49,12 +49,16 @@ The facts about the company that only the owner can supply (legal name, founding
 _Avoid_: About data, company info
 
 **Launch blockers**:
-The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the content side still keeps the site out of search engines: Sample content, Company facts not yet supplied, and Legal drafts. The launch guard reads this list and nothing else from the content. A module with blockers of its own adds its function to the list.
+The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the content side still keeps the site out of search engines: Sample content, Company facts not yet supplied, Legal drafts and Unconfirmed claims. The launch guard reads this list and nothing else from the content. A module with blockers of its own adds its function to the list.
 _Avoid_: TODO list, checklist
 
 **Legal draft**:
 The privacy notice or the website terms while a lawyer has not reviewed it. The page says it is a draft, and its entry in `legalDrafts` (`src/content/legal.ts`) is a Launch blocker until the entry is deleted.
 _Avoid_: Policy, final policy
+
+**Unconfirmed claim**:
+A sentence on a page that states something about Numa the repository does not back (it ships to US job sites, offers 24/7 support, gives a warranty period). Each is an entry in `unconfirmedClaims` (`src/content/claims.ts`) and so a Launch blocker, deleted only on the owner's word. The owner pack, Part 3, lists them.
+_Avoid_: Assumption, TODO claim
 
 **US vocabulary guard**:
 The check (`findUkTerms` in `src/lib/vocabulary.ts`) that no page or message uses a word only British, Australian or Gulf readers use (joinery, wardrobe, programme, colour, enquiry, tender, BOQ and more), or a metric measure that does not follow a US unit. It runs over the copy modules and over every served page.

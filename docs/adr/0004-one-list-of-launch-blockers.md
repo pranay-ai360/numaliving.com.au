@@ -4,7 +4,7 @@ The launch guard (`src/config/launchGuard.test.ts`) used to know each kind of bl
 
 ## Decision
 
-`contentBlockers()` in `src/content/readiness.ts` is the one list of what is not ready on the content side. It combines sources, each a function that returns one plain sentence for every item in its part of the content that is not ready (`sampleContentBlockers`, `companyFactsBlockers`, `legalDraftBlockers`). The launch guard reads that list and nothing else from the content, and still checks the contact details, the ribbon and the sample projects itself. A module with blockers of its own adds one function to `BLOCKER_SOURCES`; the guard is not edited.
+`contentBlockers()` in `src/content/readiness.ts` is the one list of what is not ready on the content side. It combines sources, each a function that returns one plain sentence for every item in its part of the content that is not ready (`sampleContentBlockers`, `companyFactsBlockers`, `legalDraftBlockers`, and since the fix round `claimBlockers`, see [ADR 0005](0005-claims-and-guard-checks.md)). The launch guard reads that list and nothing else from the content, and still checks the contact details, the ribbon and the sample projects itself. A module with blockers of its own adds one function to `BLOCKER_SOURCES`; the guard is not edited.
 
 A fact that is missing or unusable (a zero, a link that is not https) counts as missing. To publish without a fact the owner cannot supply, delete its row in `FACT_RULES`, or its entry in `legalDrafts`; never fill it with a guess.
 
