@@ -22,11 +22,12 @@ import {
 const PRIVACY_NOTE =
   "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used to reply to your inquiry.";
 
-// The classes the form had before this migration; the design must not drift.
+// The classes the form had before this migration; the design must not drift. The one change since: the
+// Send button's fill is the dark gold (white on it is 5.6:1, on the light gold 3.1:1; src/app/colors.test.ts).
 const ORIGINAL_FIELD_CLASS =
   "mt-1.5 w-full rounded-sm border border-line bg-paper px-3.5 py-2.5 text-ink outline-none transition-colors focus:border-gold";
 const ORIGINAL_BUTTON_CLASS =
-  "w-full rounded-sm bg-gold px-8 py-3.5 font-medium tracking-wide text-white transition-colors hover:bg-gold-dark disabled:opacity-60 sm:w-auto";
+  "w-full rounded-sm bg-gold-dark px-8 py-3.5 font-medium tracking-wide text-white transition-colors enabled:hover:bg-gold enabled:hover:text-ink disabled:opacity-60 sm:w-auto";
 const ORIGINAL_FIELDSET_CLASS = "grid gap-5 sm:grid-cols-2";
 
 const REQUIRED_LABELS = [

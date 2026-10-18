@@ -33,7 +33,7 @@ export function ProjectGallery({ photos }: { photos: readonly ShowcasePhoto[] })
       <GalleryGrid photos={shownNow} />
       {later.length > 0 && (
         <details className="mt-3">
-          <summary className="inline-flex cursor-pointer list-none items-center justify-center rounded-sm border border-gold px-6 py-3 text-sm font-medium tracking-wide text-gold transition-colors hover:bg-gold hover:text-white [&::-webkit-details-marker]:hidden">
+          <summary className="inline-flex cursor-pointer list-none items-center justify-center rounded-sm border border-gold-dark px-6 py-3 text-sm font-medium tracking-wide text-gold-dark transition-colors hover:bg-gold-dark hover:text-white [&::-webkit-details-marker]:hidden">
             Show all {photos.length} photos
           </summary>
           <GalleryGrid photos={later} className="mt-3" />

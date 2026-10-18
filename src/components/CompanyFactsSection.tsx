@@ -5,7 +5,7 @@ import { formatSquareFeet } from "@/lib/units";
 
 type FactRow = Readonly<{ label: string; value: ReactNode }>;
 
-const LINK_CLASS = "underline decoration-gold underline-offset-4 transition-colors hover:text-gold";
+const LINK_CLASS = "underline decoration-gold underline-offset-4 transition-colors hover:text-gold-dark";
 const EXTERNAL_LINK_REL = "noopener noreferrer";
 
 function ExternalLink({ href, children }: { href: string; children: ReactNode }) {

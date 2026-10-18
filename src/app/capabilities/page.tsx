@@ -26,7 +26,7 @@ export default function CapabilitiesPage() {
           <div className="grid gap-px bg-line md:grid-cols-2 lg:grid-cols-3">
             {capabilities.groups.map((g) => (
               <div key={g.name} className="bg-paper p-7">
-                <h2 className="display text-sm text-gold">{g.name}</h2>
+                <h2 className="display text-sm text-gold-dark">{g.name}</h2>
                 <ul className="mt-4 space-y-2">
                   {g.items.map((item) => (
                     <li key={item} className="flex gap-3 text-sm">
@@ -53,7 +53,7 @@ export default function CapabilitiesPage() {
             {factory.facts.map((f) => (
               <div key={f.label} className="flex flex-col-reverse justify-end pr-6">
                 <dt className="text-sm text-ink-muted">{f.label}</dt>
-                <dd className="display mb-1 normal-case text-2xl text-gold">
+                <dd className="display mb-1 normal-case text-2xl text-gold-dark">
                   <FigureValue value={f.value} />
                 </dd>
               </div>
@@ -63,7 +63,7 @@ export default function CapabilitiesPage() {
           <ol className="mt-12 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {factory.zones.map((z, i) => (
               <li key={z.name} className="border-t-2 border-gold pt-4">
-                <span className="display text-xs text-gold">{String(i + 1).padStart(2, "0")}</span>
+                <span className="display text-xs text-gold-dark">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="mt-1 font-semibold">{z.name}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink-muted">{z.text}</p>
               </li>

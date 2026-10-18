@@ -38,7 +38,7 @@ Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password o
 
 | To change… | Where |
 | --- | --- |
-| Colours (Condor gold, backgrounds, text) | `src/app/globals.css` (top block) |
+| Colours (Condor gold, backgrounds, text). Small gold text and the fill of solid buttons use `gold-dark`; light `gold` is for large text, lines and the dark bands (it is 3.1:1 on white); `src/app/colors.test.ts` checks the pairs and fails on new light-gold text or white-on-light-gold | `src/app/globals.css` (top block) |
 | Name, contact details, menu, and the optional office hours and time zone (the Contact page shows the phone number, WhatsApp number, address and hours only once they are real or set) | `src/config/site.ts` |
 | Site address (`url`), language, social profiles, search-engine verification tokens | `src/config/site.ts` (the last two stay empty until they are real) |
 | Company facts: legal name, founding year, factory area, headcount, certifications with their documents, leadership, parent group link | `src/content/company.ts` (the About page shows each one once it is set; each one still missing blocks indexing, see [Search engines and the preview](#search-engines-and-the-preview)) |

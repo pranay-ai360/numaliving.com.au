@@ -48,7 +48,7 @@ export default function HomePage() {
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {home.sectors.map((s, i) => (
               <div key={s.name} className="border-t-2 border-gold bg-paper p-8">
-                <p className="display text-sm text-gold">0{i + 1}</p>
+                <p className="display text-sm text-gold-dark">0{i + 1}</p>
                 <h3 className="mt-4 text-xl font-semibold">{s.name}</h3>
                 <p className="mt-3 leading-relaxed text-ink-muted">{s.text}</p>
               </div>
@@ -62,7 +62,7 @@ export default function HomePage() {
         <Container>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <SectionTitle ghost="Projects" title="Selected Work" />
-            <Link href="/projects" className="text-sm font-medium text-gold hover:text-gold-dark">
+            <Link href="/projects" className="text-sm font-medium text-gold-dark hover:text-ink">
               All projects →
             </Link>
           </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
       <section className="bg-ink py-24 text-white">
         <Container className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="eyebrow">How we work</p>
+            <p className="eyebrow text-gold">How we work</p>
             <h2 className="display mt-4 text-2xl sm:text-3xl">A Client Portal, Opening Soon</h2>
             <p className="mt-6 max-w-lg leading-relaxed text-white/70">
               Clients, architects and contractors will follow their project in the Numa client portal: drawings, shop drawing

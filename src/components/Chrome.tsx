@@ -12,7 +12,7 @@ export function Footer() {
           <p className="mt-4 text-xs uppercase tracking-[0.25em] text-gold">{site.group}</p>
         </div>
         <div>
-          <p className="eyebrow">Explore</p>
+          <p className="eyebrow text-gold">Explore</p>
           <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             {site.nav.map((n) => (
               <li key={n.href}>
@@ -29,7 +29,7 @@ export function Footer() {
           </ul>
         </div>
         <div>
-          <p className="eyebrow">Contact</p>
+          <p className="eyebrow text-gold">Contact</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <a href={`mailto:${site.contact.email}`} className="hover:text-gold">
@@ -69,7 +69,7 @@ export function FloatingActions() {
   return (
     <Link
       href="/contact"
-      className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 bg-gold px-2.5 py-5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-gold-dark md:block"
+      className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 bg-gold-dark px-2.5 py-5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-gold hover:text-ink md:block"
       style={{ writingMode: "vertical-rl", transform: "translateY(-50%) rotate(180deg)" }}
     >
       Inquire Now

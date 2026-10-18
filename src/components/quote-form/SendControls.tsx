@@ -3,7 +3,7 @@ import { PRIVACY_NOTE, SENDING_TEXT } from "./constants";
 
 // Kept exactly as before the migration.
 const SEND_BUTTON_CLASS =
-  "w-full rounded-sm bg-gold px-8 py-3.5 font-medium tracking-wide text-white transition-colors hover:bg-gold-dark disabled:opacity-60 sm:w-auto";
+  "w-full rounded-sm bg-gold-dark px-8 py-3.5 font-medium tracking-wide text-white transition-colors enabled:hover:bg-gold enabled:hover:text-ink disabled:opacity-60 sm:w-auto";
 
 type Props = {
   isSending: boolean;
@@ -20,7 +20,7 @@ export function SendControls({ isSending, isReady }: Props) {
       </button>
       <p className="mt-3 text-xs text-ink-muted">
         {PRIVACY_NOTE}{" "}
-        <Link href="/privacy" className="underline hover:text-gold">
+        <Link href="/privacy" className="underline hover:text-gold-dark">
           Privacy notice
         </Link>
       </p>

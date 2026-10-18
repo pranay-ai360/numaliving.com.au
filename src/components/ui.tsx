@@ -62,10 +62,15 @@ export function Container({ children, className = "" }: { children: React.ReactN
   return <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-/** `light` is the outline button for a dark background or a photo: white, where `outline` is gold. */
+/**
+ * `light` is the outline button for a dark background or a photo: white, where `outline` is gold. Both
+ * golds are the dark gold, which gives white and its own text 4.5:1 or better on white (src/app/colors.test.ts);
+ * the light gold is only 3.1:1. On hover the solid button turns light gold with dark text (5.6:1), which
+ * shows on a white page and on the dark hero alike.
+ */
 const BUTTON_STYLES = {
-  solid: "bg-gold text-white hover:bg-gold-dark",
-  outline: "border border-gold text-gold hover:bg-gold hover:text-white",
+  solid: "bg-gold-dark text-white hover:bg-gold hover:text-ink",
+  outline: "border border-gold-dark text-gold-dark hover:bg-gold-dark hover:text-white",
   light: "border border-paper text-paper hover:bg-paper hover:text-ink",
 } as const;
 
@@ -155,7 +160,7 @@ export function ProjectCard({ project, photoLoading = "lazy", headingLevel = 3 }
       <p className="eyebrow mt-5">
         {project.sector} · {project.city}, {project.country}
       </p>
-      <Heading className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold">{project.name}</Heading>
+      <Heading className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold-dark">{project.name}</Heading>
       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.summary}</p>
     </Link>
   );

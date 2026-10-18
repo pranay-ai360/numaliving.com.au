@@ -27,20 +27,20 @@ export function ContactDetails({ contact }: { contact: ContactInfo }) {
       <p className="eyebrow">Talk to us</p>
       <ul className="mt-4 space-y-2">
         <li>
-          <a href={`mailto:${contact.email}`} className="hover:text-gold">
+          <a href={`mailto:${contact.email}`} className="hover:text-gold-dark">
             {contact.email}
           </a>
         </li>
         {isRealPhoneNumber(contact.phone) && (
           <li>
-            <a href={telephoneHref(contact.phone)} className="hover:text-gold">
+            <a href={telephoneHref(contact.phone)} className="hover:text-gold-dark">
               {contact.phone}
             </a>
           </li>
         )}
         {isRealWhatsappNumber(contact.whatsapp) && (
           <li>
-            <a href={`https://wa.me/${contact.whatsapp}`} className="hover:text-gold">
+            <a href={`https://wa.me/${contact.whatsapp}`} className="hover:text-gold-dark">
               WhatsApp +{contact.whatsapp}
             </a>
           </li>

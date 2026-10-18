@@ -1,9 +1,8 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { HERO_OVERLAY, HomeHero } from "@/components/HomeHero";
-import { blend, contrastRatio, parseHexColor, type Rgb } from "@/lib/contrast";
+import { brandColor } from "@/lib/brandColors";
+import { blend, contrastRatio, type Rgb } from "@/lib/contrast";
 import type { ShowcasePhoto } from "@/lib/types";
 
 /** WCAG's minimum contrast for body text. */
@@ -24,15 +23,6 @@ const HERO = {
   audience: "For US architects and contractors. Send your drawings.",
   photo: PHOTO,
 } as const;
-
-const GLOBALS_CSS = readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
-
-/** A brand color from the theme block of src/app/globals.css, so the test follows the real palette. */
-function brandColor(name: string): Rgb {
-  const match = new RegExp(`--brand-${name}:\\s*(#[0-9a-fA-F]{3,6})`).exec(GLOBALS_CSS);
-  if (match === null) throw new Error(`There is no --brand-${name} color in src/app/globals.css.`);
-  return parseHexColor(match[1]);
-}
 
 /** The text-color classes the hero may use, and the brand color each one paints. */
 const TEXT_COLOR_CLASSES: Readonly<Record<string, string>> = { "text-paper": "paper", "text-gold-soft": "gold-soft" };
@@ -121,6 +111,32 @@ describe("HomeHero photo", () => {
     expect(photo).toHaveAttribute("height", "1067");
   });
 
+  it("comes after the text in page order, so a screen reader reads the heading before the photo's description (it is drawn behind the text by its z-index, not its place)", () => {
+    // Arrange
+    renderHero();
+
+    // Act
+    const heading = screen.getByRole("heading", { level: 1 });
+    const photo = screen.getByRole("img", { name: PHOTO.alt });
+
+    // Assert
+    expect(heading.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("still sits behind the text and the dark layer, whatever its place in the page", () => {
+    // Arrange
+    const container = renderHero();
+
+    // Act
+    const photo = screen.getByRole("img", { name: PHOTO.alt });
+    const overlay = container.querySelector<HTMLElement>("[style*='linear-gradient']");
+
+    // Assert
+    expect(photo).toHaveClass("-z-20");
+    expect(overlay).toHaveClass("-z-10");
+    expect(container.querySelector("section")).toHaveClass("isolate");
+  });
+
   it("fills the hero from behind the text, without taking room in the page's layout", () => {
     // Arrange
     renderHero();
@@ -183,5 +199,21 @@ describe("HomeHero legibility", () => {
 
     // Assert
     expect(moving).toEqual([]);
+  });
+});
+
+describe("HomeHero legibility figures", () => {
+  it("gives white text about 6.3:1 and the cream eyebrow about 5.3:1 at the weakest part of the dark layer, the figures the component's comment states", () => {
+    // Arrange
+    const weakest = HERO_OVERLAY.weakestOpacity;
+    const worstBackground = blend(brandColor("ink"), weakest, WHITE);
+
+    // Act
+    const white = contrastRatio(brandColor("paper"), worstBackground);
+    const eyebrow = contrastRatio(brandColor("gold-soft"), worstBackground);
+
+    // Assert
+    expect(white).toBeCloseTo(6.34, 1);
+    expect(eyebrow).toBeCloseTo(5.31, 1);
   });
 });

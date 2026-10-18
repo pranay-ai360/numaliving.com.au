@@ -5,7 +5,7 @@ import { expect, test } from "./fixtures";
 import { CONTACT_PATH, LOGIN_PATH, NAV_ITEMS, PROJECTS_PATH, PROJECT_PAGES, type NavItem, pageUrl } from "./site";
 
 /** The header marks the current section in gold. */
-const HIGHLIGHTED = /(^|\s)text-gold(\s|$)/;
+const HIGHLIGHTED = /(^|\s)text-gold-dark(\s|$)/;
 
 const CLIENT_LOGIN: NavItem = { label: "Client Login", href: LOGIN_PATH };
 

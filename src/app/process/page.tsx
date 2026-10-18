@@ -20,7 +20,7 @@ export default function ProcessPage() {
           </div>
           <ProcessDiagram steps={process.steps} />
           <div className="mx-auto mt-16 max-w-3xl bg-ink p-8 text-white sm:p-10">
-            <p className="eyebrow">Client portal: opening soon</p>
+            <p className="eyebrow text-gold">Client portal: opening soon</p>
             <p className="mt-3 text-lg">When the client portal opens, your team will follow every drawing, approval and shipment online.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <ButtonLink href="/contact">Start a Project</ButtonLink>

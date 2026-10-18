@@ -49,6 +49,18 @@ describe("ProjectGallery", () => {
     expect(altsInsideDetails(container)).toEqual(["Photo 8", "Photo 9", "Photo 10", "Photo 11", "Photo 12", "Photo 13", "Photo 14"]);
   });
 
+  it("draws the Show all control in the dark gold, so its small text reads on white", () => {
+    // Arrange
+    render(<ProjectGallery photos={photosOf(14)} />);
+
+    // Act
+    const summary = screen.getByText("Show all 14 photos");
+
+    // Assert
+    expect(summary).toHaveClass("text-gold-dark", "border-gold-dark", "hover:bg-gold-dark");
+    expect(summary.className).not.toMatch(/(^|\s)text-gold(\s|$)/);
+  });
+
   it("labels the summary with the project's total number of photos", () => {
     // Arrange
     render(<ProjectGallery photos={photosOf(14)} />);

@@ -6,7 +6,7 @@ import type { ShowcasePhoto } from "@/lib/types";
 /**
  * The dark layer between the photo and the text. It is the brand's ink color (--brand-ink in
  * src/app/globals.css), strongest where the text starts and never weaker than `weakestOpacity`: at
- * that opacity even a pure white pixel of the photo gives white text a contrast of about 6.7:1, and
+ * that opacity even a pure white pixel of the photo gives white text a contrast of about 6.3:1, and
  * the cream eyebrow about 5.3:1, above the 4.5:1 WCAG asks for (src/components/HomeHero.test.tsx
  * checks this against the layer as drawn).
  */
@@ -43,8 +43,6 @@ type HomeHeroProps = {
 export function HomeHero({ eyebrow, title, statement, audience, photo }: HomeHeroProps) {
   return (
     <section aria-labelledby={HEADING_ID} className="relative isolate overflow-hidden bg-ink">
-      <Photo photo={photo} sizes="100vw" loading="priority" className="absolute inset-0 -z-20 h-full w-full object-cover object-[50%_55%]" />
-      <div aria-hidden="true" className="absolute inset-0 -z-10" style={{ backgroundImage: overlayBackground() }} />
       {/* From 768 px the fixed "Inquire Now" tab (src/components/Chrome.tsx) is 60 px wide at the left edge, so the text starts 5rem in; from 1380 px the centered container already leaves that room. */}
       <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col justify-center px-4 py-20 sm:min-h-[640px] sm:px-6 md:pl-20 min-[1380px]:pl-6">
         <span aria-hidden="true" className="block h-px w-16 bg-gold" />
@@ -66,6 +64,13 @@ export function HomeHero({ eyebrow, title, statement, audience, photo }: HomeHer
           </ButtonLink>
         </div>
       </div>
+      {/*
+        The photo and its dark layer come last in the page so a screen reader reads the heading and the text
+        before the long description of the photo (it is a backdrop). They are still drawn behind the text:
+        the section is its own stacking context (isolate) and their negative z-index puts them under it.
+      */}
+      <Photo photo={photo} sizes="100vw" loading="priority" className="absolute inset-0 -z-20 h-full w-full object-cover object-[50%_55%]" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10" style={{ backgroundImage: overlayBackground() }} />
     </section>
   );
 }

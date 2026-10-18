@@ -36,7 +36,7 @@ export function ProjectsGallery({ projects, headingLevel = 2 }: ProjectsGalleryP
               type="button"
               aria-pressed={sector === s}
               onClick={() => setSector(s)}
-              className={`rounded-sm border px-4 py-2 text-sm transition-colors ${sector === s ? "border-gold bg-gold text-white" : "border-line text-ink hover:border-gold"}`}
+              className={`rounded-sm border px-4 py-2 text-sm transition-colors ${sector === s ? "border-gold-dark bg-gold-dark text-white" : "border-line text-ink hover:border-gold"}`}
             >
               {s}
             </button>

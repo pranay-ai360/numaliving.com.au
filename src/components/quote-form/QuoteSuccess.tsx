@@ -17,19 +17,19 @@ export function QuoteSuccess({ reference, onSendAnother }: Props) {
 
   return (
     <div role="status" className="border border-gold bg-gold-soft p-8">
-      <h2 ref={headingRef} tabIndex={-1} className="display text-lg text-gold">
+      <h2 ref={headingRef} tabIndex={-1} className="display text-lg text-gold-dark">
         Thank You
       </h2>
       <p className="mt-4 text-lg">We have your request. Our team will reply within two business days.</p>
       <p className="mt-2 text-sm text-ink-muted">Reference: {reference}</p>
       <p className="mt-2 text-sm text-ink-muted">
         No reply within two business days? Email{" "}
-        <a href={followUpEmailHref(reference)} className="underline hover:text-gold">
+        <a href={followUpEmailHref(reference)} className="underline hover:text-gold-dark">
           {site.contact.email}
         </a>{" "}
         quoting {reference}.
       </p>
-      <button type="button" onClick={onSendAnother} className="mt-6 text-sm font-medium text-gold hover:text-gold-dark">
+      <button type="button" onClick={onSendAnother} className="mt-6 text-sm font-medium text-gold-dark hover:text-ink">
         Send another request →
       </button>
     </div>

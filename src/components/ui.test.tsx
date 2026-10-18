@@ -199,8 +199,8 @@ describe("FigureValue", () => {
 
 describe("ButtonLink", () => {
   it.each([
-    ["solid", "bg-gold"],
-    ["outline", "text-gold"],
+    ["solid", "bg-gold-dark"],
+    ["outline", "text-gold-dark"],
     ["light", "text-paper"],
   ] as const)("draws the %s variant with its own look", (variant, expectedClass) => {
     // Arrange
@@ -222,6 +222,38 @@ describe("ButtonLink", () => {
     const link = screen.getByRole("link", { name: "Talk to us" });
 
     // Assert
-    expect(link).toHaveClass("bg-gold");
+    expect(link).toHaveClass("bg-gold-dark");
+  });
+
+  it("fills the solid variant with the dark gold and keeps its label white, a contrast of at least 4.5:1", () => {
+    // Arrange
+    render(<ButtonLink href="/contact">Talk to us</ButtonLink>);
+
+    // Act
+    const link = screen.getByRole("link", { name: "Talk to us" });
+
+    // Assert
+    expect(link).toHaveClass("bg-gold-dark", "text-white");
+    expect(link.className).not.toMatch(/(^|\s)bg-gold(\s|$)/);
+  });
+
+  it("gives the solid and outline variants a hover state that differs from the resting one", () => {
+    // Arrange
+    render(
+      <>
+        <ButtonLink href="/a">First</ButtonLink>
+        <ButtonLink href="/b" variant="outline">
+          Second
+        </ButtonLink>
+      </>,
+    );
+
+    // Act
+    const [solid, outline] = [screen.getByRole("link", { name: "First" }), screen.getByRole("link", { name: "Second" })];
+
+    // Assert
+    expect(solid.className).toMatch(/hover:bg-(?!gold-dark)\S+/);
+    expect(outline.className).toMatch(/hover:bg-gold-dark/);
+    expect(outline.className).toMatch(/hover:text-white/);
   });
 });

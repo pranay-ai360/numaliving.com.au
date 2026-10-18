@@ -29,6 +29,18 @@ describe("Footer", () => {
     expect(names).toEqual(expect.arrayContaining(["Home", "About", "Projects", "Capabilities", "Process", "Contact", "Client Login"]));
   });
 
+  it("draws its eyebrows in the light gold, which reads on the dark footer (the dark gold of the other pages would not)", () => {
+    // Arrange
+    const { container } = render(<Footer />);
+
+    // Act
+    const eyebrows = Array.from(container.querySelectorAll(".eyebrow"));
+
+    // Assert
+    expect(eyebrows.length).toBeGreaterThan(0);
+    expect(eyebrows.filter((eyebrow) => !eyebrow.classList.contains("text-gold"))).toEqual([]);
+  });
+
   it("shows the contact email as a link", () => {
     // Arrange
     render(<Footer />);
