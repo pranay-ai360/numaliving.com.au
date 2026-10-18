@@ -22,8 +22,9 @@ Branch, then `gh pr create`, `gh pr checks --watch`, `gh pr merge --merge`. A pu
 
 - **Contact details:** `site.contact` in `src/config/site.ts`. Change the email only there and in its pin, `src/config/site.test.ts`; every other test reads `site.contact.email`. `src/config/launchGuard.test.ts` keeps the old placeholder email as its fixture on purpose.
 - **Where Quote Requests go:** the FormSubmit alias in the repository variable `FORMSUBMIT_ID`. It is public by design. The deploy fails if it contains `@` or is `e2e-form-id`. Changing it takes effect at the next deploy.
-- **Search visibility:** `isIndexable` in `src/config/site.ts` is `false`, so every page is `noindex`. The launch guard test stops it being set to `true` while placeholder or sample content remains (phone, WhatsApp, address, sample projects, the Preview ribbon).
+- **Search visibility:** `isIndexable` in `src/config/site.ts` is `false`, so every page is `noindex`. The launch guard test stops it being set to `true` while placeholder or sample content remains (phone, WhatsApp, address, sample projects, sample figures listed in `sampleContent`, the Preview ribbon).
 - **Base path:** `NEXT_PUBLIC_BASE_PATH`, filled in by `actions/configure-pages` (empty on numaliving.us).
+- **Search metadata:** every page's title, description, share image and `updated` date is in `src/content/seo.ts` (the page registry); the builders are in `src/lib/seo/`. The sitemap lists pages, and `robots.txt` names it, only while `isIndexable` is true.
 
 ## Domain and infrastructure
 
@@ -46,4 +47,4 @@ numaliving.us is registered at GoDaddy, its DNS is on Cloudflare (every site rec
 - `tools/seo/` holds the SEO research scripts (findings and decisions in `docs/seo/` and ADR 0003). `serp_search.py` needs the separate local SearXNG running (Docker Desktop, then `docker compose up -d` in its checkout; `SEARXNG_CLIENT_DIR` points at the checkout). Output goes to the git-ignored `tools/seo/data/`.
 - Tower auto-stashes uncommitted work when branches change: check `git stash list`.
 - `npm run lint` right after the coverage run warns about the generated `coverage/block-navigation.js`; CI is not affected.
-- Photo file names are case-sensitive on GitHub Pages.
+- Photo file names are case-sensitive on GitHub Pages. After adding or changing a project photo, run `npm run images:build` (it makes the AVIF and WebP copies, the share images and `scripts/images.manifest.json`); a unit test fails when they are out of date.
