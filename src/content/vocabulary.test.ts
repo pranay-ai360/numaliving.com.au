@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PRIVACY_NOTE } from "@/components/quote-form/constants";
 import { site } from "@/config/site";
-import { about, capabilities, craft, delivery, factory, factoryPhoto, home, process } from "@/content/pages";
+import { about, capabilities, craft, delivery, factory, home, process } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { pageRegistry } from "@/content/seo";
 import { PROJECT_TYPE_OPTIONS, ROLE_OPTIONS, TIMELINE_OPTIONS } from "@/lib/quotes/fields";
@@ -30,7 +30,6 @@ const COPY: Readonly<Record<string, unknown>> = {
   process,
   delivery,
   craft,
-  factoryPhoto,
   projects,
   site,
   pageRegistry,

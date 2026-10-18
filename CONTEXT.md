@@ -41,7 +41,7 @@ The AVIF and WebP files, at 480, 800, 1200 and 1600 px wide, that `npm run image
 _Avoid_: thumbnails, resized images, optimized images
 
 **Sample content**:
-Invented figures, lists and projects the site still shows while it is a preview (marked `sample: true` or `SAMPLE`, and the figures named in `sampleContent` in `src/content/pages.ts`). The launch guard keeps the site out of search engines until none is left.
+Invented figures, lists, projects and placeholder photos the site still shows while it is a preview (marked `sample: true` or `SAMPLE`, and the entries named in `sampleContent` in `src/content/pages.ts`). The launch guard keeps the site out of search engines until none is left.
 _Avoid_: dummy content, placeholder text
 
 **Company facts**:

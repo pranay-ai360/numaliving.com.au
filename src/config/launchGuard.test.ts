@@ -100,7 +100,7 @@ function launchGuardMessage(blockers: readonly string[]): string {
   return [
     "isIndexable is true in src/config/site.ts, so search engines may list the site, but it still has placeholder or sample content:",
     ...blockers.map((blocker) => `  - ${blocker}`),
-    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
+    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure or placeholder photo listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
   ].join("\n");
 }
 
@@ -184,8 +184,8 @@ describe("launchBlockers", () => {
 
     // Assert
     expect(blockers).toEqual([
-      '"home.stats" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff))',
-      '"factory.facts" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: factory.facts (production floor, machines))',
+      '"home.stats" is still listed in sampleContent in src/content/pages.ts, so the site shows sample content (src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff))',
+      '"factory.facts" is still listed in sampleContent in src/content/pages.ts, so the site shows sample content (src/content/pages.ts: factory.facts (production floor, machines))',
     ]);
   });
 
@@ -327,6 +327,6 @@ describe("launchBlockers", () => {
 
     // Assert
     expect(message).toContain('"home.stats" is still listed in sampleContent in src/content/pages.ts');
-    expect(message).toContain("replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry");
+    expect(message).toContain("replace each invented figure or placeholder photo listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry");
   });
 });

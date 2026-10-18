@@ -106,6 +106,8 @@ export const capabilities = {
 export const factory = {
   title: "The Factory",
   lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and schedule.",
+  /** One wide photo of the factory floor, shown above the factory section. While `src` is "" a wood-tone placeholder shows (see `craft` below, and `sampleContent`). */
+  photo: { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" },
   // SAMPLE figures — replace with real ones
   facts: [
     { value: "194,000 sq ft (18,000 m²)", label: "Production floor" },
@@ -164,10 +166,15 @@ export const delivery = {
 
 /**
  * Photos for the craft gallery on the Capabilities page.
- * To use a real photo: put it in /public/craft/ and set src, e.g. "/craft/veneer-panel.jpg".
- * While src is "", a wood-tone placeholder shows instead.
+ * While src is "", a wood-tone placeholder shows instead, and `craft` is listed in `sampleContent`
+ * below, so the launch guard keeps the site out of search engines until real photos replace them.
  * The first photo is shown large. `material` only picks the placeholder colour:
  * walnut, oak, lacquer, stone, brass or linen.
+ *
+ * Do not simply drop a photo in /public/craft/: the image pipeline (scripts/image-plan.mjs) handles
+ * public/projects/<slug>/<slug>-NN.jpg only, so a photo set here would load as one full-size JPEG
+ * with no AVIF or WebP copies, no srcset and no width and height. Teach the pipeline the new folder
+ * first (README, Photos and `npm run images:build`); the same goes for `factory.photo`.
  */
 export const craft = [
   { src: "", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
@@ -177,16 +184,13 @@ export const craft = [
   { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
 ];
 
-/** One wide photo of the factory floor, shown above the factory section. */
-export const factoryPhoto = { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };
-
-/** A figure or list that is still invented: `id` is its place in the content (such as "home.stats"), `where` says what to edit. */
+/** A figure, list or photo that is still invented or missing: `id` is its place in the content (such as "home.stats"), `where` says what to edit. */
 export type SampleContent = Readonly<{ id: string; where: string }>;
 
 /**
- * The invented figures and lists the pages still show. While any is listed here the launch guard
+ * The invented figures, lists and placeholder photos the pages still show. While any is listed here the launch guard
  * (src/config/launchGuard.test.ts) refuses to let the site be indexed. To clear an entry: replace the
- * figures with real ones in the file named, then delete the entry. src/content/pages.test.ts checks that
+ * figures (or put real photos in) in the file named, then delete the entry. src/content/pages.test.ts checks that
  * every id still leads to content, so a rename cannot leave an entry that blocks nothing.
  */
 export const sampleContent: readonly SampleContent[] = [
@@ -194,5 +198,7 @@ export const sampleContent: readonly SampleContent[] = [
   { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines, spray booths, monthly output)" },
   { id: "delivery.regions", where: "src/content/pages.ts: delivery.regions (the destinations listed on the About page)" },
   { id: "locations.destinations", where: "src/content/locations.ts: destinations (the places on the About page map)" },
+  { id: "craft", where: "src/content/pages.ts: craft (the five photos of the Capabilities gallery are wood-tone placeholders, with no photo file yet)" },
+  { id: "factory.photo", where: "src/content/pages.ts: factory.photo (the wide factory photo on the Capabilities page is a wood-tone placeholder, with no photo file yet)" },
 ];
 

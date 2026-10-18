@@ -16,8 +16,8 @@ describe("sampleContentBlockers", () => {
 
     // Assert
     expect(blockers).toEqual([
-      '"home.stats" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff))',
-      '"factory.facts" is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (src/content/pages.ts: factory.facts (production floor, machines))',
+      '"home.stats" is still listed in sampleContent in src/content/pages.ts, so the site shows sample content (src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff))',
+      '"factory.facts" is still listed in sampleContent in src/content/pages.ts, so the site shows sample content (src/content/pages.ts: factory.facts (production floor, machines))',
     ]);
   });
 

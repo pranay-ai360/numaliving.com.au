@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { capabilities, craft, factory, factoryPhoto } from "@/content/pages";
+import { capabilities, craft, factory } from "@/content/pages";
 import { ButtonLink, Container, FigureValue, PageHero, SectionTitle } from "@/components/ui";
 import { CraftGallery, PhotoTile } from "@/components/CraftGallery";
 
@@ -47,7 +47,7 @@ export default function CapabilitiesPage() {
           <SectionTitle ghost="Factory" title={factory.title} />
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted">{factory.lead}</p>
 
-          <PhotoTile photo={factoryPhoto} className="mt-10 aspect-[16/7] w-full" />
+          <PhotoTile photo={factory.photo} className="mt-10 aspect-[16/7] w-full" />
 
           <dl className="mt-10 grid grid-cols-2 gap-y-8 lg:grid-cols-4">
             {factory.facts.map((f) => (

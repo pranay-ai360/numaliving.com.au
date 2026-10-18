@@ -18,9 +18,9 @@ import { sampleContent, type SampleContent } from "@/content/pages";
 /** Lists what is not ready in one part of the content; empty when it is ready. */
 export type BlockerSource = () => readonly string[];
 
-/** The invented figures and lists the pages still show, from `sampleContent` in src/content/pages.ts. */
+/** The invented figures, lists and placeholder photos the pages still show, from `sampleContent` in src/content/pages.ts. */
 export function sampleContentBlockers(items: readonly SampleContent[] = sampleContent): readonly string[] {
-  return items.map((item) => `${JSON.stringify(item.id)} is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (${item.where})`);
+  return items.map((item) => `${JSON.stringify(item.id)} is still listed in sampleContent in src/content/pages.ts, so the site shows sample content (${item.where})`);
 }
 
 /** Every part of the content that must be real before launch. Add a module's list here. */
