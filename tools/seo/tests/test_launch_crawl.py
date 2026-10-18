@@ -10,7 +10,6 @@ from launch_support import FakeWeb, ORIGIN
 import launch_crawl  # noqa: E402
 from fetch_pages import FetchResult  # noqa: E402
 from launch_crawl import Crawl, Fetched  # noqa: E402
-from launch_model import Site  # noqa: E402
 from seo_common import SeoToolError  # noqa: E402
 
 LOCAL = "http://127.0.0.1:4573"
@@ -21,8 +20,8 @@ def page(*hrefs: str, title: str = "T") -> str:
     return f"<html><head><title>{title}</title></head><body><h1>H</h1>{links}</body></html>"
 
 
-def run(web: FakeWeb, seeds: Sequence[str] = (ORIGIN + "/",), max_pages: int = 60, base: str = ORIGIN + "/") -> Crawl:
-    return launch_crawl.crawl_site(Site.create(base, ORIGIN, "live"), web, seeds, max_pages)
+def run(web: FakeWeb, seeds: Sequence[str] = (ORIGIN + "/",), max_pages: int = 60) -> Crawl:
+    return launch_crawl.crawl_site(web, seeds, max_pages)
 
 
 def requested(crawl: Crawl) -> List[str]:
@@ -126,7 +125,7 @@ class WhatIsNotFetchedTests(unittest.TestCase):
         web = FakeWeb()
         web.add(LOCAL + "/", page(ORIGIN + "/about/", "/a/"))
         web.add(LOCAL + "/a/", page())
-        crawl = run(web, seeds=[LOCAL + "/"], base=LOCAL + "/")
+        crawl = run(web, seeds=[LOCAL + "/"])
         self.assertEqual(requested(crawl), [LOCAL + "/", LOCAL + "/a/"])
 
 
@@ -179,7 +178,7 @@ class WhatIsRecordedTests(unittest.TestCase):
         original = web(ORIGIN + "/")
         cut = FetchResult(requested=original.requested, final_url=original.final_url, status=200,
                           headers=original.headers, body=original.body, truncated=True)
-        crawl = launch_crawl.crawl_site(Site.create(ORIGIN, ORIGIN, "live"), lambda url: cut, [ORIGIN + "/"], 60)
+        crawl = launch_crawl.crawl_site(lambda url: cut, [ORIGIN + "/"], 60)
         self.assertIsNone(crawl.fetched[0].facts)
 
     def test_bytes_that_are_not_utf8_do_not_stop_the_crawl(self) -> None:
