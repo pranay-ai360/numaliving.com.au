@@ -49,12 +49,13 @@ from serp_guard import (
 )
 from seo_common import (
     SeoToolError,
+    assign_stems,
     data_dir,
+    hashed_slug,
     log,
     non_negative_float,
     read_query_file,
     run_cli,
-    slugify,
     url_slug,
     write_json_file,
     write_text_file,
@@ -133,7 +134,8 @@ def shot_label(url: str) -> str:
 
 
 def serp_label(query: str) -> str:
-    return slugify(query, SERP_LABEL_LENGTH) or "query"
+    """File-name stem for a query: readable words plus a hash of the exact text (case and punctuation count)."""
+    return hashed_slug(query, SERP_LABEL_LENGTH)
 
 
 def require_cloakbrowser() -> None:
@@ -238,10 +240,11 @@ def run_shots(
     out_dir = args.out_dir or data_dir() / "browse" / "shots"
     view = capture_view or _capture_view
     pages: List[Dict[str, Any]] = []
+    labels = assign_stems(urls)  # readable names, with a hash only where two addresses would share one
     with (launch or open_seat)() as browser:
         for index, url in enumerate(urls):
             log(f"shots: {url}")
-            label = shot_label(url)
+            label = labels[url]
             views = [view(browser, url, out_dir, label, name, mobile, args.full_page) for name, mobile in VIEWS]
             pages.append({"label": label, "url": url, "views": views})
             if index < len(urls) - 1:

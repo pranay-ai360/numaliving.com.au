@@ -14,7 +14,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 from urllib.parse import SplitResult, urlsplit
 
 TOOLS_DIR = Path(__file__).resolve().parent
@@ -69,15 +69,63 @@ def hashed_slug(text: str, max_length: int = SLUG_MAX_LENGTH) -> str:
     return f"{readable}-{digest}" if readable else digest
 
 
+def without_fragment(url: str) -> str:
+    """The URL without its #fragment: a fragment is never sent, so it does not make a different page."""
+    return url.split("#", 1)[0]
+
+
 def url_slug(url: str) -> str:
     """File-name stem for a URL: host and path joined by underscores, with a hash when a query string is present."""
-    parts = urlsplit(url)
+    parts = safe_urlsplit(url)
+    if parts is None:  # an address urlsplit refuses: a readable start and a hash of the whole text
+        return hashed_slug(url, URL_SLUG_MAX_LENGTH)
     path = parts.path.strip("/").replace("/", "_") or "index"
     readable = re.sub(r"[^A-Za-z0-9._-]+", "-", f"{parts.netloc}_{path}")
     suffix = "_" + _short_hash(parts.query) if parts.query else ""
     if len(readable) > URL_SLUG_MAX_LENGTH:
         return f"{readable[:URL_SLUG_MAX_LENGTH]}-{_short_hash(url)}{suffix}"
     return readable + suffix
+
+
+def assign_stems(urls: Sequence[str]) -> Dict[str, str]:
+    """A file-name stem for every address; two different pages never get the same one.
+
+    The first page with a given readable name (compared without regard to case, for disks that ignore it) keeps
+    it, so ordinary addresses read as before. A later page that would collide, such as /x after /x/, http after
+    https, /x_y after /x/y or /About after /about, gets a short hash of its whole address added. Addresses that
+    differ only in their #fragment are one page and share a stem.
+    """
+    by_page: Dict[str, str] = {}
+    owner: Dict[str, str] = {}  # lower-case stem -> the page it names
+    stems: Dict[str, str] = {}
+    for url in urls:
+        page = without_fragment(url)
+        if page not in by_page:
+            stem = url_slug(page)
+            if stem.lower() in owner:
+                stem = _unused_stem(f"{stem}-{_short_hash(page)}", owner)
+            owner[stem.lower()] = page
+            by_page[page] = stem
+        stems[url] = by_page[page]
+    return stems
+
+
+def _unused_stem(stem: str, owner: Dict[str, str]) -> str:
+    candidate, number = stem, 1
+    while candidate.lower() in owner:  # a hash clash: vanishingly rare, but never overwrite
+        number += 1
+        candidate = f"{stem}-{number}"
+    return candidate
+
+
+def remove_file(path: Path) -> None:
+    """Delete a file if it is there."""
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        return
+    except OSError as error:
+        raise SeoToolError(f"cannot remove {path}: {error.strerror or error}") from error
 
 
 def read_text_file(path: Path) -> str:

@@ -38,13 +38,16 @@ from urllib.parse import urljoin, urlsplit
 from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
 from seo_common import (
     SeoToolError,
+    assign_stems,
     log,
     non_negative_float,
     read_list_file,
+    remove_file,
     require_http_url,
     run_cli,
     safe_urlsplit,
     url_slug,
+    without_fragment,
     write_bytes_file,
     write_json_file,
 )
@@ -407,11 +410,18 @@ def meta_record(result: FetchResult) -> Dict[str, Any]:
     }
 
 
-def save_result(out_dir: Path, result: FetchResult) -> str:
-    """Write the page (when a real answer arrived) and its meta file; returns the file name stem."""
-    slug = url_slug(result.requested)
+def save_result(out_dir: Path, result: FetchResult, stem: Optional[str] = None) -> str:
+    """Write the page (when a real answer arrived) and its meta file; returns the file name stem.
+
+    ``stem`` is the name from assign_stems; without it the plain name for the address is used. When nothing
+    arrived, a page saved by an earlier run is removed so that it cannot sit beside a record saying it was skipped.
+    """
+    slug = stem or url_slug(result.requested)
+    page = out_dir / f"{slug}.html"
     if result.status is not None and not (result.skipped or result.error):
-        write_bytes_file(out_dir / f"{slug}.html", result.body)
+        write_bytes_file(page, result.body)
+    else:
+        remove_file(page)
     write_json_file(out_dir / f"{slug}.meta.json", meta_record(result))
     return slug
 
@@ -428,18 +438,19 @@ def result_line(index: int, total: int, result: FetchResult) -> str:
 
 
 def collect_urls(urls: Sequence[str], urls_file: Optional[Path]) -> Tuple[str, ...]:
-    """Every URL checked up front (so a typo stops the run before any request), repeats dropped."""
+    """Every URL checked up front (so a typo stops the run before any request), without #fragments, repeats dropped."""
     listed: List[str] = list(urls)
     if urls_file is not None:
         listed.extend(read_list_file(urls_file, "URLs"))
-    return tuple(dict.fromkeys(require_http_url(url) for url in listed))
+    return tuple(dict.fromkeys(without_fragment(require_http_url(url)) for url in listed))
 
 
 def fetch_all(fetcher: PoliteFetcher, urls: Sequence[str], out_dir: Path) -> int:
     failed = skipped = 0
+    stems = assign_stems(urls)
     for index, url in enumerate(urls, start=1):
         result = fetcher.fetch(url)
-        save_result(out_dir, result)
+        save_result(out_dir, result, stems[url])
         print(result_line(index, len(urls), result), flush=True)
         failed += 1 if result.error else 0
         skipped += 1 if result.skipped else 0

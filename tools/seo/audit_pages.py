@@ -33,6 +33,7 @@ from seo_common import (
 )
 
 DEFAULT_BASE_URL = "https://example.invalid/"
+HTML_SUFFIXES = (".html", ".htm")
 PREVIEW_WORDS = 80
 NAV_LABEL_LIMIT = 40
 ALT_SAMPLE_LIMIT = 6
@@ -150,7 +151,13 @@ def render_text_file(facts: PageFacts) -> str:
 
 
 def audit_file(html_path: Path, fallback_base_url: str = DEFAULT_BASE_URL) -> Dict[str, Any]:
-    """Analyse one saved page and write FILE.analysis.json and FILE.txt next to it."""
+    """Analyse one saved page and write FILE.analysis.json and FILE.txt next to it.
+
+    The output names replace the .html or .htm suffix, so any other file is refused: notes.txt would otherwise be
+    overwritten by its own text output.
+    """
+    if html_path.suffix.lower() not in HTML_SUFFIXES:
+        raise SeoToolError(f"{html_path} is not an .html or .htm file; the output files are named after the page")
     html = read_text_file(html_path)
     meta = read_fetch_meta(html_path)
     base_url = meta.get("final_url") or meta.get("requested") or fallback_base_url
