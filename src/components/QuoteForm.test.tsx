@@ -70,6 +70,14 @@ describe("QuoteForm", () => {
       expect(choices).toEqual(["Select…", ...options]);
     });
 
+    it("links the privacy notice from the note under the Send button", () => {
+      // Arrange / Act
+      renderQuoteForm();
+
+      // Assert
+      expect(screen.getByRole("link", { name: "Privacy notice" })).toHaveAttribute("href", "/privacy");
+    });
+
     it("keeps the browser's own required checks on the essential fields only", () => {
       // Arrange / Act
       renderQuoteForm();

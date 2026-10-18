@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
+import { LEGAL_LAST_UPDATED, legalDrafts } from "@/content/legal";
 import { pageRegistry, getPageSeo, projectSeo, requirePageSeo } from "@/content/seo";
 import { projects } from "@/content/projects";
 import { canonicalUrl } from "@/lib/seo/canonical";
@@ -15,6 +16,8 @@ const NOINDEX_DESCRIPTION_RANGE = { min: 50, max: 160 } as const;
 const LOGIN_PATH = "/login";
 
 const projectPaths = projects.map((project) => `/projects/${project.slug}`);
+/** The privacy notice and the website terms: linked from the footer, not the main menu. */
+const legalPaths = legalDrafts.map((draft) => draft.page);
 const menuPaths = site.nav.map((item) => item.href);
 
 function descriptionRange(entry: PageSeo): { min: number; max: number } {
@@ -48,6 +51,29 @@ describe("page registry coverage", () => {
     expect(hasLogin).toBe(true);
   });
 
+  it("has an entry for the privacy notice and the website terms, the two legal pages", () => {
+    // Arrange
+    const paths = pageRegistry.map((entry) => entry.path);
+
+    // Act
+    const missing = legalPaths.filter((path) => !paths.includes(path));
+
+    // Assert
+    expect(legalPaths).toEqual(["/privacy", "/terms"]);
+    expect(missing).toEqual([]);
+  });
+
+  it("dates each legal page the day its draft was last written", () => {
+    // Arrange
+    const entries = legalPaths.map((path) => requirePageSeo(path));
+
+    // Act
+    const dates = entries.map((entry) => entry.updated);
+
+    // Assert
+    expect(dates).toEqual([LEGAL_LAST_UPDATED.iso, LEGAL_LAST_UPDATED.iso]);
+  });
+
   it("has an entry for every project", () => {
     // Arrange
     const paths = pageRegistry.map((entry) => entry.path);
@@ -61,7 +87,7 @@ describe("page registry coverage", () => {
 
   it("has no entry for a page that does not exist", () => {
     // Arrange
-    const known = new Set([...menuPaths, LOGIN_PATH, ...projectPaths]);
+    const known = new Set([...menuPaths, LOGIN_PATH, ...projectPaths, ...legalPaths]);
 
     // Act
     const strays = pageRegistry.map((entry) => entry.path).filter((path) => !known.has(path));

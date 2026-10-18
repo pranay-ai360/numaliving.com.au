@@ -13,6 +13,7 @@
  * project itself (src/content/projects.ts): its name, a description from PROJECT_DESCRIPTIONS (its
  * summary until one is written there) and the share image cut from its first photo.
  */
+import { LEGAL_LAST_UPDATED } from "@/content/legal";
 import { projects } from "@/content/projects";
 import type { PageSeo, ShowcaseProject } from "@/lib/types";
 
@@ -21,7 +22,7 @@ const US_COPY_DATE = "2026-10-18";
 
 const PROJECTS_PATH = "/projects";
 
-/** In the order of the main menu, then the client login, which is never indexed. */
+/** In the order of the main menu, then the two legal pages (linked from the footer), then the client login, which is never indexed. */
 const PAGES: readonly PageSeo[] = [
   {
     path: "/",
@@ -64,6 +65,20 @@ const PAGES: readonly PageSeo[] = [
     description: "Tell us about your project and attach drawings as PDFs, or paste a link to larger files. We review your scope within two business days and send a proposal.",
     indexable: true,
     updated: US_COPY_DATE,
+  },
+  {
+    path: "/privacy",
+    title: "Privacy Notice",
+    description: "What Numa Living does with the details you send through the quote form on numaliving.us: where they go, who handles them and how the site is hosted.",
+    indexable: true,
+    updated: LEGAL_LAST_UPDATED.iso,
+  },
+  {
+    path: "/terms",
+    title: "Website Terms",
+    description: "The terms for using numaliving.us: the pages give general information, a quote comes only in a written proposal, and links lead to sites we don't control.",
+    indexable: true,
+    updated: LEGAL_LAST_UPDATED.iso,
   },
   {
     path: "/login",

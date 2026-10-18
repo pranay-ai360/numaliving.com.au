@@ -40,9 +40,25 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <p className="mx-auto max-w-7xl px-4 py-5 text-xs text-white/50 sm:px-6">
-          © {new Date().getFullYear()} {site.name}. {site.group}.
-        </p>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 text-xs text-white/50 sm:px-6">
+          <p>
+            © {new Date().getFullYear()} {site.name}. {site.group}.
+          </p>
+          <nav aria-label="Legal">
+            <ul className="flex gap-5">
+              <li>
+                <Link href="/privacy" className="hover:text-gold">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-gold">
+                  Terms
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
       </div>
     </footer>
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PRIVACY_NOTE, SENDING_TEXT } from "./constants";
 
 // Kept exactly as before the migration.
@@ -10,14 +11,19 @@ type Props = {
   isReady: boolean;
 };
 
-/** The Send button, the privacy note under it, and a polite announcement while sending. */
+/** The Send button, the privacy note under it (with a link to the privacy notice), and a polite announcement while sending. */
 export function SendControls({ isSending, isReady }: Props) {
   return (
     <div>
       <button type="submit" disabled={isSending || !isReady} className={SEND_BUTTON_CLASS}>
         {isSending ? SENDING_TEXT : "Send Request"}
       </button>
-      <p className="mt-3 text-xs text-ink-muted">{PRIVACY_NOTE}</p>
+      <p className="mt-3 text-xs text-ink-muted">
+        {PRIVACY_NOTE}{" "}
+        <Link href="/privacy" className="underline hover:text-gold">
+          Privacy notice
+        </Link>
+      </p>
       <p role="status" className="sr-only">
         {isSending ? SENDING_TEXT : ""}
       </p>

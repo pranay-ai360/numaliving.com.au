@@ -19,6 +19,12 @@ const HOME_CALLS_TO_ACTION: readonly NavItem[] = [
   { label: "Client Login →", href: LOGIN_PATH },
 ];
 
+/** The legal pages linked from the footer only, with the heading each opens with. */
+const LEGAL_LINKS: readonly (NavItem & { title: string })[] = [
+  { label: "Privacy", href: "/privacy", title: "Privacy Notice" },
+  { label: "Terms", href: "/terms", title: "Website Terms" },
+];
+
 function linkIn(container: Locator, item: NavItem): Locator {
   return container.getByRole("link", { name: item.label, exact: true });
 }
@@ -97,6 +103,18 @@ test.describe("mobile", () => {
       await page.getByRole("button", { name: "Close menu" }).click();
     }
   });
+});
+
+test("the footer's Privacy and Terms links open their pages", async ({ page }) => {
+  await openSettled(page, "/about");
+  const footer = page.getByRole("contentinfo");
+
+  for (const item of LEGAL_LINKS) {
+    await linkIn(footer, item).click();
+    await expectAt(page, item.href);
+    await expect(page.getByRole("heading", { level: 1, name: item.title })).toBeVisible();
+    await expect(page.getByText(/^Last updated/)).toContainText("October 18, 2026");
+  }
 });
 
 test("the logo returns home", async ({ page }) => {
