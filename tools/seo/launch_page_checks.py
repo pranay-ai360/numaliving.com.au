@@ -95,7 +95,7 @@ def _shared(views: Sequence[PageView], value_of: Callable[[PageView], str], labe
         if text:
             groups.setdefault(text, []).append(view.url)
     return {
-        url: f"same {label} as {next(other for other in urls if other != url)}"
+        url: f"same {label} as {urls[1] if url == urls[0] else urls[0]}"
         for urls in groups.values() if len(urls) > 1 for url in urls
     }
 

@@ -137,6 +137,22 @@ class SiteMappingTests(unittest.TestCase):
         self.assertEqual(Site.create(LOCAL + "/", LOCAL, "live").www_origin, "")
 
 
+HOSTILE_ADDRESSES = (
+    "http://[::1/", "http://[::1]x", "http://a@[b/", "\x00", "http://\ud800/", "http://a b/", "https://schema.org:99999/",
+    "http://:80/", "//", "///", "http://@", "http://[]/", "http://]/", ".", "%%", "http://a\tb/", "http://ex\u2100.test/",
+    "data:text/plain,hi", "javascript:alert(1)", "http://" + "a" * 100_000, "http://user:pw@host:1/", "",
+)
+
+
+class HostileAddressTests(unittest.TestCase):
+    def test_no_address_a_page_can_hold_makes_a_helper_raise(self) -> None:
+        site = Site.create(LOCAL + "/", ORIGIN, "live")
+        for address in HOSTILE_ADDRESSES:
+            with self.subTest(address=address[:40]):
+                for helper in (launch_model.origin_of, site.path_of, site.canonical_of, site.fetch_url, site.is_own):
+                    self.assertIsInstance(helper(address), (str, bool))
+
+
 class NoindexExpectationTests(unittest.TestCase):
     def test_a_preview_expects_noindex_on_every_page(self) -> None:
         site = Site.create(ORIGIN, ORIGIN, "preview")
