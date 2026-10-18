@@ -28,14 +28,31 @@ import sys
 import time
 import urllib.error
 import urllib.request
-import zlib
 from dataclasses import dataclass, replace
-from pathlib import Path
 from email.message import Message
-from typing import IO, Any, Callable, Dict, List, Optional, Sequence, Tuple
-from urllib.parse import urljoin, urlsplit
+from pathlib import Path
+from typing import IO, Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple
+from urllib.parse import urlsplit
 
-from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
+from http_reply import (  # noqa: F401  (re-exported: the names other tools and tests import from here)
+    KEPT_HEADERS,
+    MAX_BYTES,
+    REDIRECT_STATUSES,
+    Headers,
+    RawReply,
+    decode_body,
+    header_text,
+    read_reply,
+    redirect_target,
+)
+from robots_policy import (  # noqa: F401
+    KEEP_OUT_STATUSES,
+    MAX_CRAWL_DELAY_SECONDS,
+    ROBOTS_PATH,
+    RobotsPolicy,
+    parse_policy,
+    policy_from_reply,
+)
 from seo_common import (
     SeoToolError,
     ascii_url,
@@ -66,23 +83,17 @@ REQUEST_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate",
 }
-ROBOTS_PATH = "/robots.txt"
 TIMEOUT_SECONDS = 30
-MAX_BYTES = 6_000_000
 MAX_REDIRECTS = 10
-MAX_CRAWL_DELAY_SECONDS = 60.0
 DEFAULT_DELAY_SECONDS = 1.5
-REDIRECT_STATUSES = (301, 302, 303, 307, 308)
-KEEP_OUT_STATUSES = (401, 403)
-RATE_LIMITED_STATUS = 429
-KEPT_HEADERS = (
-    "content-type", "server", "cache-control", "x-robots-tag", "link", "content-language", "x-powered-by",
-    "strict-transport-security", "content-security-policy", "age", "via", "cf-cache-status", "x-cache",
-    "last-modified", "etag", "location", "retry-after",
-)
-GZIP_WBITS = zlib.MAX_WBITS | 16
-Headers = Tuple[Tuple[str, str], ...]
-Opener = Any  # anything with .open(request, timeout=...) like urllib's OpenerDirector
+_parse_robots = parse_policy  # the old private names, kept for scripts that import them
+_read_reply = read_reply
+
+
+class Opener(Protocol):
+    """Anything that opens a request like urllib's OpenerDirector."""
+
+    def open(self, request: urllib.request.Request, /, *, timeout: float) -> Any: ...
 
 
 @dataclass(frozen=True)
@@ -90,18 +101,6 @@ class RedirectHop:
     status: int
     source: str
     target: str
-
-
-@dataclass(frozen=True)
-class RawReply:
-    """One HTTP exchange: what came back (or why nothing did)."""
-
-    status: Optional[int]
-    headers: Headers
-    body: bytes = b""
-    error: str = ""
-    truncated: bool = False
-    elapsed_ms: int = 0
 
 
 @dataclass(frozen=True)
@@ -120,123 +119,9 @@ class FetchResult:
     truncated: bool = False
 
 
-@dataclass(frozen=True)
-class RobotsPolicy:
-    """What robots.txt allows for one origin. ``blocked`` set means every page there is skipped."""
-
-    rules: Optional[RobotsRules] = None
-    crawl_delay: float = 0.0
-    blocked: str = ""
-
-    def refusal(self, url: str) -> str:
-        """Why this URL must not be fetched, or "" when it may be. robots.txt itself is always fetchable."""
-        if urlsplit(url).path == ROBOTS_PATH:
-            return ""
-        if self.blocked:
-            return self.blocked
-        if self.rules is not None and not self.rules.allows(request_target(url)):
-            return "robots.txt disallows this URL"
-        return ""
-
-
 def _hostname(url: str) -> str:
     parts = safe_urlsplit(url)
     return (parts.hostname or "") if parts is not None else ""
-
-
-def decode_body(raw: bytes, encoding: str, limit: int = MAX_BYTES) -> Tuple[bytes, bool]:
-    """Undo gzip or deflate without ever producing more than ``limit`` bytes. Returns (body, truncated)."""
-    name = encoding.strip().lower()
-    if name in ("", "identity"):
-        return raw[:limit], len(raw) > limit
-    if name in ("gzip", "x-gzip"):
-        window_sizes = (GZIP_WBITS,)
-    elif name == "deflate":
-        window_sizes = (zlib.MAX_WBITS, -zlib.MAX_WBITS)  # with and without the zlib header: servers differ
-    else:
-        raise ValueError(f"unsupported Content-Encoding {name!r}")
-    failure = ""
-    for wbits in window_sizes:
-        decompressor = zlib.decompressobj(wbits)
-        try:
-            out = decompressor.decompress(raw, limit + 1)
-        except zlib.error as error:
-            failure = str(error)
-            continue
-        return out[:limit], len(out) > limit or not decompressor.eof
-    raise ValueError(f"could not decode the {name} body: {failure}")
-
-
-def _seconds(value: float) -> str:
-    return f"{value:,.1f}".rstrip("0").rstrip(".")
-
-
-def _parse_robots(body: bytes) -> RobotsPolicy:
-    try:
-        rules = parse_robots(body)
-    except UnusableRobots as error:
-        return RobotsPolicy(blocked=str(error))
-    if rules.crawl_delay > MAX_CRAWL_DELAY_SECONDS:
-        return RobotsPolicy(
-            blocked=f"robots.txt asks for a Crawl-delay of {_seconds(rules.crawl_delay)} s, longer than the "
-            f"{_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
-        )
-    return RobotsPolicy(rules=rules, crawl_delay=rules.crawl_delay)
-
-
-def policy_from_reply(reply: RawReply) -> RobotsPolicy:
-    if reply.error:
-        return RobotsPolicy(blocked=f"robots.txt could not be read ({reply.error})")
-    status = reply.status or 0
-    if 200 <= status < 300:
-        return _parse_robots(reply.body)
-    if status in KEEP_OUT_STATUSES:
-        return RobotsPolicy(blocked=f"robots.txt answered HTTP {status}, which means keep out")
-    if 400 <= status < 500 and status != RATE_LIMITED_STATUS:
-        return RobotsPolicy()
-    return RobotsPolicy(blocked=f"robots.txt answered HTTP {status}, so permission is unknown")
-
-
-def header_text(value: str) -> str:
-    """http.client reads header bytes as Latin-1; a server that sent UTF-8 (a Location with an \u00e9) needs re-reading."""
-    try:
-        return value.encode("latin-1").decode("utf-8")
-    except UnicodeError:
-        return value
-
-
-def redirect_target(current: str, reply: RawReply) -> Tuple[str, str]:
-    """(next URL, "") for a followable redirect, ("", problem) for a refused one, ("", "") when the reply is final."""
-    if reply.status not in REDIRECT_STATUSES or reply.error:
-        return "", ""
-    location = header_text(next((value for name, value in reply.headers if name == "location"), "")).strip()
-    if not location:
-        return "", ""
-    try:
-        return require_http_url(urljoin(current, location)), ""
-    except (SeoToolError, ValueError) as error:  # urljoin raises ValueError for addresses such as http://[::1/
-        return "", f"redirect from {current} refused: {error}"
-
-
-def _kept_headers(response: Any) -> Headers:
-    """The headers worth keeping. A header sent more than once (two Link lines, X-Robots-Tag: all plus a
-    per-robot one) is joined with ", ", as HTTP allows, so that no value is lost."""
-    kept = []
-    for name in KEPT_HEADERS:
-        joined = ", ".join(value for value in response.headers.get_all(name) or [] if value)
-        if joined:
-            kept.append((name, joined))
-    return tuple(kept)
-
-
-def _read_reply(response: Any, status: int, max_bytes: int = MAX_BYTES) -> RawReply:
-    headers = _kept_headers(response)
-    try:
-        raw = response.read(max_bytes + 1)
-        body, truncated = decode_body(raw, response.headers.get("Content-Encoding") or "", max_bytes)
-    except (OSError, http.client.HTTPException, ValueError) as error:
-        return RawReply(status, headers, error=f"{type(error).__name__}: {error}")
-    return RawReply(status, headers, body=body, truncated=truncated)
 
 
 def build_result(
@@ -363,10 +248,10 @@ class PoliteFetcher:
         limit = MAX_BYTES if self._max_bytes is None else self._max_bytes
         try:
             with self._opener.open(request, timeout=TIMEOUT_SECONDS) as response:
-                return _read_reply(response, response.status, limit)
+                return read_reply(response, response.status, limit)
         except urllib.error.HTTPError as error:
             with error:  # an HTTP error is also the response: it carries the status, headers and body
-                return _read_reply(error, error.code, limit)
+                return read_reply(error, error.code, limit)
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as error:
             return RawReply(None, (), error=f"{type(error).__name__}: {error}")
 
