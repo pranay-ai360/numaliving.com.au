@@ -197,6 +197,10 @@ def daily_counts(entries: Sequence[SitemapEntry]) -> Tuple[Tuple[Tuple[str, int]
     return tuple(sorted(counts.items())), undated
 
 
+def _size(count: int) -> str:
+    return f"{count / 1e6:.1f} MB" if count >= 1_000_000 else f"{count:,} bytes"
+
+
 def fetch_problem(result: FetchResult) -> str:
     """Why a fetch gave nothing usable, or "" when it answered 200."""
     if result.skipped:
@@ -206,7 +210,7 @@ def fetch_problem(result: FetchResult) -> str:
     if result.status != 200:
         return f"HTTP {result.status}"
     if result.truncated:
-        return f"the download was truncated at {len(result.body) / 1e6:.1f} MB, so the sitemap is incomplete"
+        return f"the download was truncated at {_size(len(result.body))}, so the sitemap is incomplete"
     return ""
 
 
@@ -216,11 +220,11 @@ def _child_urls(index: Sitemap, origin: str, limit: int) -> Tuple[Tuple[str, ...
     notes: List[str] = []
     for entry in index.entries:
         try:
-            valid.append(require_http_url(entry.loc))
+            valid.append(require_http_url(entry.loc, hint=""))
         except SeoToolError as error:
             notes.append(f"ignored sitemap location {entry.loc}: {error}")
     host = host_of(origin) if "://" in origin else (host_of(valid[0]) if valid else "")
-    same = [url for url in valid if host_of(url) == host]
+    same = list(dict.fromkeys(url for url in valid if host_of(url) == host))  # a child listed twice is read once
     elsewhere = sorted({host_of(url) for url in valid if host_of(url) != host})
     if elsewhere:
         notes.append(f"skipped sitemaps on another host ({', '.join(elsewhere)}): only the index's own host is read")

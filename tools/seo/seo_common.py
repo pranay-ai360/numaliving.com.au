@@ -261,7 +261,7 @@ def require_http_url(url: str, hint: str = "start it with https://") -> str:
     """Return the URL trimmed, or raise SeoToolError for anything but a plain http(s) URL.
 
     urllib would happily open file: and ftp: URLs, so every URL goes through here first. ``hint`` ends the
-    message about a wrong scheme.
+    message about a wrong scheme; an empty hint leaves it out.
     """
     candidate = url.strip()
     if not candidate or any(ch.isspace() or ord(ch) < 0x20 for ch in candidate):
@@ -272,7 +272,7 @@ def require_http_url(url: str, hint: str = "start it with https://") -> str:
     except ValueError as error:
         raise SeoToolError(f"not a valid URL: {url!r} ({error})") from error
     if parts.scheme.lower() not in ALLOWED_URL_SCHEMES:
-        raise SeoToolError(f"only http and https URLs are accepted, got {url!r} ({hint})")
+        raise SeoToolError(f"only http and https URLs are accepted, got {url!r}" + (f" ({hint})" if hint else ""))
     if not parts.hostname:
         raise SeoToolError(f"the URL has no host name: {url!r}")
     if parts.username is not None or parts.password is not None:
