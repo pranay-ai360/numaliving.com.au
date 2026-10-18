@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import time
 import unittest
 
 from helpers import fixture_text
@@ -275,6 +276,164 @@ class WordAndTextTests(unittest.TestCase):
 
     def test_dates_and_long_numbers_are_not_phone_numbers(self) -> None:
         self.assertEqual(facts_of("<p>On 2026-10-18 we shipped 2125550123 parts, ref 12345-67890.</p>").phones, ())
+
+
+class ImpliedEndTagTests(unittest.TestCase):
+    """HTML lets authors and minifiers leave out end tags; the extractor must read such pages as a browser does."""
+
+    def test_an_omitted_head_end_tag_does_not_hide_the_body_text(self) -> None:
+        html = "<html><head><title>T</title><body><h1>Hello big world</h1><p>Some body text here</p></body></html>"
+        facts = facts_of(html)
+        self.assertEqual(facts.title, "T")
+        self.assertEqual(facts.heading_texts(1), ("Hello big world",))
+        self.assertEqual(facts.main_lines, ("Hello big world", "Some body text here"))
+        self.assertEqual(facts.words_main, 7)
+
+    def test_content_without_a_body_tag_ends_the_head_too(self) -> None:
+        facts = facts_of("<head><title>T</title><meta charset=utf-8><div>Body words</div>")
+        self.assertEqual((facts.title, facts.words_main), ("T", 2))
+
+    def test_the_usual_head_children_stay_in_the_head(self) -> None:
+        html = (
+            "<head><title>T</title><meta name=description content=d><link rel=canonical href=/c>"
+            "<script src=/a.js></script><style>x{}</style><noscript>no js</noscript><template>t</template></head>"
+            "<body>real</body>"
+        )
+        facts = facts_of(html)
+        self.assertEqual((facts.words_main, facts.description, facts.canonical), (1, "d", "/c"))
+
+    def test_a_new_anchor_finishes_the_open_one(self) -> None:
+        facts = facts_of('<body><a href="/one">one<a href="/two">two</a> <a href="/three">three</body>')
+        self.assertEqual([(link.url, link.text) for link in facts.links], [
+            ("https://example.test/one", "one"), ("https://example.test/two", "two"), ("https://example.test/three", "three"),
+        ])
+
+    def test_an_anchor_left_open_at_the_end_of_the_page_is_kept(self) -> None:
+        facts = facts_of('<p>text</p><a href="/x">open anchor')
+        self.assertEqual([(link.url, link.text) for link in facts.links], [("https://example.test/x", "open anchor")])
+
+    def test_a_heading_end_tag_of_another_level_closes_the_open_heading(self) -> None:
+        facts = facts_of("<h1>Title</h2><p>text</p><h2>Second</h2>")
+        self.assertEqual(facts.headings, (Heading(1, "Title"), Heading(2, "Second")))
+        self.assertEqual(facts.main_lines, ("Title", "text", "Second"))
+
+    def test_a_heading_left_open_at_the_end_of_the_page_is_kept(self) -> None:
+        self.assertEqual(facts_of("<p>x</p><h1>Never closed").headings, (Heading(1, "Never closed"),))
+
+    def test_a_new_heading_finishes_the_open_one(self) -> None:
+        self.assertEqual(facts_of("<h1>One<h2>Two</h2>").headings, (Heading(1, "One"), Heading(2, "Two")))
+
+    def test_an_end_tag_also_closes_the_elements_left_open_inside_it(self) -> None:
+        facts = facts_of("<div><nav>menu</div><p>after</p>")
+        self.assertEqual(facts.main_lines, ("after",))
+        self.assertEqual(facts.boilerplate_lines, ("menu",))
+
+    def test_an_end_tag_with_nothing_open_to_close_changes_nothing(self) -> None:
+        facts = facts_of("<nav>menu</div><p>still the nav</p>")
+        self.assertEqual(facts.boilerplate_lines, ("menu", "still the nav"))
+
+    def test_a_byte_order_mark_at_the_start_is_not_text(self) -> None:
+        facts = facts_of("\ufeff<!doctype html><html><body><p>Hello</p></body></html>")
+        self.assertEqual(facts.main_lines, ("Hello",))
+        self.assertEqual(facts.words_total, 1)
+
+
+class WordCountTests(unittest.TestCase):
+    def test_choices_in_a_dropdown_and_a_text_area_are_not_page_words(self) -> None:
+        html = (
+            "<main><p>Choose a state</p><select><option>Alabama</option><option>Alaska</option></select>"
+            "<textarea>Type here</textarea></main>"
+        )
+        facts = facts_of(html)
+        self.assertEqual(facts.main_lines, ("Choose a state",))
+        self.assertEqual(facts.words_main, 3)
+
+    def test_an_option_group_and_a_datalist_are_form_controls_too(self) -> None:
+        html = "<p>x</p><select><optgroup label=L><option>Texas</option></optgroup></select><datalist><option>Ohio</option></datalist>"
+        self.assertEqual(facts_of(html).words_total, 1)
+
+    def test_adjacent_buttons_stay_separate_words(self) -> None:
+        facts = facts_of("<button>Save</button><button>Cancel</button><span>A</span><span>B</span>")
+        self.assertEqual(facts.main_lines, ("Save", "Cancel", "AB"))
+        self.assertEqual(facts.words_main, 3)
+
+    def test_punctuation_alone_is_not_a_word(self) -> None:
+        self.assertEqual(facts_of("<p>Fast \u2014 reliable \u2022 tested | proven</p>").words_main, 4)
+        self.assertEqual(facts_of("<p>- * / \u00a9 ... </p>").words_main, 0)
+
+    def test_numbers_single_letters_and_mixed_tokens_are_words(self) -> None:
+        self.assertEqual(facts_of("<p>4 x 8 sheets, 3D models (2026)</p>").words_main, 7)
+
+    def test_words_in_other_scripts_are_words(self) -> None:
+        self.assertEqual(facts_of("<p>caf\u00e9 \u6728\u5de5 \u0434\u0430</p>").words_main, 3)
+
+
+class DeepMarkupTests(unittest.TestCase):
+    """Hostile or sloppy pages with tens of thousands of unclosed elements must not take minutes to read."""
+
+    LIMIT_SECONDS = 5.0
+
+    def timed(self, html: str) -> html_facts.PageFacts:
+        started = time.perf_counter()
+        facts = facts_of(html)
+        self.assertLess(time.perf_counter() - started, self.LIMIT_SECONDS)
+        return facts
+
+    def test_twenty_thousand_list_items_without_end_tags(self) -> None:
+        facts = self.timed("<ul>" + "<li>item" * 20_000)
+        self.assertEqual(facts.words_main, 20_000)
+
+    def test_forty_thousand_unclosed_divs(self) -> None:
+        facts = self.timed("<div>x" * 40_000)
+        self.assertEqual(facts.words_main, 40_000)
+
+    def test_inline_elements_nested_twenty_thousand_deep(self) -> None:
+        facts = self.timed("<i>" * 20_000 + "a<br>" * 20_000)
+        self.assertEqual(facts.words_main, 20_000)
+
+    def test_twenty_thousand_anchors_without_end_tags(self) -> None:
+        facts = self.timed('<a href="/x">' * 20_000 + "end")
+        self.assertEqual(len(facts.links), 20_000)
+
+    def test_text_in_a_deep_nav_is_still_boilerplate(self) -> None:
+        facts = self.timed("<nav>" + "<div>" * 300 + "menu word")
+        self.assertEqual((facts.words_main, facts.words_total), (0, 2))
+
+    def test_nesting_is_capped_like_a_browser_does(self) -> None:
+        self.assertEqual(html_facts.MAX_STACK_DEPTH, 512)
+        facts = self.timed("<div>" * 600 + "deep text" + "</div>" * 600 + "<p>after</p>")
+        self.assertEqual(facts.main_lines, ("deep text", "after"))
+
+
+class PlatformSignatureScopeTests(unittest.TestCase):
+    def test_outbound_links_and_alt_text_are_not_signatures(self) -> None:
+        html = (
+            '<a href="https://wordpress.com/wp-content/uploads/x.png" title="webflow site">link</a>'
+            '<img src="/own.png" alt="Shopify theme, /wp-content/ and woocommerce">'
+            '<input placeholder="elementor" value="hubspot"><meta name="description" content="built with squarespace">'
+        )
+        self.assertEqual(facts_of(html).platforms, ())
+
+    def test_class_names_and_resource_tags_still_reveal_the_platform(self) -> None:
+        html = (
+            '<div class="elementor-section et_pb_row"><img src="https://cdn.shopify.com/s/files/1/x.png"></div>'
+            '<iframe src="https://js.hs-scripts.com/1.js"></iframe><div data-elementor-type="wp-page"></div>'
+        )
+        self.assertEqual(set(facts_of(html).platforms), {"elementor", "divi", "shopify", "hubspot"})
+
+    def test_the_generator_meta_tag_can_name_the_platform(self) -> None:
+        self.assertIn("elementor", facts_of('<meta name="generator" content="Elementor 3.5.6">').platforms)
+        self.assertEqual(facts_of('<meta name="author" content="Elementor Fans">').platforms, ())
+
+    def test_inline_styles_that_load_resources_count(self) -> None:
+        html = '<div style="background:url(/wp-content/uploads/hero.jpg)"></div>'
+        self.assertIn("wordpress", facts_of(html).platforms)
+
+    def test_platform_signatures_live_in_one_module_and_are_reexported(self) -> None:
+        import platform_signatures
+
+        self.assertIs(html_facts.PLATFORM_SIGNATURES, platform_signatures.PLATFORM_SIGNATURES)
+        self.assertIs(html_facts.detect_platforms, platform_signatures.detect_platforms)
 
 
 class PlatformSignatureTests(unittest.TestCase):
