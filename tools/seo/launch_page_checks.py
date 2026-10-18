@@ -128,7 +128,7 @@ def _description_length_problem(view: PageView) -> str:
     return f"{length} characters (allowed {DESCRIPTION_MIN_CHARS} to {DESCRIPTION_MAX_CHARS})"
 
 
-def _canonical_problem(view: PageView) -> str:
+def canonical_problem(view: PageView) -> str:
     found = view.facts.canonicals
     if not any(link.strip() for link in found):
         return "no canonical link"
@@ -258,7 +258,7 @@ def page_checks(site: Site, views: Sequence[PageView], crawl: Crawl) -> Tuple[Ch
         title = f"the description is {DESCRIPTION_MIN_CHARS} to {DESCRIPTION_MAX_CHARS} characters"
         results.append(check("description-length", title, _description_length_problem))
     results += [
-        check("canonical", "one absolute canonical link: the canonical host plus the page path", _canonical_problem),
+        check("canonical", "one absolute canonical link: the canonical host plus the page path", canonical_problem),
         check("robots-meta", "robots tags match the mode: noindex only where it is expected", _robots_problem),
         check("html-lang", f'<html lang="{EXPECTED_LANG}">', _lang_problem),
         check("h1-single", "exactly one non-empty H1", _h1_problem),

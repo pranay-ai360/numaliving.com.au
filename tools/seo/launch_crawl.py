@@ -70,7 +70,7 @@ class Crawl:
         return self.index.get(url_key(url))
 
 
-def fetch_problem(site: Site, result: FetchResult) -> str:
+def fetch_problem(site: Site, result: FetchResult, noun: str = "page") -> str:
     """Why an answer is not a good page of the site: kept out by robots.txt, failed, not 200, cut off or elsewhere."""
     if result.skipped:
         return result.skipped
@@ -79,23 +79,27 @@ def fetch_problem(site: Site, result: FetchResult) -> str:
     if result.status != 200:
         return f"HTTP {result.status}"
     if result.truncated:
-        return "the page is larger than the download limit"
+        return f"the {noun} is larger than the download limit"
     if not site.is_own(result.final_url):
         return f"ends on another site: {result.final_url}"
     return ""
 
 
-def _facts_of(site: Site, result: FetchResult) -> Optional[PageFacts]:
-    """The facts of an HTML page that answered 200 on the site itself; a link that ends elsewhere is never read."""
-    if fetch_problem(site, result) or not is_html(result):
-        return None
+def read_facts(result: FetchResult) -> PageFacts:
+    """The facts of an answer's body, read as UTF-8 (bytes that are not are replaced, never fatal)."""
     return extract_facts(result.body.decode("utf-8", errors="replace"), result.final_url)
 
 
-def _visit(site: Site, fetch: FetchFunction, url: str, source: str, is_seed: bool) -> Fetched:
+def _facts_of(site: Site, result: FetchResult) -> Optional[PageFacts]:
+    """The facts of an HTML page that answered 200 on the site itself; a link that ends elsewhere is never read."""
+    return None if fetch_problem(site, result) or not is_html(result) else read_facts(result)
+
+
+def fetch_item(site: Site, fetch: FetchFunction, url: str, source: str = "", is_seed: bool = False) -> Fetched:
+    """Fetch one address. An address the fetcher refuses (a space in a link, say) is a finding, not a crash."""
     try:
         result = fetch(url)
-    except SeoToolError as error:  # an address the fetcher refuses (a space in a link, say) is a finding, not a crash
+    except SeoToolError as error:
         result = FetchResult(requested=url, final_url=url, error=str(error))
     return Fetched(url, result, _facts_of(site, result), source, is_seed)
 
@@ -121,7 +125,7 @@ def crawl_site(site: Site, fetch: FetchFunction, seeds: Sequence[str], max_pages
         key, url = queue.popleft()
         if key in index:  # an earlier fetch already ended at this address
             continue
-        item = _visit(site, fetch, url, sources[key], key in seed_keys)
+        item = fetch_item(site, fetch, url, sources[key], key in seed_keys)
         fetched.append(item)
         index[key] = item
         index.setdefault(url_key(item.final_url), item)

@@ -144,4 +144,6 @@ def build_web(base: str = ORIGIN, mode: str = "live") -> FakeWeb:
     web.add(base + MISSING_PAGE_PATH, launch_text("not-found.html"), status=404)
     for name in ("home", "default"):
         web.add(f"{base}/og/{name}.jpg", b"\xff\xd8\xff\xe0 jpeg bytes", content_type="image/jpeg")
+    if base == ORIGIN:  # the real host also answers on plain http and on www, each with one permanent redirect
+        web.redirect("http://numaliving.us/", ORIGIN + "/").redirect("https://www.numaliving.us/", ORIGIN + "/")
     return web
