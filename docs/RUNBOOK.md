@@ -33,6 +33,7 @@ A push straight to `main` deploys as well, and `verify` still has to pass before
 | Mail addresses | the Forward Email dashboard (no command line) | add or change the `projects@` alias there |
 | Activating the form | `curl` | README, Going live, step 2 |
 | Checking the live site | `curl`, `dig`, `openssl`, then the CloakBrowser crawl | section 9 |
+| SEO research (pages, sitemaps, search results, screenshots) | the Python tools in `tools/seo/` (standard library only; `serp_search.py` needs the local SearXNG running, `browse.py` needs `python3.14` and the one CloakBrowser seat) | `python3 tools/seo/fetch_pages.py <out-dir> <urls>`, `python3 tools/seo/audit_pages.py <out-dir>/*.html`, `python3 tools/seo/serp_search.py tools/seo/queries/us-study-2026-10.txt`, `python3.14 tools/seo/browse.py shots <urls>`; the steps are in `tools/seo/README.md` and `docs/seo/README.md` |
 
 `gh` handles everything on GitHub. For Cloudflare, the helper is the first choice: it needs only Python's standard library, reads the key file itself and prints no secrets. `cf` (the official Cloudflare CLI) is still a beta; it is installed here but optional.
 
@@ -45,9 +46,10 @@ npm run typecheck
 npm run test:coverage                              # keep coverage at 80% or more
 npm run build:e2e && npm run test:e2e              # static build below /numaliving.com.au, then Playwright
 python3 -m unittest discover -s tools/cloudflare/tests    # the DNS helper's tests; no network
+python3 -m unittest discover -s tools/seo/tests           # the SEO research tools' tests; no network, browser or Docker
 ```
 
-Nothing runs the Python tests automatically (CI only runs the npm checks), so run them when you touch `tools/`.
+Nothing runs the Python tests automatically (CI only runs the npm checks), so run them when you touch `tools/` (the SEO tools' tests included).
 
 CI uses Playwright's own Chromium. Locally, set `CHROMIUM_EXECUTABLE_PATH` to any Chrome-family browser; the installed Google Chrome works:
 
@@ -79,6 +81,7 @@ On Windows or Linux, the same tools come from `winget install GitHub.cli`, `apt 
 | `git` | GitHub's web editor (press `.` on the repository page) commits to a branch and opens a pull request. Tower and GitHub Desktop work too. |
 | Node and npm | Skip the local checks: open the pull request and let the `verify` job run lint, types, tests and E2E. |
 | `cf` | Use `tools/cloudflare/cf_dns.py`, or the Cloudflare dashboard (DNS > Records), or `curl` against `https://api.cloudflare.com/client/v4/` with the scoped token (pass the header the same way, from stdin). |
+| SearXNG, or Docker Desktop is not running | `tools/seo/serp_search.py` stops and says what to do: start Docker Desktop, run `docker compose up -d` in the SearXNG checkout, and try again (quit Docker Desktop afterwards if you do not want it running). Set `SEARXNG_CLIENT_DIR` when that checkout is not next to this repository. |
 | CloakBrowser, or its seat is taken | Check with `curl`, `dig` and `openssl` (section 9) and the Playwright suite, then click through the live site by hand. Do not close another project's browser without asking. |
 | Everything (for example on a phone) | github.com in a browser: press `.` to edit and commit to a branch, open the pull request, watch the Checks tab and merge. GitHub's runners do the install, tests, build and deploy. |
 
@@ -143,7 +146,7 @@ The verdict is at the top of `report.md` in that folder. The "request-aborted" w
 
 ## 10. Known quirks
 
-- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. A browser launch that exits with code 76 means another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it.
+- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. `tools/seo/browse.py` takes the same seat. A browser launch that exits with code 76 means another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it.
 - **Tower stashes for you.** Switching branches in Tower auto-stashes uncommitted work. Look at `git stash list` if something seems to have vanished.
 - **A lint warning after the coverage run.** `npm run lint` right after `npm run test:coverage` warns about the generated `coverage/block-navigation.js`. CI is not affected.
 - **FormSubmit** is a free third party with no service guarantee. Send a test Quote Request now and then.
