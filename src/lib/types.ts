@@ -37,6 +37,32 @@ export interface ShowcaseProject {
   sample?: boolean;
 }
 
+/** An image for social-network link previews, 1200 x 630 pixels, in /public/og (see scripts/optimize-images.mjs). */
+export type OgImage = Readonly<{
+  /** Root-relative path, such as "/og/default.jpg"; the site adds its address and base path. */
+  src: string;
+  /** What the picture shows, for people who cannot see it. */
+  alt: string;
+}>;
+
+/**
+ * What search engines and social networks are told about one page: the entry for it in the page
+ * registry (src/content/seo.ts), which the metadata, the sitemap and the tests all read.
+ */
+export type PageSeo = Readonly<{
+  /** The page's path as in `site.nav`, without a trailing slash: "/about", "/projects/golf-links", "/" for Home. */
+  path: string;
+  /** The page title without the brand; the layout adds " | Numa Living" (see TITLE_TEMPLATE in src/lib/seo/metadata.ts). */
+  title: string;
+  description: string;
+  /** False for a page search engines must never list, whatever `isIndexable` says (the client login). */
+  indexable: boolean;
+  /** The day the page's content last changed in a way worth telling search engines, as YYYY-MM-DD: the sitemap's lastmod. Never "today" by code. */
+  updated: string;
+  /** The image a shared link shows; the site-wide default when left out. */
+  ogImage?: OgImage;
+}>;
+
 /** Why a Quote Request was not sent. */
 export type SubmissionFailureReason =
   /** The details or the Drawings did not pass validation, so nothing was sent. */

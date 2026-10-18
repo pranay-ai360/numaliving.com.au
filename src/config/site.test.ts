@@ -10,3 +10,49 @@ describe("site contact details", () => {
     expect(email).toBe("projects@numaliving.us");
   });
 });
+
+describe("site address and language", () => {
+  it("serves the site at https://numaliving.us, written without a trailing slash", () => {
+    // Arrange / Act
+    const { url } = site;
+
+    // Assert
+    expect(url).toBe("https://numaliving.us");
+    expect(new URL(url).origin).toBe(url);
+  });
+
+  it("is written for visitors in the United States", () => {
+    // Arrange / Act
+    const { locale } = site;
+
+    // Assert
+    expect(locale).toBe("en-US");
+  });
+});
+
+describe("site identity facts that are not known yet", () => {
+  it("leaves the legal name and the founding year empty until Numa confirms them", () => {
+    // Arrange / Act
+    const { legalName, foundingYear } = site;
+
+    // Assert
+    expect(legalName).toBeNull();
+    expect(foundingYear).toBeNull();
+  });
+
+  it("lists no social profiles until real ones exist", () => {
+    // Arrange / Act
+    const { social } = site;
+
+    // Assert
+    expect(social).toEqual([]);
+  });
+
+  it("holds no search-engine verification tokens until the owner supplies them", () => {
+    // Arrange / Act
+    const { verification } = site;
+
+    // Assert
+    expect(verification).toEqual({ google: null, bing: null });
+  });
+});

@@ -1,6 +1,9 @@
+/** Search-engine ownership tokens (public by design, they sit in the page source); null until the owner supplies one. */
+export type SearchVerification = Readonly<{ google: string | null; bing: string | null }>;
+
 /**
- * Site-wide settings: name, contact details, navigation.
- * Edit the values here. If you change the contact email, update its pin in site.test.ts too.
+ * Site-wide settings: name, address, language, contact details, navigation.
+ * Edit the values here. If you change the contact email or the site address, update its pin in site.test.ts too.
  */
 export const site = {
   name: "Numa Living",
@@ -10,6 +13,21 @@ export const site = {
   tagline: "Bespoke millwork, built for the world",
   description:
     "Numa Living designs, engineers and manufactures luxury joinery and millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
+
+  // Where the site is served, as an origin: no trailing slash and no path (the base path is separate,
+  // see src/lib/seo/canonical.ts). Canonical links, Open Graph URLs, the sitemap and the structured
+  // data all start from it.
+  url: "https://numaliving.us",
+  // The language and region of the copy, for <html lang> and Open Graph (written "en_US" there).
+  locale: "en-US",
+
+  // Facts the structured data (src/lib/seo/jsonld.ts) only publishes once they are set. Leave them
+  // empty until Numa confirms them; nothing here may be guessed.
+  legalName: null as string | null,
+  foundingYear: null as number | null,
+  // Full URLs of Numa's real profiles (LinkedIn, Instagram, Houzz and so on), published as `sameAs`.
+  social: [] as readonly string[],
+  verification: { google: null, bing: null } as SearchVerification,
 
   // The email is real. TODO(Ramya): replace the placeholder phone, WhatsApp number and address. Until
   // then, src/config/launchGuard.test.ts fails the tests (and the deploy) if isIndexable below is true.
