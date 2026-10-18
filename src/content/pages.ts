@@ -5,10 +5,32 @@
  * listed in `sampleContent` at the bottom of this file, which keeps the site out
  * of search engines (src/config/launchGuard.test.ts) until it is replaced and delisted.
  */
+import { projects } from "@/content/projects";
+import type { ShowcasePhoto } from "@/lib/types";
+
+/**
+ * A photo already in the sample projects, found by its file (src/content/projects.ts holds its
+ * description and size). Stops the build with a plain message if the photo is replaced, so the home
+ * page never keeps a picture that is gone.
+ */
+function projectPhoto(src: string): ShowcasePhoto {
+  const photo = projects.flatMap((project) => project.photos).find((candidate) => candidate.src === src);
+  if (photo === undefined) {
+    throw new Error(`The home page photo ${src} is not in src/content/projects.ts. Choose another photo for home.heroPhoto in src/content/pages.ts.`);
+  }
+  return photo;
+}
 
 export const home = {
-  heroTitle: "Woodwork, Mastered",
-  heroSub: "Australia · India · Qatar · UAE · UK · USA",
+  // The first screen says what Numa makes, where it is made and who it is for. It states what the
+  // factory can do ("Shipped to US job sites"), not a record of projects delivered: the delivery
+  // list further down is sample content. The photo must show no other company's logo (the Sonate
+  // and Golf Links photos do).
+  eyebrow: "Architectural millwork and FF&E",
+  heroTitle: ["Custom millwork,", "engineered in Dubai.", "Built for US projects."] as const,
+  heroSub: "Made in our Dubai factory. Shipped to US job sites.",
+  heroAudience: "For US architects, designers, general contractors and developers. Send your drawings and we return a priced proposal.",
+  heroPhoto: projectPhoto("/projects/penthouse25/penthouse25-02.jpg"),
   intro:
     "Numa Living crafts details that define a room: paneled walls, kitchens, closets, doors and statement pieces, engineered in-house and installed anywhere in the world.",
   // SAMPLE figures

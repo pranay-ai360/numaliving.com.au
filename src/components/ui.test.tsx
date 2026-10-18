@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CARD_PHOTO_SIZES, FigureValue, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual } from "@/components/ui";
+import { ButtonLink, CARD_PHOTO_SIZES, FigureValue, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual } from "@/components/ui";
 import type { ShowcaseProject } from "@/lib/types";
 
 const PROJECT: ShowcaseProject = {
@@ -130,7 +130,7 @@ describe("ProjectCard link", () => {
 });
 
 describe("FigureValue", () => {
-  it("writes a figure with its unit and metric twin as one line of text, the unit in a smaller span", () => {
+  it("writes a figure with its unit and metric twin as one line of text, the unit in a smaller span of its own", () => {
     // Arrange
     const { container } = render(<FigureValue value="194,000 sq ft (18,000 m²)" />);
 
@@ -140,6 +140,7 @@ describe("FigureValue", () => {
     // Assert
     expect(container.textContent).toBe("194,000 sq ft (18,000 m²)");
     expect(unit.tagName).toBe("SPAN");
+    expect(unit).toHaveClass("block");
     expect(container.querySelectorAll("span")).toHaveLength(1);
   });
 
@@ -153,5 +154,34 @@ describe("FigureValue", () => {
     // Assert
     expect(container.textContent).toBe("120+");
     expect(spans).toHaveLength(0);
+  });
+});
+
+describe("ButtonLink", () => {
+  it.each([
+    ["solid", "bg-gold"],
+    ["outline", "text-gold"],
+    ["light", "text-paper"],
+  ] as const)("draws the %s variant with its own look", (variant, expectedClass) => {
+    // Arrange
+    render(<ButtonLink href="/contact" variant={variant}>Talk to us</ButtonLink>);
+
+    // Act
+    const link = screen.getByRole("link", { name: "Talk to us" });
+
+    // Assert
+    expect(link).toHaveAttribute("href", "/contact");
+    expect(link).toHaveClass(expectedClass);
+  });
+
+  it("draws the solid variant when none is given", () => {
+    // Arrange
+    render(<ButtonLink href="/contact">Talk to us</ButtonLink>);
+
+    // Act
+    const link = screen.getByRole("link", { name: "Talk to us" });
+
+    // Assert
+    expect(link).toHaveClass("bg-gold");
   });
 });

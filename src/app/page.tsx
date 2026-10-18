@@ -4,7 +4,7 @@ import { pageMetadata } from "@/app/pageMetadata";
 import { home } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { site } from "@/config/site";
-import { LineArt, Wordmark } from "@/components/Brand";
+import { HomeHero } from "@/components/HomeHero";
 import { ButtonLink, Container, FigureValue, ProjectCard, SectionTitle } from "@/components/ui";
 
 export const metadata: Metadata = pageMetadata("/");
@@ -14,24 +14,7 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="linen relative overflow-hidden">
-        <LineArt
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[85%] w-full text-gold/45"
-          style={{ maskImage: "radial-gradient(ellipse 38% 55% at 50% 45%, transparent 55%, black 100%)", WebkitMaskImage: "radial-gradient(ellipse 38% 55% at 50% 45%, transparent 55%, black 100%)" }}
-        />
-        <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-20 text-center sm:min-h-[640px]">
-          <Wordmark size="lg" />
-          <h1 className="display mt-12 text-3xl sm:text-5xl">{home.heroTitle}</h1>
-          <p className="display mt-6 text-sm text-ink sm:text-lg">{home.heroSub}</p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/contact">Request a Quote</ButtonLink>
-            <ButtonLink href="/projects" variant="outline">
-              View Projects
-            </ButtonLink>
-          </div>
-        </div>
-      </section>
+      <HomeHero eyebrow={home.eyebrow} title={home.heroTitle} statement={home.heroSub} audience={home.heroAudience} photo={home.heroPhoto} />
 
       {/* About strip */}
       <section className="py-24">

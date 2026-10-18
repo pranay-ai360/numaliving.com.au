@@ -44,15 +44,16 @@ export function PageHero({ eyebrow, title, lead }: { eyebrow: string; title: str
 
 /**
  * A figure as the content writes it, such as "194,000 sq ft (18,000 m²)": the number large (in the
- * heading font its parent sets), the unit and the metric twin small beside it, so a long figure still
- * fits a narrow tile. A figure with no unit, such as "120+", is shown as it is.
+ * heading font its parent sets), the unit and the metric twin small on the line below, so a long figure
+ * still fits a narrow tile and the unit never splits across lines. A figure with no unit, such as
+ * "120+", is shown as it is.
  */
 export function FigureValue({ value }: { value: string }) {
   const [figure, ...unitWords] = value.split(" ");
   if (unitWords.length === 0) return <>{figure}</>;
   return (
     <>
-      {figure} <span className="font-sans text-sm font-medium tracking-normal text-ink-muted">{unitWords.join(" ")}</span>
+      {figure} <span className="mt-1 block font-sans text-sm font-medium tracking-normal text-ink-muted">{unitWords.join(" ")}</span>
     </>
   );
 }
@@ -61,11 +62,17 @@ export function Container({ children, className = "" }: { children: React.ReactN
   return <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-export function ButtonLink({ href, children, variant = "solid" }: { href: string; children: React.ReactNode; variant?: "solid" | "outline" }) {
+/** `light` is the outline button for a dark background or a photo: white, where `outline` is gold. */
+const BUTTON_STYLES = {
+  solid: "bg-gold text-white hover:bg-gold-dark",
+  outline: "border border-gold text-gold hover:bg-gold hover:text-white",
+  light: "border border-paper text-paper hover:bg-paper hover:text-ink",
+} as const;
+
+export function ButtonLink({ href, children, variant = "solid" }: { href: string; children: React.ReactNode; variant?: keyof typeof BUTTON_STYLES }) {
   const base = "inline-flex items-center justify-center rounded-sm px-6 py-3 text-sm font-medium tracking-wide transition-colors";
-  const style = variant === "solid" ? "bg-gold text-white hover:bg-gold-dark" : "border border-gold text-gold hover:bg-gold hover:text-white";
   return (
-    <Link href={href} className={`${base} ${style}`}>
+    <Link href={href} className={`${base} ${BUTTON_STYLES[variant]}`}>
       {children}
     </Link>
   );

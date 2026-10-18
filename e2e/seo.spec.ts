@@ -3,6 +3,7 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
 import { JSDOM } from "jsdom";
 import { isIndexable, site } from "../src/config/site";
 import { BASE_PATH, SERVER_ORIGIN } from "./env";
+import { bodyText } from "./page-text";
 import { ALL_PAGES, LOGIN_PATH, pageUrl } from "./site";
 
 const ROBOTS_META = /<meta\s+name="robots"\s+content="([^"]*)"/i;
@@ -264,3 +265,17 @@ test("no page links to an index.html address", async ({ request }) => {
   expect(offenders).toEqual([]);
 });
 
+
+// ---- The first screen: what Numa makes, where it is made and who it is for ----
+
+/** How many words from the top of the page (the preview ribbon and the menu included) the first screen has to say it in. */
+const FIRST_SCREEN_WORDS = 80;
+
+test("the home page says what Numa makes, where it is made and who it is for within its first 80 words", async ({ request }) => {
+  const html = await (await request.get(pageUrl("/"))).text();
+
+  const firstWords = bodyText(html).split(" ").slice(0, FIRST_SCREEN_WORDS).join(" ").toLowerCase();
+
+  const missing = ["custom millwork", "dubai", "us projects", "architects", "designers", "general contractors", "developers"].filter((fact) => !firstWords.includes(fact));
+  expect(missing, `missing from the first ${FIRST_SCREEN_WORDS} words: ${firstWords}`).toEqual([]);
+});
