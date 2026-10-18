@@ -142,6 +142,7 @@ curl -s https://numaliving.us/sitemap.xml                             # an empty
 curl -s https://numaliving.us/about/ | grep -oE '<link rel="canonical"[^>]*>|<title>[^<]*</title>|<meta name="description"[^>]*>'   # one canonical: https://numaliving.us/about/
 curl -s https://numaliving.us/ | grep -o 'application/ld+json' | wc -l   # 2 on the home page (Organization, WebSite), 3 on an inner page
 curl -sI https://numaliving.us/og/default.jpg | grep -iE '^(HTTP|content-type)'   # 200, image/jpeg
+curl -sI https://numaliving.us/projects/golf-links/golf-links-01-800.avif | grep -iE '^(HTTP|content-type)'   # 200, image/avif (GitHub Pages must serve AVIF with that type)
 echo | openssl s_client -connect numaliving.us:443 -servername numaliving.us 2>/dev/null | openssl x509 -noout -issuer -subject -dates
 # every page at four screen widths (needs the one free CloakBrowser seat)
 python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
