@@ -6,12 +6,14 @@ import { QuoteForm } from "@/components/QuoteForm";
 import { PROJECT_TYPE_OPTIONS, ROLE_OPTIONS, TIMELINE_OPTIONS } from "@/lib/quotes/fields";
 import { makePdf } from "@/lib/quotes/fixtures";
 import {
-  ENDPOINT,
+  PAGE_ENDPOINT,
+  SUCCESS_PAGE,
   deferred,
   fillRequiredFields,
   getDrawingsInput,
   getDropZone,
   getSendButton,
+  htmlResponse,
   renderQuoteForm,
   sentBody,
   setUpSending,
@@ -188,7 +190,8 @@ describe("QuoteForm", () => {
 
   describe("sending a Quote Request", () => {
     it("emails the details and the Drawings through FormSubmit, then thanks the visitor with a reference", async () => {
-      // Arrange
+      // Arrange: Drawings travel on FormSubmit's ordinary endpoint, which answers with a web page
+      fetchSpy().mockImplementation(async () => htmlResponse(SUCCESS_PAGE));
       const user = renderQuoteForm();
       await fillRequiredFields(user);
       await user.type(screen.getByLabelText("Company"), "Lovelace Interiors");
@@ -203,7 +206,7 @@ describe("QuoteForm", () => {
       // Assert
       expect(await screen.findByText("Thank You")).toBeVisible();
       expect(fetchSpy()).toHaveBeenCalledOnce();
-      expect(fetchSpy().mock.calls[0][0]).toBe(ENDPOINT);
+      expect(fetchSpy().mock.calls[0][0]).toBe(PAGE_ENDPOINT);
       const body = sentBody(fetchSpy());
       expect(body.get("Full name")).toBe("Ada Lovelace");
       expect(body.get("Company")).toBe("Lovelace Interiors");

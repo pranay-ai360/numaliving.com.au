@@ -3,6 +3,8 @@ import { HONEYPOT_FIELD_NAME } from "../src/components/quote-form/constants";
 import { formatFileSize } from "../src/lib/quotes/drawings";
 import {
   FORMSUBMIT_ACCEPTED,
+  FORMSUBMIT_ACCEPTED_PAGE,
+  FORMSUBMIT_REFUSED_PAGE,
   FORMSUBMIT_SERVER_ERROR,
   QUOTE,
   attachDrawings,
@@ -10,6 +12,7 @@ import {
   fillQuoteRequest,
   makePdf,
   mockFormSubmit,
+  mockFormSubmitPage,
   openContactForm,
   passMinimumFillTime,
   readSubmission,
@@ -32,9 +35,9 @@ test.beforeEach(async ({ page }) => {
   await openContactForm(page);
 });
 
-test("sends a Quote Request with a PDF to FormSubmit and shows the reference", async ({ page }) => {
-  // Arrange
-  const calls = await mockFormSubmit(page, FORMSUBMIT_ACCEPTED);
+test("sends a Quote Request with a PDF to FormSubmit's ordinary endpoint and shows the reference", async ({ page }) => {
+  // Arrange: attachments only travel on the ordinary endpoint, which answers with a page
+  const calls = await mockFormSubmitPage(page, FORMSUBMIT_ACCEPTED_PAGE);
   const drawing = makePdf("ground-floor-plan.pdf");
   await fillQuoteRequest(page);
   await attachDrawings(page, [drawing]);
@@ -54,11 +57,11 @@ test("sends a Quote Request with a PDF to FormSubmit and shows the reference", a
     `mailto:${site.contact.email}?subject=${encodeURIComponent(`Quote Request ${reference}`)}`,
   );
 
-  // Assert: exactly one multipart POST went to FormSubmit's AJAX endpoint over HTTPS
+  // Assert: exactly one multipart POST went to FormSubmit's ordinary endpoint (not /ajax/) over HTTPS
   expect(calls()).toHaveLength(1);
   const [call] = calls();
   expect(call.method()).toBe("POST");
-  expect(call.url()).toMatch(/^https:\/\/formsubmit\.co\/ajax\/[^/?#]+$/);
+  expect(call.url()).toMatch(/^https:\/\/formsubmit\.co\/[^/?#]+$/);
   expect(call.headers()["content-type"]).toMatch(/^multipart\/form-data; boundary=/);
 
   // Assert: the email table has readable labels, FormSubmit's options, the same reference, and the PDF count
@@ -86,6 +89,52 @@ test("sends a Quote Request with a PDF to FormSubmit and shows the reference", a
   expect(attachment.type).toBe("application/pdf");
   expect(attachment.size).toBe(drawing.buffer.length);
   expect(Buffer.from(await attachment.arrayBuffer()).subarray(0, PDF_SIGNATURE.length).toString("latin1")).toBe(PDF_SIGNATURE);
+});
+
+test("sends a Quote Request without Drawings to FormSubmit's AJAX endpoint and shows the reference", async ({ page }) => {
+  // Arrange
+  const calls = await mockFormSubmit(page, FORMSUBMIT_ACCEPTED);
+  await fillQuoteRequest(page);
+  await passMinimumFillTime(page);
+
+  // Act
+  await sendRequest(page);
+
+  // Assert
+  await expect(thankYouPanel(page)).toContainText(new RegExp(`Reference: ${REFERENCE.source}`));
+  expect(calls()).toHaveLength(1);
+  const [call] = calls();
+  expect(call.url()).toMatch(/^https:\/\/formsubmit\.co\/ajax\/[^/?#]+$/);
+  expect(call.headers().accept).toBe("application/json");
+  const form = await readSubmission(call);
+  expect(textFields(form)).toMatchObject({ "Attached drawings": "None", Email: QUOTE.email });
+  expect(Array.from(form.keys()).filter((name) => name.startsWith("attachment"))).toEqual([]);
+});
+
+test.describe("when FormSubmit fails with Drawings attached", () => {
+  test("shows an alert with an email fallback for a page that is not the success page, and keeps the PDF", async ({
+    page,
+  }) => {
+    // Arrange
+    const calls = await mockFormSubmitPage(page, FORMSUBMIT_REFUSED_PAGE);
+    const drawing = makePdf("ground-floor-plan.pdf");
+    await fillQuoteRequest(page);
+    await attachDrawings(page, [drawing]);
+    await passMinimumFillTime(page);
+
+    // Act
+    await sendRequest(page);
+
+    // Assert: an unrecognised page is "could not confirm", never a thank-you, and the visitor can try again
+    const alert = page.getByRole("main").getByRole("alert");
+    await expect(alert).toContainText("We could not confirm that your request was received.");
+    await expect(alert).not.toContainText("Check email address");
+    await expect(alert.getByRole("link", { name: "Email us instead" })).toHaveAttribute("href", fallbackHref("invalid-response"));
+    await expect(page.getByRole("heading", { name: "Thank You" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `Remove ${drawing.name}` })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send Request" })).toBeEnabled();
+    expect(calls()).toHaveLength(1);
+  });
 });
 
 test.describe("when FormSubmit fails", () => {
