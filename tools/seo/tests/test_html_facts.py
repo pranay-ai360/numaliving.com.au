@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import time
 import unittest
+from typing import Dict
 from unittest import mock
 
 from helpers import fixture_text
@@ -21,6 +22,7 @@ def facts_of(html: str, base: str = BASE) -> html_facts.PageFacts:
 
 
 class HeadTagTests(unittest.TestCase):
+    facts: html_facts.PageFacts
     @classmethod
     def setUpClass(cls) -> None:
         cls.facts = facts_of(fixture_text("page_rich.html"))
@@ -101,6 +103,8 @@ class HeadingTests(unittest.TestCase):
 
 
 class LinkTests(unittest.TestCase):
+    facts: html_facts.PageFacts
+    by_text: Dict[str, html_facts.Link]
     @classmethod
     def setUpClass(cls) -> None:
         cls.facts = facts_of(fixture_text("page_rich.html"))
@@ -158,6 +162,8 @@ class LinkTests(unittest.TestCase):
 
 
 class ImageTests(unittest.TestCase):
+    facts: html_facts.PageFacts
+    by_src: Dict[str, html_facts.Image]
     @classmethod
     def setUpClass(cls) -> None:
         cls.facts = facts_of(fixture_text("page_rich.html"))
@@ -197,6 +203,7 @@ class ImageTests(unittest.TestCase):
 
 
 class StructuredDataAndScriptTests(unittest.TestCase):
+    facts: html_facts.PageFacts
     @classmethod
     def setUpClass(cls) -> None:
         cls.facts = facts_of(fixture_text("page_rich.html"))
@@ -382,6 +389,7 @@ class LeftoverBranchTests(unittest.TestCase):
         anchor = html_links.Anchor("x", "", "text", False)
         with mock.patch.object(html_links, "urljoin", return_value="http://["):
             link = html_facts.classify_link(anchor, BASE)
+        assert link is not None
         self.assertEqual((link.kind, link.url), ("other", "x"))
 
 

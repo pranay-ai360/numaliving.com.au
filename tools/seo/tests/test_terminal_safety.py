@@ -10,6 +10,7 @@ import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
+from typing import Any, Dict
 
 from helpers import FakeClock, FakeOpener, Reply, TOOLS_DIR, captured, fixture_path
 
@@ -120,7 +121,8 @@ class ToolOutputTests(unittest.TestCase):
 
     def test_fetch_pages_result_lines_are_safe(self) -> None:
         url = f"https://site.test/x\x7f{RLO}"
-        routes = {"https://site.test/robots.txt": Reply(404), seo_common.ascii_url(url): urllib.error.URLError(f"{ESC}[31mboom{BEL}")}
+        routes: Dict[str, Any] = {"https://site.test/robots.txt": Reply(404),
+                                  seo_common.ascii_url(url): urllib.error.URLError(f"{ESC}[31mboom{BEL}")}
         clock = FakeClock()
         opener = FakeOpener(routes, clock=clock)
         with captured() as (out, err):
@@ -162,6 +164,9 @@ class ToolOutputTests(unittest.TestCase):
         class Client:
             def search(self, *args, **kwargs):
                 raise Failing(f"{ESC}[31mHTTP 500{BEL}")
+
+            def healthcheck(self) -> bool:
+                return True
 
         queries = self.folder / "queries.txt"
         queries.write_text(f"first{ESC}query\n", encoding="utf-8")

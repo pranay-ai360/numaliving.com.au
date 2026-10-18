@@ -7,6 +7,7 @@ import gzip
 import tempfile
 import unittest
 from pathlib import Path
+from typing import List
 from unittest import mock
 
 from helpers import FakeOpener, Reply, captured, fixture_bytes, fixture_path
@@ -231,7 +232,7 @@ class PoliteFetcherSettingsTests(unittest.TestCase):
             fetcher_class.return_value.fetch = fake_fetch({self.URL: fixture_bytes("sitemaps", "urlset.xml")})
             with captured():
                 sitemap_report.main([self.URL, *flags])
-        return fetcher_class.call_args.kwargs
+        return dict(fetcher_class.call_args.kwargs)
 
     def test_redirects_to_private_addresses_are_refused_by_default(self) -> None:
         self.assertFalse(self.settings()["allow_private_hosts"])
@@ -356,7 +357,7 @@ class SitemapDownloadLimitTests(unittest.TestCase):
 class BuildReportTests(unittest.TestCase):
     def test_a_plain_sitemap_needs_no_fetching(self) -> None:
         sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "urlset.xml"), "urlset.xml")
-        calls = []
+        calls: List[str] = []
         report = sitemap_report.build_report(sitemap, "urlset.xml", fake_fetch({}, calls))
         self.assertEqual(calls, [])
         self.assertEqual(report.total_urls, 8)
@@ -365,7 +366,7 @@ class BuildReportTests(unittest.TestCase):
 
     def test_an_index_is_followed_for_children_on_the_same_host(self) -> None:
         table = {PAGES_URL: fixture_bytes("sitemaps", "child-pages.xml"), POSTS_URL: fixture_bytes("sitemaps", "child-posts.xml")}
-        calls = []
+        calls: List[str] = []
         sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), PAGES_URL)
         report = sitemap_report.build_report(sitemap, "https://example.test/sitemap.xml", fake_fetch(table, calls))
         self.assertEqual(calls, [PAGES_URL, POSTS_URL])
@@ -375,7 +376,7 @@ class BuildReportTests(unittest.TestCase):
 
     def test_a_local_index_file_follows_children_on_the_first_childs_host_only(self) -> None:
         table = {PAGES_URL: fixture_bytes("sitemaps", "child-pages.xml")}
-        calls = []
+        calls: List[str] = []
         sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), "index.xml")
         sitemap_report.build_report(sitemap, "index.xml", fake_fetch(table, calls))
         self.assertNotIn("https://elsewhere.test/sitemap.xml", calls)
@@ -384,7 +385,7 @@ class BuildReportTests(unittest.TestCase):
         children = "".join(f"<sitemap><loc>https://example.test/s{n}.xml</loc></sitemap>" for n in range(12))
         index = f'<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{children}</sitemapindex>'.encode()
         table = {f"https://example.test/s{n}.xml": urlset((f"https://example.test/p{n}", "2026-10-01")) for n in range(12)}
-        calls = []
+        calls: List[str] = []
         sitemap = sitemap_report.parse_sitemap(index, "index.xml")
         report = sitemap_report.build_report(sitemap, "https://example.test/index.xml", fake_fetch(table, calls))
         self.assertEqual(len(calls), sitemap_report.MAX_CHILD_SITEMAPS)
@@ -396,7 +397,7 @@ class BuildReportTests(unittest.TestCase):
         children = "".join(f"<sitemap><loc>https://example.test/s{n}.xml</loc></sitemap>" for n in range(12))
         index = f"<sitemapindex>{children}</sitemapindex>".encode()
         sitemap = sitemap_report.parse_sitemap(index, "index.xml")
-        calls = []
+        calls: List[str] = []
         sitemap_report.build_report(sitemap, "https://example.test/i.xml", fake_fetch({}, calls), max_children=2)
         self.assertEqual(len(calls), 2)
         calls.clear()
@@ -405,7 +406,7 @@ class BuildReportTests(unittest.TestCase):
 
     def test_zero_children_only_lists_the_index(self) -> None:
         sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), "index.xml")
-        calls = []
+        calls: List[str] = []
         report = sitemap_report.build_report(sitemap, "https://example.test/i.xml", fake_fetch({}, calls), max_children=0)
         self.assertEqual(calls, [])
         self.assertEqual(report.total_urls, 0)
@@ -431,7 +432,7 @@ class BuildReportTests(unittest.TestCase):
     def test_a_nested_index_is_not_followed_further(self) -> None:
         nested = fixture_bytes("sitemaps", "index.xml")
         sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), "index.xml")
-        calls = []
+        calls: List[str] = []
         report = sitemap_report.build_report(
             sitemap, "https://example.test/i.xml", fake_fetch({PAGES_URL: nested, POSTS_URL: nested}, calls)
         )
@@ -441,7 +442,7 @@ class BuildReportTests(unittest.TestCase):
     def test_a_child_with_a_non_http_location_is_ignored(self) -> None:
         index = b"<sitemapindex><sitemap><loc>file:///etc/passwd</loc></sitemap></sitemapindex>"
         sitemap = sitemap_report.parse_sitemap(index, "index.xml")
-        calls = []
+        calls: List[str] = []
         report = sitemap_report.build_report(sitemap, "index.xml", fake_fetch({}, calls))
         self.assertEqual(calls, [])
         self.assertTrue(any("file:" in note for note in report.notes))

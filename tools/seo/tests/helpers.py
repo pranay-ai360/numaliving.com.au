@@ -95,9 +95,8 @@ class FakeResponse:
     def __enter__(self) -> "FakeResponse":
         return self
 
-    def __exit__(self, *exc_info: object) -> bool:
+    def __exit__(self, *exc_info: object) -> None:
         self._body.close()
-        return False
 
 
 class FakeOpener:

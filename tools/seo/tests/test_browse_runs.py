@@ -6,14 +6,14 @@ functions, so none of these tests needs CloakBrowser, a display or the network.
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import json
 import os
 import tempfile
-import types
 import unittest
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Sequence
 from unittest import mock
 
 from helpers import captured
@@ -105,8 +105,8 @@ class SessionFixture(unittest.TestCase):
     def sleep(self, seconds: float) -> None:
         self.slept.append(seconds)
 
-    def args(self, **extra: Any) -> types.SimpleNamespace:
-        return types.SimpleNamespace(out_dir=self.out, delay=15.0, full_page=False, **extra)
+    def args(self, **extra: Any) -> argparse.Namespace:
+        return argparse.Namespace(out_dir=self.out, delay=15.0, full_page=False, **extra)
 
     def manifest(self) -> Dict[str, Any]:
         return json.loads((self.out / "manifest.json").read_text(encoding="utf-8"))
@@ -123,7 +123,7 @@ class RunSerpTests(SessionFixture):
             return {"query": query, "blocked": outcome == BLOCK, "error": "boom" if outcome == ERROR else None}
 
         queries = [f"query {index}" for index in range(len(outcomes))]
-        args = types.SimpleNamespace(out_dir=self.out, delay=delay)
+        args = argparse.Namespace(out_dir=self.out, delay=delay)
         with captured() as (_, err):
             code = browse.run_serp(args, queries, launch=self.launch, capture=capture, sleep=self.sleep)
         return code, seen, err.getvalue()
@@ -183,7 +183,7 @@ class RunSerpTests(SessionFixture):
 
 
 class RunShotsTests(SessionFixture):
-    def shots(self, urls: List[str], failing: List[str] = ()):
+    def shots(self, urls: List[str], failing: Sequence[str] = ()):
         seen: List[tuple] = []
 
         def capture_view(browser: Any, url: str, out_dir: Path, label: str, name: str, mobile: bool, full_page: bool):

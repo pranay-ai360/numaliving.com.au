@@ -35,7 +35,7 @@ class RetryAfterTests(unittest.TestCase):
         for digits in (12, 400, 5000):
             with self.subTest(digits=digits):
                 wait = http_reply.retry_after_seconds("9" * digits, NOW)
-                self.assertIsNotNone(wait)
+                assert wait is not None
                 self.assertLessEqual(wait, http_reply.MAX_RETRY_AFTER_SECONDS)
                 self.assertGreater(wait, 86_400)
 

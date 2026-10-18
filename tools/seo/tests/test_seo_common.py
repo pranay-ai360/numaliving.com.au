@@ -285,7 +285,7 @@ class SafeUrlSplitTests(unittest.TestCase):
 
     def test_a_normal_url_is_split(self) -> None:
         parts = seo_common.safe_urlsplit("https://a.test/x?y=1#z")
-        self.assertIsNotNone(parts)
+        assert parts is not None
         self.assertEqual((parts.netloc, parts.path, parts.query, parts.fragment), ("a.test", "/x", "y=1", "z"))
 
     def test_an_unclosed_ipv6_bracket_gives_none(self) -> None:
@@ -374,8 +374,13 @@ class LogAndCliTests(unittest.TestCase):
         self.assertEqual(seo_common.run_cli(lambda argv: 7, ["x"]), 7)
 
     def test_run_cli_passes_the_arguments_through(self) -> None:
-        seen = []
-        seo_common.run_cli(lambda argv: seen.append(list(argv)) or 0, ["a", "b"])
+        seen: list = []
+
+        def entry(argv):
+            seen.append(list(argv))
+            return 0
+
+        seo_common.run_cli(entry, ["a", "b"])
         self.assertEqual(seen, [["a", "b"]])
 
     def test_run_cli_prints_a_tool_error_without_a_traceback_and_exits_2(self) -> None:

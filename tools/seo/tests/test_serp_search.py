@@ -253,6 +253,10 @@ class SearxngClient:
 '''
 
 
+def unreachable(url: str, folder: Path) -> SearxngConnection:
+    raise AssertionError("the options are checked before the instance is contacted")
+
+
 class ConnectTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -268,9 +272,10 @@ class ConnectTests(unittest.TestCase):
 
     def test_connects_and_returns_the_client_and_its_error_type(self) -> None:
         connection = serp_search.connect_searxng("http://localhost:8080", self.client_dir)
-        self.assertEqual(connection.client.base_url, "http://localhost:8080")
-        self.assertEqual(connection.client.timeout, serp_search.CLIENT_TIMEOUT_SECONDS)
-        self.assertEqual(connection.client.max_retries, serp_search.CLIENT_RETRIES)
+        self.assertEqual(connection.client.base_url, "http://localhost:8080")  # type: ignore[attr-defined]
+        client: Any = connection.client
+        self.assertEqual(client.timeout, serp_search.CLIENT_TIMEOUT_SECONDS)
+        self.assertEqual(client.max_retries, serp_search.CLIENT_RETRIES)
         self.assertEqual(connection.error_type.__name__, "SearxngError")
 
     def test_a_missing_client_file_says_where_it_looked_and_how_to_point_at_it(self) -> None:
@@ -435,14 +440,14 @@ class MainTests(unittest.TestCase):
         code, _, _, _ = self.run_main(FakeClient([hits("https://a.test/")]), extra=["--pages", "5"])
         self.assertEqual(code, 0)
         with captured(), self.assertRaises(SystemExit) as caught:
-            serp_search.main([str(self.queries), "--pages", "6"], connect=lambda url, folder: None)
+            serp_search.main([str(self.queries), "--pages", "6"], connect=unreachable)
         self.assertEqual(caught.exception.code, 2)
 
     def test_the_pause_between_queries_has_a_floor(self) -> None:
         self.assertGreaterEqual(serp_search.MIN_DELAY_SECONDS, 1.0)
         for value in ("0", "0.5"):
             with self.subTest(value=value), captured(), self.assertRaises(SystemExit) as caught:
-                serp_search.main([str(self.queries), "--delay", value], connect=lambda url, folder: None)
+                serp_search.main([str(self.queries), "--delay", value], connect=unreachable)
             self.assertEqual(caught.exception.code, 2)
 
     def test_default_engines_pages_and_language_reach_the_client(self) -> None:

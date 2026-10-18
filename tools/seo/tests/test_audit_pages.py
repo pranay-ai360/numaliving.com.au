@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, Dict
 from unittest import mock
 
 from helpers import captured, fixture_path, fixture_text
@@ -37,6 +38,8 @@ def rich_summary() -> dict:
 
 
 class SummaryTests(unittest.TestCase):
+    summary: Dict[str, Any]
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.summary = rich_summary()
