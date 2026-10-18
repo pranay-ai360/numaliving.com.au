@@ -32,9 +32,9 @@ import zlib
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
-from urllib import robotparser
 from urllib.parse import urljoin, urlsplit
 
+from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
 from seo_common import (
     SeoToolError,
     log,
@@ -57,7 +57,6 @@ REQUEST_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate",
 }
-ROBOTS_AGENT = "*"
 ROBOTS_PATH = "/robots.txt"
 TIMEOUT_SECONDS = 30
 MAX_BYTES = 6_000_000
@@ -116,7 +115,7 @@ class FetchResult:
 class RobotsPolicy:
     """What robots.txt allows for one origin. ``blocked`` set means every page there is skipped."""
 
-    parser: Optional[robotparser.RobotFileParser] = None
+    rules: Optional[RobotsRules] = None
     crawl_delay: float = 0.0
     blocked: str = ""
 
@@ -126,7 +125,7 @@ class RobotsPolicy:
             return ""
         if self.blocked:
             return self.blocked
-        if self.parser is not None and not self.parser.can_fetch(ROBOTS_AGENT, url):
+        if self.rules is not None and not self.rules.allows(request_target(url)):
             return "robots.txt disallows this URL"
         return ""
 
@@ -154,16 +153,21 @@ def decode_body(raw: bytes, encoding: str, limit: int = MAX_BYTES) -> Tuple[byte
     raise ValueError(f"could not decode the {name} body: {failure}")
 
 
+def _seconds(value: float) -> str:
+    return f"{value:,.1f}".rstrip("0").rstrip(".")
+
+
 def _parse_robots(body: bytes) -> RobotsPolicy:
-    parser = robotparser.RobotFileParser()
-    parser.parse(body.decode("utf-8", errors="replace").splitlines())
-    delay = float(parser.crawl_delay(ROBOTS_AGENT) or 0)
-    if delay > MAX_CRAWL_DELAY_SECONDS:
+    try:
+        rules = parse_robots(body)
+    except UnusableRobots as error:
+        return RobotsPolicy(blocked=str(error))
+    if rules.crawl_delay > MAX_CRAWL_DELAY_SECONDS:
         return RobotsPolicy(
-            blocked=f"robots.txt asks for a Crawl-delay of {delay:g} s, longer than the {MAX_CRAWL_DELAY_SECONDS:g} s "
-            "this tool will wait"
+            blocked=f"robots.txt asks for a Crawl-delay of {_seconds(rules.crawl_delay)} s, longer than the "
+            f"{_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
         )
-    return RobotsPolicy(parser=parser, crawl_delay=delay)
+    return RobotsPolicy(rules=rules, crawl_delay=rules.crawl_delay)
 
 
 def policy_from_reply(reply: RawReply) -> RobotsPolicy:

@@ -11,6 +11,7 @@ import time
 import unittest
 from typing import Union
 
+import helpers  # noqa: F401  (puts tools/seo on sys.path)
 import robots_rules  # noqa: E402
 from robots_rules import RobotsRules, UnusableRobots, parse_robots, pattern_matches, request_target  # noqa: E402
 
