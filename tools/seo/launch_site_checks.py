@@ -13,8 +13,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from fetch_result import FetchResult
 from launch_crawl import Crawl, FetchFunction, Fetched, fetch_item, fetch_problem, is_html, read_facts, url_key
 from launch_model import (
-    INDEX_FILE_PATH, LOGIN_PATH, MISSING_PAGE_PATH, SITE_SCOPE, CheckResult, Failure, Site, failing, judge, listed,
-    origin_of, passing, skipped,
+    INDEX_FILE_PATH, LOGIN_PATH, MISSING_PAGE_PATH, SITE_SCOPE, CheckResult, Failure, Site, counted, failing, judge,
+    listed, origin_of, passing, skipped,
 )
 from launch_page_checks import PageView, canonical_problem, has_noindex, normal, robots_tokens
 
@@ -191,7 +191,8 @@ def _crawl_check(crawl: Crawl) -> CheckResult:
     check_id = "crawl-complete"
     if not crawl.unvisited:
         return passing(check_id, SITE_SCOPE, TITLES[check_id], f"{len(crawl.fetched)} fetched, none left over")
-    note = f"not fetched: the crawl stopped after {len(crawl.fetched)} addresses; raise --max-pages"
+    fetched = counted(len(crawl.fetched), "address", "addresses")
+    note = f"not fetched: the crawl stopped after {fetched}; raise --max-pages"
     failures = [Failure(url, note) for url in crawl.unvisited[:MAX_UNVISITED_LISTED]]
     return failing(check_id, SITE_SCOPE, TITLES[check_id], failures, f"{len(crawl.unvisited)} found but not fetched")
 

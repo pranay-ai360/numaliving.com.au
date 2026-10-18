@@ -95,9 +95,9 @@ def listed(items: Sequence[str], separator: str) -> str:
     return f"{shown} (+{extra} more)" if extra > 0 else shown
 
 
-def counted(number: int, noun: str) -> str:
-    """"1 page", "2 pages": the noun is singular and gets an s unless there is exactly one."""
-    return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
+def counted(number: int, noun: str, plural: str = "") -> str:
+    """"1 page", "2 pages": the noun is singular and gets an s unless there is exactly one (or ``plural`` is given)."""
+    return f"{number} {noun}" if number == 1 else f"{number} {plural or noun + 's'}"
 
 
 def origin_of(url: str) -> str:
