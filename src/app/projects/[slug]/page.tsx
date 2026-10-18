@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/content/projects";
+import { getPageSeo } from "@/content/seo";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ProjectGallery } from "@/components/ProjectGallery";
 import { ButtonLink, Container, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
 
@@ -11,8 +13,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const project = getProject(slug);
-  return { title: project?.name ?? "Project", description: project?.summary };
+  const seo = getPageSeo(`/projects/${slug}`);
+  if (seo === undefined) notFound();
+  return buildPageMetadata(seo);
 }
 
 export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
@@ -30,11 +33,12 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
 
   return (
     <>
-      <Container className="pt-10">
-        <Link href="/projects" className="text-sm text-ink-muted hover:text-gold">
-          ← All projects
-        </Link>
-      </Container>
+      <Breadcrumbs
+        items={[
+          { name: "Projects", path: "/projects" },
+          { name: project.name, path: `/projects/${project.slug}` },
+        ]}
+      />
 
       <section className="py-10">
         <Container>

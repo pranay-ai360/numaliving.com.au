@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/app/pageMetadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { about, delivery } from "@/content/pages";
 import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { WorldMap } from "@/components/WorldMap";
 
-export const metadata: Metadata = { title: "From Dubai to the World" };
+export const metadata: Metadata = pageMetadata("/about");
 
 export default function AboutPage() {
   return (
     <>
+      <Breadcrumbs items={[{ name: "About", path: "/about" }]} />
       <PageHero eyebrow="About" title={about.title} lead={about.lead} />
 
       {/* Story */}

@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { projects } from "@/content/projects";
-import ProjectPage from "./page";
+import { requirePageSeo } from "@/content/seo";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import ProjectPage, { generateMetadata } from "./page";
 
 type ProjectPageProps = Parameters<typeof ProjectPage>[0];
 
@@ -104,6 +106,49 @@ describe("project page gallery", () => {
 
     // Assert
     expect(images).toEqual([]);
+  });
+});
+
+describe("project page metadata", () => {
+  function propsFor(slug: string): ProjectPageProps {
+    return { params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) };
+  }
+
+  it("comes from the project's entry in the page registry", async () => {
+    // Arrange
+    const slug = projectWithGallery();
+    const expected = buildPageMetadata(requirePageSeo(`/projects/${slug}`));
+
+    // Act
+    const metadata = await generateMetadata(propsFor(slug));
+
+    // Assert
+    expect(metadata).toEqual(expected);
+  });
+
+  it("shows the share image cut from the project's first photo, described as that photo is", async () => {
+    // Arrange
+    const slug = projectWithGallery();
+    const project = projects.find((candidate) => candidate.slug === slug);
+
+    // Act
+    const metadata = await generateMetadata(propsFor(slug));
+
+    // Assert
+    expect(metadata.openGraph?.images).toEqual([
+      { url: `https://numaliving.us/og/${slug}.jpg`, width: 1200, height: 630, alt: project?.photos[0].alt },
+    ]);
+  });
+
+  it("is a 404, not a page without a title, for a project that does not exist", async () => {
+    // Arrange
+    const props = propsFor("no-such-project");
+
+    // Act
+    const act = generateMetadata(props);
+
+    // Assert
+    await expect(act).rejects.toThrow();
   });
 });
 

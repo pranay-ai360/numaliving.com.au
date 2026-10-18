@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { isIndexable, site } from "@/config/site";
-import { buildRobotsMetadata } from "@/lib/robots";
+import { site } from "@/config/site";
+import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/jsonld";
+import { buildSiteMetadata } from "@/lib/seo/metadata";
 import { Header } from "@/components/Header";
 import { Footer, FloatingActions, SampleNotice } from "@/components/Chrome";
+import { JsonLd } from "@/components/JsonLd";
 
 // Fonts are self-hosted from src/fonts (both are free Google Fonts, SIL Open Font License).
 // Michroma: wide display face close to the Condor headings. Montserrat: body text.
@@ -17,15 +19,14 @@ const body = localFont({
   variable: "--font-body",
 });
 
-export const metadata: Metadata = {
-  title: { default: `${site.name} | ${site.tagline}`, template: `%s | ${site.name}` },
-  description: site.description,
-  robots: buildRobotsMetadata(isIndexable),
-};
+// The site-wide metadata: the title template and default, the robots rule, the address every relative
+// URL starts from (metadataBase), the share card and the verification tags. Each page adds its own
+// from the page registry (src/content/seo.ts, through src/app/pageMetadata.ts).
+export const metadata: Metadata = buildSiteMetadata();
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} h-full antialiased`}>
+    <html lang={site.locale} className={`${display.variable} ${body.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-paper focus:p-2">
           Skip to content
@@ -37,6 +38,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <Footer />
         <FloatingActions />
+        <JsonLd data={organizationJsonLd()} />
+        <JsonLd data={webSiteJsonLd()} />
       </body>
     </html>
   );

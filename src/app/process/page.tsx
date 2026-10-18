@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/app/pageMetadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { process } from "@/content/pages";
 import { ButtonLink, Container, PageHero } from "@/components/ui";
 import { ProcessDiagram } from "@/components/ProcessDiagram";
 
-export const metadata: Metadata = { title: "Process" };
+export const metadata: Metadata = pageMetadata("/process");
 
 export default function ProcessPage() {
   return (
     <>
+      <Breadcrumbs items={[{ name: "Process", path: "/process" }]} />
       <PageHero eyebrow="Process" title={process.title} lead={process.lead} />
       <section className="py-20">
         <Container>

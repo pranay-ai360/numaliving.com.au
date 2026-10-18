@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/app/pageMetadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { capabilities, craft, factory, factoryPhoto } from "@/content/pages";
 import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { CraftGallery, PhotoTile } from "@/components/CraftGallery";
 
-export const metadata: Metadata = { title: "Capabilities & Factory" };
+export const metadata: Metadata = pageMetadata("/capabilities");
 
 export default function CapabilitiesPage() {
   return (
     <>
+      <Breadcrumbs items={[{ name: "Capabilities", path: "/capabilities" }]} />
       <PageHero eyebrow="Capabilities" title="What We Make, and Where" lead={capabilities.lead} />
 
       {/* Craft photos */}

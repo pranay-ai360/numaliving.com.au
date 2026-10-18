@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/app/pageMetadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { site } from "@/config/site";
 import { Container, PageHero } from "@/components/ui";
 import { QuoteForm } from "@/components/QuoteForm";
 
-export const metadata: Metadata = { title: "Request a Quote" };
+export const metadata: Metadata = pageMetadata("/contact");
 
 export default function ContactPage() {
   return (
     <>
+      <Breadcrumbs items={[{ name: "Contact", path: "/contact" }]} />
       <PageHero
         eyebrow="Contact"
         title="Request a Quote"

@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { pageMetadata } from "@/app/pageMetadata";
 import { home } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { site } from "@/config/site";
 import { LineArt, Wordmark } from "@/components/Brand";
 import { ButtonLink, Container, ProjectCard, SectionTitle } from "@/components/ui";
+
+export const metadata: Metadata = pageMetadata("/");
 
 export default function HomePage() {
   const featured = projects.filter((p) => p.featured).slice(0, 3);
