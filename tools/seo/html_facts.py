@@ -4,68 +4,49 @@ extract_facts(html, base_url) returns an immutable PageFacts; audit_pages.py tur
 library only. The page is parsed, never executed, but it is still untrusted data.
 
 Words and text lines: text inside nav, header, footer or aside is "boilerplate", everything else is "main".
-Words are counted from the rebuilt text lines, so a headline split into one span per letter is still one word.
-Platform signatures only look at markup (attributes, scripts, styles and comments), never at the words a
-visitor reads, and each pattern says whether it ignores case.
+Words are counted from the rebuilt text lines, so a headline split into one span per letter is still one word;
+only tokens with a letter or digit count (a lone dash or bullet is not a word), and the text of dropdown lists,
+text areas and scripts is left out. Platform hints come from markup the page itself uses (platform_signatures).
+
+The parser reads pages as a browser does where it matters for these numbers: a missing </head> ends at the first
+body tag, a new <a> or heading closes the open one, an end tag closes what was left open inside it, and nesting
+stops at 512 levels. Counters instead of stack scans keep it linear, however deep a hostile page nests.
+html.parser itself differs slightly between Python releases on broken markup (see tools/seo/README.md).
 """
 
 from __future__ import annotations
 
-import json
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlsplit
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple
+from urllib.parse import urljoin
 
-from seo_common import ALLOWED_URL_SCHEMES
+from json_ld import JSON_LD_TYPE, MAX_TYPE_CHARS, json_ld_types
+from platform_signatures import PLATFORM_SIGNATURES, Signature, detect_platforms, signature_markup
+from seo_common import ALLOWED_URL_SCHEMES, safe_urlsplit
+
+__all__ = [
+    "PLATFORM_SIGNATURES", "MAX_TYPE_CHARS", "Signature", "detect_platforms", "json_ld_types",  # re-exported
+    "FormInfo", "Heading", "Image", "Link", "PageFacts", "classify_link", "extract_facts", "host_of",
+]
 
 VOID_TAGS = frozenset("area base br col embed hr img input link meta param source track wbr".split())
-SKIP_TEXT_TAGS = frozenset("script style noscript template svg head iframe title".split())
+SKIP_TEXT_TAGS = frozenset(
+    "script style noscript template svg head iframe title select option optgroup datalist textarea".split()
+)
 BOILERPLATE_TAGS = frozenset("nav header footer aside".split())
+HEAD_TAGS = frozenset("title meta link script style noscript base template".split())  # may sit inside <head>
 BLOCK_TAGS = frozenset(
     "p div section article li ul ol h1 h2 h3 h4 h5 h6 tr td th table br dt dd dl form figure figcaption "
-    "blockquote main nav header footer aside details summary".split()
+    "blockquote main nav header footer aside details summary button".split()
 )
 HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
+MAX_STACK_DEPTH = 512
+WORD_CHARACTER = re.compile(r"[^\W_]")  # a letter or digit in any script
+BROWSER_IGNORED = re.compile(r"[\t\r\n]")  # a browser drops these from inside an address
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
-JSON_LD_TYPE = "application/ld+json"
-MAX_TYPE_CHARS = 100
-
-
-@dataclass(frozen=True)
-class Signature:
-    name: str
-    pattern: "re.Pattern[str]"
-
-
-def _signature(name: str, pattern: str, ignore_case: bool = False) -> Signature:
-    return Signature(name, re.compile(pattern, re.IGNORECASE if ignore_case else 0))
-
-
-# Case matters for ids and function names (a "G-" id is upper case), not for vendor words in class names.
-PLATFORM_SIGNATURES: Tuple[Signature, ...] = (
-    _signature("next.js", r"/_next/static|__NEXT_DATA__"),
-    _signature("wordpress", r"/wp-content/|/wp-includes/|wp-json"),
-    _signature("elementor", r"elementor", ignore_case=True),
-    _signature("divi", r"et_pb_|/themes/Divi"),
-    _signature("woocommerce", r"woocommerce", ignore_case=True),
-    _signature("wix", r"wixstatic\.com|parastorage\.com", ignore_case=True),
-    _signature("squarespace", r"squarespace", ignore_case=True),
-    _signature("shopify", r"cdn\.shopify\.com|Shopify\.theme"),
-    _signature("webflow", r"webflow", ignore_case=True),
-    _signature("yoast", r"yoast", ignore_case=True),
-    _signature("rank-math", r"rank-math|rankmath", ignore_case=True),
-    _signature("gtm", r"googletagmanager\.com/(?:gtm\.js|ns\.html)|\bGTM-[A-Z0-9]{4,}\b"),
-    _signature(
-        "ga4",
-        r"googletagmanager\.com/gtag/js|\bgtag\(\s*['\"](?:config|js|event|set|consent)['\"]|['\"]G-[A-Z0-9]{8,12}['\"]",
-    ),
-    _signature("meta-pixel", r"fbevents\.js|\bfbq\("),
-    _signature("hubspot", r"hubspot|hs-scripts", ignore_case=True),
-    _signature("callrail", r"callrail", ignore_case=True),
-    _signature("cloudflare", r"cdn-cgi|cloudflare", ignore_case=True),
-)
 
 
 @dataclass(frozen=True)
@@ -145,40 +126,19 @@ class PageFacts:
         )
 
 
-def detect_platforms(markup: str) -> Tuple[str, ...]:
-    return tuple(signature.name for signature in PLATFORM_SIGNATURES if signature.pattern.search(markup))
-
-
 def host_of(url: str) -> str:
     """The site a URL belongs to: lower-case host and port, without a user name or a leading www."""
-    netloc = urlsplit(url).netloc.lower().rpartition("@")[2]
+    parts = safe_urlsplit(url)
+    netloc = parts.netloc.lower().rpartition("@")[2] if parts is not None else ""
     return netloc[4:] if netloc.startswith("www.") else netloc
-
-
-def json_ld_types(blobs: Tuple[str, ...]) -> Tuple[Tuple[str, ...], int]:
-    """The @type values found in the JSON-LD blocks, and how many blocks were not valid JSON."""
-    found: List[str] = []
-    errors = 0
-    for blob in blobs:
-        try:
-            pending: List[Any] = [json.loads(blob)]
-        except (ValueError, RecursionError):  # bad syntax, nesting too deep, or a number with thousands of digits
-            errors += 1
-            continue
-        while pending:  # a loop, not recursion: JSON-LD from the web can be nested very deep
-            node = pending.pop()
-            if isinstance(node, dict):
-                kind = node.get("@type")
-                declared = [kind] if isinstance(kind, str) else kind if isinstance(kind, list) else []
-                found.extend(item[:MAX_TYPE_CHARS] for item in declared if isinstance(item, str))
-                pending.extend(node.values())
-            elif isinstance(node, list):
-                pending.extend(node)
-    return tuple(sorted(set(found))), errors
 
 
 def _clean(text: str) -> str:
     return " ".join(text.split())
+
+
+def _word_count(lines: Tuple[str, ...]) -> int:
+    return sum(1 for line in lines for token in line.split() if WORD_CHARACTER.search(token))
 
 
 class _FactsParser(HTMLParser):
@@ -202,6 +162,9 @@ class _FactsParser(HTMLParser):
         self.main_lines: List[str] = []
         self.boilerplate_lines: List[str] = []
         self.markup: List[str] = []
+        self._open: DefaultDict[str, int] = defaultdict(int)  # tag -> how many are on the stack
+        self._skip_depth = 0  # open elements whose text is not page text
+        self._boilerplate_depth = 0  # open nav, header, footer or aside elements
         self._buffer: List[str] = []
         self._buffer_is_boilerplate = False
         self._heading: Optional[Tuple[int, List[str]]] = None
@@ -210,11 +173,34 @@ class _FactsParser(HTMLParser):
         self._in_title = False
         self._title_done = False
 
-    def _in_boilerplate(self) -> bool:
-        return any(tag in BOILERPLATE_TAGS for tag in self.stack)
+    # -- the stack of open elements ------------------------------------------------------------------------
 
-    def _in_skipped_text(self) -> bool:
-        return any(tag in SKIP_TEXT_TAGS for tag in self.stack)
+    def _push(self, tag: str) -> None:
+        if len(self.stack) >= MAX_STACK_DEPTH:
+            return  # like a browser, stop nesting here; the element's end tag will find nothing to close
+        self.stack.append(tag)
+        self._open[tag] += 1
+        self._skip_depth += tag in SKIP_TEXT_TAGS
+        self._boilerplate_depth += tag in BOILERPLATE_TAGS
+
+    def _pop(self) -> str:
+        tag = self.stack.pop()
+        self._open[tag] -= 1
+        self._skip_depth -= tag in SKIP_TEXT_TAGS
+        self._boilerplate_depth -= tag in BOILERPLATE_TAGS
+        return tag
+
+    def _close_through(self, tag: str) -> None:
+        """Close the nearest open ``tag`` and everything left open inside it; nothing happens if none is open."""
+        if self._open[tag] <= 0:
+            return
+        while self.stack and self._pop() != tag:
+            pass
+
+    def _in_boilerplate(self) -> bool:
+        return self._boilerplate_depth > 0
+
+    # -- text lines ------------------------------------------------------------------------------------------
 
     def _flush_line(self) -> None:
         text = _clean("".join(self._buffer))
@@ -222,20 +208,45 @@ class _FactsParser(HTMLParser):
             (self.boilerplate_lines if self._buffer_is_boilerplate else self.main_lines).append(text)
         self._buffer = []
 
+    def _add_text(self, data: str) -> None:
+        """Whitespace between inline elements is kept inside a line and dropped at the start of one."""
+        targets = (self._buffer, self._heading[1] if self._heading else None, self._anchor["parts"] if self._anchor else None)
+        for parts in targets:
+            if parts is not None and (parts or data.strip()):
+                parts.append(data)
+        if len(self._buffer) == 1:
+            self._buffer_is_boilerplate = self._in_boilerplate()
+
+    # -- start tags --------------------------------------------------------------------------------------------
+
     def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
-        values = {name: (value if value is not None else "") for name, value in attrs}
-        self.markup.extend(f"{name}={value}" for name, value in values.items())
+        values: Dict[str, str] = {}
+        for name, value in attrs:
+            values.setdefault(name, value if value is not None else "")  # a repeated attribute: the first one wins
+        self.markup.extend(signature_markup(tag, values))
+        self._end_implied(tag)
         if tag in BLOCK_TAGS:
             self._flush_line()
         if tag == "html" and self.lang is None:
             self.lang = values.get("lang")
         if tag not in VOID_TAGS:
-            self.stack.append(tag)
+            self._push(tag)
         self._record_start(tag, values)
+
+    def _end_implied(self, tag: str) -> None:
+        """Close what this start tag ends without an end tag: the head, an open anchor, an open heading."""
+        if self._open["head"] and tag not in HEAD_TAGS:
+            self._close_through("head")
+        if tag == "a":
+            self._finish_anchor()
+            self._close_through("a")
+        elif tag in HEADING_LEVELS and self._heading is not None:
+            self._close_through(f"h{self._heading[0]}")
+            self._finish_heading()
 
     def _record_start(self, tag: str, values: Dict[str, str]) -> None:
         if tag == "title":
-            self._in_title = not self._title_done and "svg" not in self.stack[:-1]
+            self._in_title = not self._title_done and self._open["svg"] == 0
         elif tag == "meta":
             key = values.get("name") or values.get("property") or values.get("http-equiv")
             if key and "content" in values:
@@ -274,14 +285,14 @@ class _FactsParser(HTMLParser):
             in_boilerplate=self._in_boilerplate(),
         )
 
+    # -- end tags, text, end of input ----------------------------------------------------------------------------
+
     def handle_endtag(self, tag: str) -> None:
         if tag in VOID_TAGS:
             return
         if tag in BLOCK_TAGS:
             self._flush_line()
-        if tag in self.stack:
-            while self.stack and self.stack.pop() != tag:
-                pass
+        self._close_through(tag)
         self._record_end(tag)
 
     def _record_end(self, tag: str) -> None:
@@ -291,13 +302,22 @@ class _FactsParser(HTMLParser):
         elif tag == "script" and self._jsonld is not None:
             self.jsonld_blobs.append("".join(self._jsonld))
             self._jsonld = None
-        elif tag == "a" and self._anchor is not None:
+        elif tag == "a":
+            self._finish_anchor()
+        elif tag in HEADING_LEVELS:  # an end tag of any level closes the open heading, as in a browser
+            self._finish_heading()
+
+    def _finish_anchor(self) -> None:
+        if self._anchor is not None:
             anchor = self._anchor
             text = _clean("".join(anchor["parts"]))
             self.anchors.append(_Anchor(anchor["href"], anchor["rel"], text, anchor["in_boilerplate"]))
             self._anchor = None
-        elif tag in HEADING_LEVELS and self._heading is not None and self._heading[0] == HEADING_LEVELS[tag]:
-            self.headings.append(Heading(self._heading[0], _clean("".join(self._heading[1]))))
+
+    def _finish_heading(self) -> None:
+        if self._heading is not None:
+            level, parts = self._heading
+            self.headings.append(Heading(level, _clean("".join(parts))))
             self._heading = None
 
     def handle_data(self, data: str) -> None:
@@ -307,16 +327,8 @@ class _FactsParser(HTMLParser):
             self.title_parts.append(data)
         elif self.stack and self.stack[-1] in ("script", "style"):
             self.markup.append(data)
-        elif not self._in_skipped_text():
+        elif self._skip_depth == 0:
             self._add_text(data)
-
-    def _add_text(self, data: str) -> None:
-        """Whitespace between inline elements is kept inside a line and dropped at the start of one."""
-        for parts in (self._buffer, self._heading[1] if self._heading else None, self._anchor["parts"] if self._anchor else None):
-            if parts is not None and (parts or data.strip()):
-                parts.append(data)
-        if len(self._buffer) == 1:
-            self._buffer_is_boilerplate = self._in_boilerplate()
 
     def handle_comment(self, data: str) -> None:
         self.markup.append(data)
@@ -326,12 +338,14 @@ class _FactsParser(HTMLParser):
         if self._jsonld is not None:
             self.jsonld_blobs.append("".join(self._jsonld))
             self._jsonld = None
+        self._finish_anchor()
+        self._finish_heading()
         self._flush_line()
 
 
 def classify_link(anchor: _Anchor, base_url: str) -> Optional[Link]:
     """A Link for the anchor, or None for empty, fragment-only and javascript: links."""
-    target = anchor.href.strip()
+    target = BROWSER_IGNORED.sub("", anchor.href).strip()  # "Java\tScript:" is javascript: to a browser
     lowered = target.lower()
     if not target or target.startswith("#") or lowered.startswith("javascript:"):
         return None
@@ -343,10 +357,13 @@ def classify_link(anchor: _Anchor, base_url: str) -> Optional[Link]:
         return link(target, lowered.split(":", 1)[0])
     try:
         absolute = urljoin(base_url, target)
-        if urlsplit(absolute).scheme.lower() not in ALLOWED_URL_SCHEMES:
+        parts = safe_urlsplit(absolute)
+        if parts is None:  # a malformed URL such as an unclosed IPv6 bracket
+            return link(target, "other")
+        if parts.scheme.lower() not in ALLOWED_URL_SCHEMES:
             return link(absolute, "other")
         return link(absolute, "internal" if host_of(absolute) == host_of(base_url) else "external")
-    except ValueError:  # a malformed URL such as an unclosed IPv6 bracket
+    except ValueError:  # urljoin itself can refuse an address
         return link(target, "other")
 
 
@@ -365,11 +382,12 @@ def _canonical(link_tags: List[Dict[str, str]]) -> Optional[str]:
 def extract_facts(html: str, base_url: str) -> PageFacts:
     """Parse the page. base_url (the final URL after redirects) decides what is internal and resolves links."""
     parser = _FactsParser()
-    parser.feed(html)
+    parser.feed(html[1:] if html.startswith("﻿") else html)  # a byte order mark is not text
     parser.close()
     meta = parser.meta
     types, errors = json_ld_types(tuple(parser.jsonld_blobs))
-    lines = parser.main_lines + parser.boilerplate_lines
+    main = tuple(parser.main_lines)
+    lines = main + tuple(parser.boilerplate_lines)
     return PageFacts(
         lang=parser.lang,
         title=_clean("".join(parser.title_parts)),
@@ -391,10 +409,10 @@ def extract_facts(html: str, base_url: str) -> PageFacts:
         forms=tuple(parser.forms),
         scripts_external=parser.external_scripts,
         scripts_inline=parser.inline_scripts,
-        words_main=sum(len(line.split()) for line in parser.main_lines),
-        words_total=sum(len(line.split()) for line in lines),
+        words_main=_word_count(main),
+        words_total=_word_count(lines),
         phones=tuple(sorted({phone for line in lines for phone in PHONE_PATTERN.findall(line)})),
         platforms=detect_platforms("\n".join(parser.markup)),
-        main_lines=tuple(parser.main_lines),
+        main_lines=main,
         boilerplate_lines=tuple(parser.boilerplate_lines),
     )

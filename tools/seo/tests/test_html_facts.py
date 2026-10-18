@@ -338,6 +338,35 @@ class ImpliedEndTagTests(unittest.TestCase):
         self.assertEqual(facts.words_total, 1)
 
 
+class AttributeAndLinkTests(unittest.TestCase):
+    def test_when_an_attribute_is_repeated_the_first_one_wins_like_in_a_browser(self) -> None:
+        facts = facts_of('<a href="/first" href="/second">dup</a>')
+        self.assertEqual([link.url for link in facts.links], ["https://example.test/first"])
+
+    def test_protocol_relative_links_are_internal_only_on_the_same_site(self) -> None:
+        facts = facts_of('<a href="//cdn.other.test/x">cdn</a><a href="//example.test/y">same</a><a href="//www.example.test/z">www</a>')
+        self.assertEqual([(link.url, link.kind) for link in facts.links], [
+            ("https://cdn.other.test/x", "external"), ("https://example.test/y", "internal"),
+            ("https://www.example.test/z", "internal"),
+        ])
+
+    def test_javascript_links_are_skipped_whatever_their_spelling(self) -> None:
+        for href in ("javascript:void(0)", "JavaScript:void(0)", " JAVASCRIPT:alert(1)", "Java\tScript:alert(1)", "java\nscript:alert(1)"):
+            with self.subTest(href=href):
+                self.assertEqual(facts_of(f'<a href="{href}">x</a>').links, ())
+
+    def test_mailto_and_tel_links_are_told_apart_in_any_case(self) -> None:
+        facts = facts_of('<a href="MAILTO:a@b.c">m</a><a href="Tel: +1 212 555 0100">t</a><a href="mailto:x@y.z">n</a>')
+        self.assertEqual([link.kind for link in facts.links], ["mailto", "tel", "mailto"])
+
+    def test_other_schemes_and_broken_addresses_are_other(self) -> None:
+        facts = facts_of('<a href="data:text/html,hi">d</a><a href="ftp://example.test/x">f</a><a href="whatsapp://send?text=1">w</a><a href="http://[::1/x">b</a>')
+        self.assertEqual({link.kind for link in facts.links}, {"other"})
+
+    def test_empty_and_fragment_only_links_are_skipped(self) -> None:
+        self.assertEqual(facts_of('<a href="#top">t</a><a href="#">h</a><a href="">e</a><a>nohref</a>').links, ())
+
+
 class WordCountTests(unittest.TestCase):
     def test_choices_in_a_dropdown_and_a_text_area_are_not_page_words(self) -> None:
         html = (
