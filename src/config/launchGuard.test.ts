@@ -2,12 +2,16 @@
  * Launch guard: fails `npm test` (and so the deploy workflow) if the site is made indexable while it
  * still carries placeholder or sample content: the placeholder contact details in src/config/site.ts,
  * the "Preview" ribbon (`showSampleNotice`), a project in src/content/projects.ts marked `sample: true`,
- * or an invented figure or list still named in `sampleContent` in src/content/pages.ts.
+ * or anything the content modules still list as not ready. That last part comes from one place,
+ * `contentBlockers()` in src/content/readiness.ts: invented figures named in `sampleContent`, company
+ * facts not yet supplied (src/content/company.ts) and legal drafts waiting for a lawyer
+ * (src/content/legal.ts). A module with blockers of its own registers them there, not here.
  */
 import { describe, expect, it } from "vitest";
 import { isIndexable, showSampleNotice, site } from "@/config/site";
-import { sampleContent, type SampleContent } from "@/content/pages";
+import type { SampleContent } from "@/content/pages";
 import { projects } from "@/content/projects";
+import { contentBlockers, sampleContentBlockers } from "@/content/readiness";
 import type { ShowcaseProject } from "@/lib/types";
 
 type ContactField = "email" | "phone" | "whatsapp" | "address";
@@ -20,7 +24,8 @@ type LaunchState = Readonly<{
   contact: ContactDetails;
   showSampleNotice: boolean;
   projects: readonly ProjectFlags[];
-  sampleContent: readonly SampleContent[];
+  /** What the content modules still list as not ready (src/content/readiness.ts). */
+  contentBlockers: readonly string[];
 }>;
 
 /** The made-up contact details the site shipped with (marked TODO(Ramya) in src/config/site.ts). */
@@ -47,7 +52,8 @@ const READY_STATE: LaunchState = {
   contact: REAL_CONTACT,
   showSampleNotice: false,
   projects: [{ slug: "real-villa" }, { slug: "real-office", sample: false }],
-  sampleContent: [],
+  // No content module has a blocker.
+  contentBlockers: contentBlockers([]),
 };
 
 /** Invented figures, as sampleContent lists them, for the tests of the guard itself. */
@@ -65,37 +71,34 @@ function contactBlockers(contact: ContactDetails): readonly string[] {
   );
 }
 
-function sampleContentBlockers(state: LaunchState): readonly string[] {
+function previewBlockers(state: LaunchState): readonly string[] {
   const ribbon = state.showSampleNotice
     ? [`showSampleNotice is still true in src/config/site.ts, so every page says ${JSON.stringify(SAMPLE_RIBBON_TEXT)}`]
     : [];
   const sampleProjects = state.projects
     .filter((project) => project.sample === true)
     .map((project) => `project ${JSON.stringify(project.slug)} in src/content/projects.ts is still marked sample: true`);
-  const sampleFigures = state.sampleContent.map(
-    (item) => `${JSON.stringify(item.id)} is still listed in sampleContent in src/content/pages.ts, so the site shows invented figures (${item.where})`,
-  );
-  return [...ribbon, ...sampleProjects, ...sampleFigures];
+  return [...ribbon, ...sampleProjects];
 }
 
 /** Everything that still blocks indexing; nothing while the site is not indexable. */
 function launchBlockers(state: LaunchState): readonly string[] {
   if (!state.isIndexable) return [];
-  return [...contactBlockers(state.contact), ...sampleContentBlockers(state)];
+  return [...contactBlockers(state.contact), ...previewBlockers(state), ...state.contentBlockers];
 }
 
 function launchGuardMessage(blockers: readonly string[]): string {
   return [
     "isIndexable is true in src/config/site.ts, so search engines may list the site, but it still has placeholder or sample content:",
     ...blockers.map((blocker) => `  - ${blocker}`),
-    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
+    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
   ].join("\n");
 }
 
 describe("launch guard", () => {
   it("keeps the site out of search engines until its placeholder and sample content is replaced", () => {
     // Arrange
-    const state: LaunchState = { isIndexable, contact: site.contact, showSampleNotice, projects, sampleContent };
+    const state: LaunchState = { isIndexable, contact: site.contact, showSampleNotice, projects, contentBlockers: contentBlockers() };
 
     // Act
     const blockers = launchBlockers(state);
@@ -165,7 +168,7 @@ describe("launchBlockers", () => {
 
   it("names every invented figure still listed in sampleContent when the site is indexable", () => {
     // Arrange
-    const state: LaunchState = { ...READY_STATE, sampleContent: LISTED_FIGURES };
+    const state: LaunchState = { ...READY_STATE, contentBlockers: sampleContentBlockers(LISTED_FIGURES) };
 
     // Act
     const blockers = launchBlockers(state);
@@ -179,7 +182,7 @@ describe("launchBlockers", () => {
 
   it("blocks on a single listed figure, whatever else is real", () => {
     // Arrange
-    const state: LaunchState = { ...READY_STATE, sampleContent: [LISTED_FIGURES[0]] };
+    const state: LaunchState = { ...READY_STATE, contentBlockers: sampleContentBlockers([LISTED_FIGURES[0]]) };
 
     // Act
     const blockers = launchBlockers(state);
@@ -195,7 +198,7 @@ describe("launchBlockers", () => {
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
-      sampleContent: LISTED_FIGURES,
+      contentBlockers: sampleContentBlockers(LISTED_FIGURES),
     };
 
     // Act
@@ -223,7 +226,7 @@ describe("launchBlockers", () => {
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
-      sampleContent: LISTED_FIGURES,
+      contentBlockers: contentBlockers(),
     };
 
     // Act
@@ -253,9 +256,47 @@ describe("launchBlockers", () => {
     expect(message).toContain("or set isIndexable back to false");
   });
 
+  it("names the company facts and the legal drafts that are still open, from the one list the content modules keep", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, contentBlockers: contentBlockers() };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toContain("legal.privacy needs legal review");
+    expect(blockers).toContain("legal.terms needs legal review");
+    expect(blockers.filter((blocker) => blocker.startsWith("company fact"))).toHaveLength(7);
+    expect(blockers).toEqual(contentBlockers());
+  });
+
+  it("takes in the blockers a module registers later, with no change to the guard", () => {
+    // Arrange
+    const registered = contentBlockers([() => ["guides.cost needs the sales interview"]]);
+    const state: LaunchState = { ...READY_STATE, contentBlockers: registered };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toEqual(["guides.cost needs the sales interview"]);
+  });
+
+  it("tells the owner where the company facts and the legal drafts are cleared", () => {
+    // Arrange
+    const blockers = launchBlockers({ ...READY_STATE, contentBlockers: contentBlockers() });
+
+    // Act
+    const message = launchGuardMessage(blockers);
+
+    // Assert
+    expect(message).toContain("fill in each company fact in src/content/company.ts");
+    expect(message).toContain("delete their entries in `legalDrafts` in src/content/legal.ts");
+  });
+
   it("tells the owner how to clear a listed figure: replace it, then delete its entry", () => {
     // Arrange
-    const blockers = launchBlockers({ ...READY_STATE, sampleContent: LISTED_FIGURES });
+    const blockers = launchBlockers({ ...READY_STATE, contentBlockers: sampleContentBlockers(LISTED_FIGURES) });
 
     // Act
     const message = launchGuardMessage(blockers);

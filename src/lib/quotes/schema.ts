@@ -9,24 +9,16 @@
  * fields come out as `undefined`.
  */
 import { z } from "zod";
+import { isHttpsUrl } from "@/lib/httpsUrl";
 import { PROJECT_TYPE_OPTIONS, ROLE_OPTIONS, TEXT_LIMITS, TIMELINE_OPTIONS } from "./fields";
-
-// Drawings links must be encrypted: a plain http:// link would expose the drawings on the way.
-const SECURE_WEB_PROTOCOL = "https:";
 
 function blankToUndefined(value: string): string | undefined {
   return value === "" ? undefined : value;
 }
 
-/** True when the text parses as an https:// address; a blank value counts as "no link". */
+/** Drawings links must be encrypted (a plain http:// link would expose the drawings on the way); a blank value counts as "no link". */
 function isBlankOrSecureWebAddress(value: string): boolean {
-  if (value === "") return true;
-  try {
-    return new URL(value).protocol === SECURE_WEB_PROTOCOL;
-  } catch {
-    // Not parseable as a URL at all: that is a validation failure, reported by the caller.
-    return false;
-  }
+  return value === "" || isHttpsUrl(value);
 }
 
 function requiredText(missing: string, tooLong: string, maxLength: number) {

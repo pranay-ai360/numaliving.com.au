@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { CompanyFactsSection } from "@/components/CompanyFactsSection";
 import { about, delivery } from "@/content/pages";
 import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { WorldMap } from "@/components/WorldMap";
@@ -24,6 +25,9 @@ export default function AboutPage() {
           </div>
         </Container>
       </section>
+
+      {/* Company facts: nothing until the owner has confirmed some (src/content/company.ts) */}
+      <CompanyFactsSection />
 
       {/* Map */}
       <section className="linen py-24">

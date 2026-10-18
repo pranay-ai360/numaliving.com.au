@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
+import { companyFacts } from "@/content/company";
 
 describe("site contact details", () => {
   it("publishes projects@numaliving.us as the contact email", () => {
@@ -38,6 +39,17 @@ describe("site identity facts that are not known yet", () => {
     // Assert
     expect(legalName).toBeNull();
     expect(foundingYear).toBeNull();
+  });
+
+  it("takes both from the company facts, the one place the owner's confirmed facts are kept", () => {
+    // Arrange
+    const { legalName, foundingYear } = site;
+
+    // Act
+    const same = legalName === companyFacts.legalName && foundingYear === companyFacts.foundingYear;
+
+    // Assert
+    expect(same).toBe(true);
   });
 
   it("lists no social profiles until real ones exist", () => {

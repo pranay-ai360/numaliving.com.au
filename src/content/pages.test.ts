@@ -27,7 +27,7 @@ describe("sampleContent", () => {
     const listed = [...ids].sort();
 
     // Assert
-    expect(listed).toEqual(["about.certifications", "delivery.regions", "factory.facts", "home.stats", "locations.destinations"]);
+    expect(listed).toEqual(["delivery.regions", "factory.facts", "home.stats", "locations.destinations"]);
   });
 
   it.each(sampleContent.map((item) => [item.id] as const))("still finds real content for %s, so a rename cannot leave a stale entry that blocks nothing", (id) => {

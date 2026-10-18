@@ -70,8 +70,6 @@ export const about = {
     { name: "Transparency", text: "Every client sees their drawings, approvals and production status online." },
     { name: "Reach", text: "Export-packed, shipped and installed wherever the project is." },
   ],
-  // TODO(Ramya): add certifications once confirmed
-  certifications: ["ISO 9001 (to be confirmed)", "FSC chain of custody (to be confirmed)"],
 };
 
 export const capabilities = {
@@ -195,7 +193,6 @@ export const sampleContent: readonly SampleContent[] = [
   { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
   { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines, spray booths, monthly output)" },
   { id: "delivery.regions", where: "src/content/pages.ts: delivery.regions (the destinations listed on the About page)" },
-  { id: "about.certifications", where: "src/content/pages.ts: about.certifications (ISO 9001 and FSC, both still to be confirmed)" },
   { id: "locations.destinations", where: "src/content/locations.ts: destinations (the places on the About page map)" },
 ];
 

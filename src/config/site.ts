@@ -1,3 +1,5 @@
+import { companyFacts } from "@/content/company";
+
 /** Search-engine ownership tokens (public by design, they sit in the page source); null until the owner supplies one. */
 export type SearchVerification = Readonly<{ google: string | null; bing: string | null }>;
 
@@ -21,10 +23,10 @@ export const site = {
   // The language and region of the copy, for <html lang> and Open Graph (written "en_US" there).
   locale: "en-US",
 
-  // Facts the structured data (src/lib/seo/jsonld.ts) only publishes once they are set. Leave them
-  // empty until Numa confirms them; nothing here may be guessed.
-  legalName: null as string | null,
-  foundingYear: null as number | null,
+  // Facts the structured data (src/lib/seo/jsonld.ts) only publishes once they are set. They come from
+  // the company facts (src/content/company.ts), which stay empty until Numa confirms them.
+  legalName: companyFacts.legalName,
+  foundingYear: companyFacts.foundingYear,
   // Full URLs of Numa's real profiles (LinkedIn, Instagram, Houzz and so on), published as `sameAs`.
   social: [] as readonly string[],
   verification: { google: null, bing: null } as SearchVerification,
