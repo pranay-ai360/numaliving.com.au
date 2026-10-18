@@ -393,6 +393,20 @@ class LeftoverBranchTests(unittest.TestCase):
         self.assertEqual((link.kind, link.url), ("other", "x"))
 
 
+class BlockBoundaryTests(unittest.TestCase):
+    def test_a_line_break_inside_a_heading_separates_its_words(self) -> None:
+        self.assertEqual(facts_of("<h1>Alpha<br>Beta</h1>").headings, (Heading(1, "Alpha Beta"),))
+
+    def test_block_elements_inside_a_link_separate_its_words(self) -> None:
+        facts = facts_of('<a href="/x">One<div>Two</div>Three</a>')
+        self.assertEqual(facts.links[0].text, "One Two Three")
+
+    def test_inline_elements_inside_a_heading_or_link_still_join_without_a_space(self) -> None:
+        facts = facts_of('<h1>Cus<span>tom</span> <b>mill</b>work</h1><a href="/x">Read<em>ing</em></a>')
+        self.assertEqual(facts.headings, (Heading(1, "Custom millwork"),))
+        self.assertEqual(facts.links[0].text, "Reading")
+
+
 class WordCountTests(unittest.TestCase):
     def test_choices_in_a_dropdown_and_a_text_area_are_not_page_words(self) -> None:
         html = (
@@ -566,9 +580,12 @@ class RobustnessTests(unittest.TestCase):
         facts = facts_of("")
         self.assertEqual((facts.words_total, facts.links, facts.images, facts.headings), (0, (), (), ()))
 
-    def test_unclosed_and_stray_tags_do_not_raise(self) -> None:
+    def test_unclosed_and_stray_tags_are_read_as_a_browser_would(self) -> None:
         facts = facts_of("</div></div><p>stray <b>bold <i>italic<h2>heading</p><a href='/x'>open anchor")
-        self.assertGreater(facts.words_total, 0)
+        self.assertEqual(facts.main_lines, ("stray bold italic", "heading", "open anchor"))
+        self.assertEqual(facts.words_main, 6)
+        self.assertEqual(facts.headings, (Heading(2, "heading open anchor"),))  # the h2 was never closed
+        self.assertEqual([(link.url, link.text) for link in facts.links], [("https://example.test/x", "open anchor")])
 
     def test_non_html_text_is_just_text(self) -> None:
         self.assertEqual(facts_of("plain words only").words_total, 3)
