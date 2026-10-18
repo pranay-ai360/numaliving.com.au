@@ -408,6 +408,18 @@ class HelperTests(unittest.TestCase):
         self.assertFalse(launch_structured_data.phone_is_shown("512 555 0147", ("Call 12 555 0147",)))
         self.assertFalse(launch_structured_data.phone_is_shown("512 555 0147", ("Call 2 555 0147",)))
 
+    def test_a_page_with_thousands_of_phones_and_lines_is_still_judged_quickly(self) -> None:
+        phones = ",".join(f'"+1 512 555 {number:04d}"' for number in range(5000))
+        site = Site.create(ORIGIN + "/", ORIGIN, "live")
+        body = ("<html lang='en-US'><head><title>T</title><script type='application/ld+json'>"
+                '{"@context":"https://schema.org","@type":"Organization","telephone":[' + phones + "]}</script></head><body>"
+                + "<p>line 512 555 0001</p>" * 20000 + "</body></html>")
+        web = build_web().add(HOME, body)
+        views = launch_page_checks.build_views(site, crawl_site(site, web, [site.base_url], 1))
+        result = {r.id: r for r in launch_structured_data.structured_data_checks(views)}["json-ld-placeholders"]
+        self.assertEqual(result.status, "FAIL")
+        self.assertLessEqual(len(result.failures[0].message.split("; ")), 4)
+
     def test_a_national_number_matches_the_same_number_written_with_its_country_code(self) -> None:
         self.assertTrue(launch_structured_data.phone_is_shown("04 123 4567", ("Call +971 4 123 4567",)))
         self.assertTrue(launch_structured_data.phone_is_shown("0 4 123 4567", ("971 4 123 4567",)))

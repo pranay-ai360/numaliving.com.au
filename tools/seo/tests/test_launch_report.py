@@ -122,6 +122,24 @@ class TextTests(unittest.TestCase):
         self.assertIn("\\x1b]0;pwned\\x07", text)
 
 
+class ClipTests(unittest.TestCase):
+    def test_short_text_is_untouched_and_long_text_is_cut_with_dots(self) -> None:
+        self.assertEqual(launch_report.clip("x" * 300), "x" * 300)
+        self.assertEqual(launch_report.clip("x" * 301), "x" * 297 + "...")
+        self.assertEqual(launch_report.clip(""), "")
+
+    def test_a_huge_title_cannot_flood_the_table(self) -> None:
+        failure = Failure("https://a.test/" + "u" * 5000, "title " + "t" * 100_000)
+        text = launch_report.render_report(report_of(page_check("title-length", "FAIL", [failure], "1 of 1 page")))
+        self.assertLess(max(len(line) for line in text.splitlines()), 700)
+        self.assertIn("...", text)
+
+    def test_a_huge_title_cannot_flood_the_json_file_either(self) -> None:
+        failure = Failure("https://a.test/", "title " + "t" * 100_000)
+        data = json.loads(launch_report.report_json(report_of(page_check("title-length", "FAIL", [failure], "x"))))
+        self.assertEqual(len(data["checks"][0]["failures"][0]["message"]), 300)
+
+
 class JsonTests(unittest.TestCase):
     def load(self, report: Report) -> Dict[str, Any]:
         loaded: Dict[str, Any] = json.loads(launch_report.report_json(report))
@@ -175,6 +193,13 @@ class PageRecordTests(unittest.TestCase):
         self.assertEqual(record["json_ld_types"], ["BreadcrumbList", "Organization", "WebSite"])
         self.assertEqual(record["images"], 1)
         self.assertEqual(record["internal_links"], 8)
+
+    def test_long_text_in_a_record_is_cut(self) -> None:
+        site = Site.create(ORIGIN + "/", ORIGIN, "live")
+        web = build_web().add(ORIGIN + "/", "<title>" + "t" * 5000 + "</title><h1>" + "h" * 5000 + "</h1>")
+        view = launch_page_checks.build_views(site, launch_crawl.crawl_site(site, web, [site.base_url], 1))[0]
+        record = launch_report.page_record(view)
+        self.assertEqual((len(record["title"]), record["title_length"], len(record["h1"][0])), (300, 5000, 300))
 
     def test_the_record_is_json_ready(self) -> None:
         for view in self.views():

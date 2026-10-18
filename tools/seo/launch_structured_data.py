@@ -23,6 +23,8 @@ ORGANIZATION = "Organization"
 BREADCRUMB_LIST = "BreadcrumbList"
 ADDRESS_PARTS = ("streetAddress", "addressLocality", "postalCode")  # what a visitor sees; region and country are codes
 MIN_PHONE_DIGITS = 7
+MAX_CONTACT_VALUES = 20  # telephones and addresses compared per page; markup that lists more is not a contact page
+DIGIT_LINE_SEPARATOR = "|"  # between lines, so that digits on two lines never join into one number
 NATIONAL_NUMBER_LENGTH = 10  # a longer number starts with a country code that a page may leave off
 NATIONAL_TAIL_LENGTHS = (10, 9, 8)
 REASON_CHARS = 80
@@ -168,14 +170,20 @@ def _phone_forms(phone: str) -> Tuple[str, ...]:
     return (digits,) + tuple(digits[-length:] for length in NATIONAL_TAIL_LENGTHS if longer)
 
 
-def phone_is_shown(phone: str, lines: Sequence[str]) -> bool:
+def digits_of_lines(lines: Sequence[str]) -> str:
+    """The digits of each line of the page, the lines kept apart by a separator."""
+    return DIGIT_LINE_SEPARATOR.join(NOT_DIGITS.sub("", line) for line in lines)
+
+
+def phone_is_shown(phone: str, lines: Sequence[str], page_digits: str = "") -> bool:
     """Whether a line of the page shows the phone, however its digits are spaced or punctuated.
 
-    Lines are compared one at a time, so digits in two places are never joined into a number. A number with a
-    country code may be shown without it (and a national number with a leading 0 may be shown with one).
+    Digits in two lines are never joined into a number. A number with a country code may be shown without it (and a
+    national number with a leading 0 may be shown with one). ``page_digits`` is digits_of_lines(lines), when the
+    caller has it already (a page with many phones should not work it out again for each).
     """
-    shown = [NOT_DIGITS.sub("", line) for line in lines]
-    return any(form in digits for form in _phone_forms(phone) for digits in shown)
+    haystack = page_digits or digits_of_lines(lines)
+    return any(form in haystack for form in _phone_forms(phone))
 
 
 def _placeholder_problem(view: PageView, data: StructuredData) -> str:
@@ -185,11 +193,13 @@ def _placeholder_problem(view: PageView, data: StructuredData) -> str:
         for marker in PLACEHOLDER_MARKERS if any(marker.casefold() in text for text in lowered)
     ]
     lines = view.facts.main_lines + view.facts.boilerplate_lines
-    problems += [f'telephone "{phone}" is not shown as text on the page' for phone in data.phones
-                 if not phone_is_shown(phone, lines)]
+    page_digits = digits_of_lines(lines)
+    phones = list(dict.fromkeys(data.phones))[:MAX_CONTACT_VALUES]
+    problems += [f'telephone "{phone}" is not shown as text on the page' for phone in phones
+                 if not phone_is_shown(phone, lines, page_digits)]
     visible = words("\n".join(lines))
     problems += [f'address "{part}" is not shown as text on the page'
-                 for group in data.addresses for part in group if not shows(visible, part)]
+                 for group in data.addresses[:MAX_CONTACT_VALUES] for part in group if not shows(visible, part)]
     return listed(problems, "; ")
 
 

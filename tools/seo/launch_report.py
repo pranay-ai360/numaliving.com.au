@@ -18,6 +18,7 @@ from launch_structured_data import parse_structured_data
 from seo_common import printable
 
 FAILURES_SHOWN = 8
+TEXT_LIMIT = 300  # page text in a message or a record (a title, a heading, an address) is cut after this much
 FAILURE_INDENT = " " * 8
 SCOPE_HEADINGS = ((PAGE_SCOPE, "PAGE CHECKS"), (SITE_SCOPE, "SITE CHECKS"))
 MODE_NOTES = {
@@ -52,19 +53,24 @@ class Report:
         return bool(self.results) and self.counts[FAIL] == 0
 
 
+def clip(text: str) -> str:
+    """The text, cut with "..." when it is longer than TEXT_LIMIT: a hostile page cannot flood the table or the file."""
+    return text if len(text) <= TEXT_LIMIT else text[: TEXT_LIMIT - 3] + "..."
+
+
 def page_record(view: PageView) -> Dict[str, Any]:
     """What a page looked like to the checks, for the JSON report."""
     facts = view.facts
     return {
         "url": view.url,
         "path": view.path,
-        "title": facts.title,
+        "title": clip(facts.title),
         "title_length": len(facts.title),
         "description_length": len(facts.description),
-        "canonical": facts.canonical,
-        "robots": list(facts.robots_meta),
-        "lang": facts.lang,
-        "h1": list(facts.heading_texts(1)),
+        "canonical": clip(facts.canonical) if facts.canonical is not None else None,
+        "robots": [clip(content) for content in facts.robots_meta],
+        "lang": clip(facts.lang) if facts.lang is not None else None,
+        "h1": [clip(text) for text in facts.heading_texts(1)],
         "json_ld_types": sorted(parse_structured_data(facts.jsonld_blobs).types),
         "images": len(facts.images),
         "internal_links": len(facts.links_of("internal")),
@@ -74,7 +80,8 @@ def page_record(view: PageView) -> Dict[str, Any]:
 def _check_lines(result: CheckResult, id_width: int) -> List[str]:
     summary = f"  [{result.summary}]" if result.summary else ""
     lines = [f"{result.status}  {result.id:<{id_width}}  {result.title}{summary}"]
-    lines += [f"{FAILURE_INDENT}{failure.url}  {failure.message}" for failure in result.failures[:FAILURES_SHOWN]]
+    shown = result.failures[:FAILURES_SHOWN]
+    lines += [f"{FAILURE_INDENT}{clip(failure.url)}  {clip(failure.message)}" for failure in shown]
     hidden = len(result.failures) - FAILURES_SHOWN
     if hidden > 0:
         lines.append(f"{FAILURE_INDENT}... and {hidden} more (the --json report lists them all)")
@@ -132,7 +139,9 @@ def report_json(report: Report) -> str:
                 "title": result.title,
                 "status": result.status,
                 "summary": result.summary,
-                "failures": [{"url": failure.url, "message": failure.message} for failure in result.failures],
+                "failures": [
+                    {"url": clip(failure.url), "message": clip(failure.message)} for failure in result.failures
+                ],
             }
             for result in report.results
         ],
