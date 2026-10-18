@@ -1,0 +1,13 @@
+# HEADINGS
+H1: Custom millwork for architects
+H2: Casework built to standards
+
+# TEXT
+Custom millwork for architects.
+We build casework and wall paneling for general contractors.
+Call (212) 555-0123 to talk about your schedule.
+
+# BOILERPLATE
+Home
+Contact
+Privacy policy

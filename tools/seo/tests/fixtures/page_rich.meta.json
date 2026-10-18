@@ -1,0 +1,22 @@
+{
+ "requested": "http://example.test/services/millwork",
+ "final_url": "https://example.test/services/millwork/",
+ "status": 200,
+ "error": null,
+ "skipped": null,
+ "headers": {
+  "content-type": "text/html; charset=utf-8",
+  "server": "example-server",
+  "x-robots-tag": "noarchive"
+ },
+ "redirects": [
+  {
+   "status": 301,
+   "from": "http://example.test/services/millwork",
+   "to": "https://example.test/services/millwork/"
+  }
+ ],
+ "bytes": 3300,
+ "elapsed_ms": 120,
+ "truncated": false
+}

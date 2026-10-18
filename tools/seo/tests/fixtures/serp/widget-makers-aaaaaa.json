@@ -1,0 +1,63 @@
+{
+ "query": "widget makers",
+ "language": "en-US",
+ "fetched_at": "2026-10-17T23:20:31+00:00",
+ "attempts": 1,
+ "results": [
+  {
+   "rank": 1,
+   "url": "https://www.alpha-fab.example/widgets/",
+   "domain": "www.alpha-fab.example",
+   "title": "Alpha Fabrication: widgets",
+   "snippet": "Fixture snippet one.",
+   "engines": ["google cse", "duckduckgo"],
+   "score": 1.125,
+   "published": null
+  },
+  {
+   "rank": 2,
+   "url": "https://www.yelp.com/search?find_desc=widget+makers",
+   "domain": "www.yelp.com",
+   "title": "Top widget makers near you",
+   "snippet": "Fixture snippet two.",
+   "engines": ["duckduckgo"],
+   "score": 1.0,
+   "published": null
+  },
+  {
+   "rank": 3,
+   "url": "https://beta-works.example/",
+   "domain": "beta-works.example",
+   "title": "Beta Works",
+   "snippet": "Fixture snippet three.",
+   "engines": ["google cse"],
+   "score": 0.5,
+   "published": "2026-01-02 00:00:00+00:00"
+  },
+  {
+   "rank": 4,
+   "url": "https://alpha-fab.example/about/?srsltid=TRACK&utm_source=x&keep=1#team",
+   "domain": "alpha-fab.example",
+   "title": "About Alpha",
+   "snippet": "Fixture snippet four.",
+   "engines": ["google cse"],
+   "score": 0.3,
+   "published": null
+  },
+  {
+   "rank": 5,
+   "url": "https://gamma-co.example/widgets",
+   "domain": "gamma-co.example",
+   "title": "Gamma Co widgets",
+   "snippet": "Fixture snippet five.",
+   "engines": ["duckduckgo"],
+   "score": 0.2,
+   "published": null
+  }
+ ],
+ "suggestions": ["widget makers near me"],
+ "answers": [],
+ "corrections": [],
+ "infoboxes": [],
+ "unresponsive": [["brave", "too many requests"]]
+}
