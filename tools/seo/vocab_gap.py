@@ -7,12 +7,13 @@ Usage:
 A PATH is a page text file written by audit_pages.py, a folder of them, or a pattern such as "pages/own_*.txt".
 Only the headings and main text count: the nav, header, footer and aside text of each page is left out, and so are
 pages whose file name suggests a login, 404, robots.txt, sitemap or /index.html copy (when found through a folder
-or a pattern).
+or a pattern). Curly and straight apostrophes are the same, and accents are dropped (decor, décor).
 
 The report has three parts:
   1. the plan's US-versus-UK term table (see TERM_TABLE): how many pages on each side contain each term, next to
      the figures the plan recorded from 33 ranking US pages and 7 Numa pages;
-  2. phrases (1 to 3 words, none starting or ending with a stop word, none crossing a line or punctuation mark)
+  2. phrases (1 to 3 words next to each other on a line; none starting or ending with a stop word or a
+     contraction; none crossing punctuation, a number or a word of one or two letters such as "in" or "US")
      that appear on many ranking pages and on no page of the site: the core vocabulary gaps;
   3. phrases the site uses on several pages that ranking pages hardly use.
 Standard library only.
@@ -21,8 +22,10 @@ Standard library only.
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,20 +35,28 @@ from seo_common import SeoToolError, emit, positive_int, printable, read_text_fi
 
 STOP_WORDS = frozenset(
     """
-    a about above after again all also am an and any are as at be because been before being below between both but by
-    can could did do does doing down during each few for from further had has have having he her here hers him his how
-    i if in into is it its just me more most my no nor not now of off on once only or other our ours out over own same
-    she should so some such than that the their theirs them then there these they this those through to too under until
-    up us very was we were what when where which while who whom why will with would you your yours get got make made
-    see one two new need needs want view read learn home menu skip content contact privacy policy terms cookie cookies
-    copyright rights reserved login search cart account email phone call click submit send name message sign subscribe
-    follow facebook instagram linkedin twitter youtube pinterest tiktok whatsapp inc llc ltd
+    about above after again all also and any are because been before being below between both but can could did does
+    doing down during each few for from further had has have having her here hers him his how into its just more most
+    nor not now off once only other our ours out over own same she should some such than that the their theirs them
+    then there these they this those through too under until very was were what when where which while who whom why
+    will with would you your yours get got make made see one two new need needs want view read learn home menu skip
+    content contact privacy policy terms cookie cookies copyright rights reserved login search cart account email
+    phone call click submit send name message sign subscribe follow facebook instagram linkedin twitter youtube
+    pinterest tiktok whatsapp inc llc ltd
     """.split()
 )
-TOKEN = re.compile(r"[a-z][a-z'&-]{2,}")
-NOT_PHRASE_CHARS = re.compile(r"[^\w\s'&-]+")
+# A word is letters and digits, joined inside by ' & or -; anything else that is not a space is a one-character
+# separator. Words shorter than MIN_WORD_CHARS or starting with a digit (in, of, US, 4x8, 2026) and every
+# separator break a phrase, so words that are not neighbours on the page never form one.
+TOKEN = re.compile(r"[a-z0-9]+(?:['&-][a-z0-9]+)*|\S")
+CONTRACTION = re.compile(r"'(?:s|t|re|ve|ll|d|m)$")
+COMBINING_MARKS = re.compile("[\u0300-\u036f]")
+CURLY_APOSTROPHES = str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
 MAX_PHRASE_WORDS = 3
 MIN_WORD_CHARS = 3
+SHARE_TOLERANCE = 1e-9  # 10 * 0.3 is 3.0000000000000004 in floating point
+HEADINGS_HEADING = "# HEADINGS"
+HEADING_LINE = re.compile(r"^H[1-6]: ?(.*)$")
 TEXT_HEADING = "# TEXT"
 BOILERPLATE_HEADING = "# BOILERPLATE"
 BOILERPLATE_PAGE_MARKERS = ("login", "no-such", "robots", "sitemap", "index.html")
@@ -131,24 +142,56 @@ TERM_TABLE: Tuple[TermRow, ...] = (
 
 
 def page_text(text: str) -> str:
-    """The main text of a page text file: after "# TEXT", before "# BOILERPLATE" (old files have no such parts)."""
-    return text.split(BOILERPLATE_HEADING, 1)[0].split(TEXT_HEADING, 1)[-1]
+    """The text that counts for a page: its headings, then the main text (not the "# BOILERPLATE" part).
+
+    The headings come from the "# HEADINGS" block, so a hero H1 inside <header> counts even though the text
+    under it is boilerplate. A file without these parts (an old one) counts whole.
+    """
+    content = text.split(BOILERPLATE_HEADING, 1)[0]
+    outline, found, body = content.partition(TEXT_HEADING)
+    if not found:
+        return content
+    headings = (HEADING_LINE.match(line) for line in outline.splitlines())
+    return "\n".join(match.group(1) for match in headings if match) + "\n" + body
 
 
-def _segments(text: str) -> Iterator[str]:
-    for line in text.lower().splitlines():
-        yield from NOT_PHRASE_CHARS.split(line)
+def _fold(text: str) -> str:
+    """Lower case, curly apostrophes made straight, accents removed (decor and décor are one word)."""
+    straight = text.lower().translate(CURLY_APOSTROPHES)
+    return COMBINING_MARKS.sub("", unicodedata.normalize("NFKD", straight))
+
+
+def _is_phrase_word(word: str) -> bool:
+    return len(word) >= MIN_WORD_CHARS and "a" <= word[0] <= "z"
+
+
+def _runs(text: str) -> Iterator[List[str]]:
+    """Runs of words that sit next to each other on one line, with nothing that breaks a phrase between them."""
+    for line in _fold(text).splitlines():
+        run: List[str] = []
+        for match in TOKEN.finditer(line):
+            word = match.group(0)
+            if _is_phrase_word(word):
+                run.append(word)
+            elif run:
+                yield run
+                run = []
+        if run:
+            yield run
+
+
+def _cannot_edge_a_phrase(word: str) -> bool:
+    return word in STOP_WORDS or CONTRACTION.search(word) is not None
 
 
 def page_ngrams(text: str) -> FrozenSet[str]:
-    """Every 1 to 3 word phrase of the text that does not start or end with a stop word."""
+    """Every 1 to 3 word phrase of the text that does not start or end with a stop word, a contraction or a 's."""
     found = set()
-    for segment in _segments(text):
-        words = [word.strip("'-&") for word in TOKEN.findall(segment)]
+    for words in _runs(text):
         for size in range(1, MAX_PHRASE_WORDS + 1):
             for start in range(len(words) - size + 1):
                 phrase = words[start : start + size]
-                if phrase[0] in STOP_WORDS or phrase[-1] in STOP_WORDS or any(len(w) < MIN_WORD_CHARS for w in phrase):
+                if _cannot_edge_a_phrase(phrase[0]) or _cannot_edge_a_phrase(phrase[-1]):
                     continue
                 found.add(" ".join(phrase))
     return frozenset(found)
@@ -162,6 +205,11 @@ def document_frequency(pages: Sequence[FrozenSet[str]]) -> Mapping[str, int]:
     return counts
 
 
+def core_threshold(ranking_total: int, min_pages: int, min_share: float) -> int:
+    """How many ranking pages a phrase must be on: a share rounds UP (30% of 33 pages is 10, not 9)."""
+    return max(min_pages, math.ceil(ranking_total * min_share - SHARE_TOLERANCE))
+
+
 def find_core_gaps(
     ranking: Mapping[str, int],
     own: Mapping[str, int],
@@ -171,7 +219,7 @@ def find_core_gaps(
     limit: int = DEFAULT_LIMIT,
 ) -> Tuple[GapRow, ...]:
     """Phrases on at least max(min_pages, min_share of the ranking pages) of them and on no own page."""
-    threshold = max(min_pages, int(ranking_total * min_share))
+    threshold = core_threshold(ranking_total, min_pages, min_share)
     rows = [GapRow(term, count, 0) for term, count in ranking.items() if count >= threshold and own.get(term, 0) == 0]
     return tuple(sorted(rows, key=lambda row: (-row.ranking_pages, row.term))[:limit])
 
@@ -268,7 +316,7 @@ def render_report(
                       f"ranking US pages, {PLAN_OWN_PAGES} Numa pages) ===",
                   render_term_table(term_counts(ranking_texts, own_texts), len(ranking_texts), len(own_texts))]
     gaps = find_core_gaps(ranking, own, len(ranking_texts), min_pages, min_share, limit)
-    threshold = max(min_pages, int(len(ranking_texts) * min_share))
+    threshold = core_threshold(len(ranking_texts), min_pages, min_share)
     lines += ["", f"=== terms on at least {threshold} ranking pages and on NO own page (core vocabulary gaps) ==="]
     lines += _gap_lines(gaps, len(ranking_texts), len(own_texts), own_first=False) or ["  (none: try a lower --min-pages)"]
     lines += ["", f"=== Numa vocabulary that ranking pages rarely use (on {OWN_ONLY_MIN_OWN_PAGES}+ own pages, "
