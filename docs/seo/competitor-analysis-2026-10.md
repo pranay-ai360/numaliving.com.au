@@ -30,24 +30,24 @@ These two are teardown examples, not the leaders of the results pages.
 | Conversion | quote form, email, no phone | phone, WhatsApp, email, Instagram, "Invite to Bid", project review, SMS consent | phone, email, address, showroom by appointment |
 | Real Google, non-brand | n/a | one programmatic page on page one for "multifamily millwork manufacturer" | none seen |
 
-Millwork USA's 9,488 resource pages follow a template (service, city, angle, audience; for example `dressing-rooms-and-closets-in-santa-monica-budgeting-and-allowances`). They were published at roughly 130 to 350 a day from 23 August to 5 October 2026, and Google lists them for `site:` (SearXNG had suggested otherwise: Google's data wins). The sampled page's "Local project conditions in Del Mar" section is generic advice with the city swapped in. It is a spam-policy risk and is tied to California, so the plan does not copy it.
+Millwork USA's sitemap lists 9,488 resource pages that follow a template (service, city, angle, audience; for example `dressing-rooms-and-closets-in-santa-monica-budgeting-and-allowances`). Their `lastmod` dates put them at roughly 130 to 350 a day from 23 August to 5 October 2026, and Google lists them for `site:` (SearXNG had suggested otherwise: Google's data wins). The one page sampled has a section headed "Local project conditions in Del Mar". The plan does not copy this approach: the pages are tied to California, Numa has no US location to write from, and every Numa page starts from first-party facts.
 
 - **Copy instead:** what, where and for whom in the first screen, a facts-and-Q&A page, B2B calls to action, schema on every page.
-- **Exceed with:** photography (Numa has 30 professional photos; Millwork USA has almost none), named projects and designers, standards, and clarity about importing.
+- **Exceed with:** photography (Numa has 30 professional photos; the Millwork USA pages sampled showed few), named projects and designers, standards, and clarity about importing.
 
 The per-day view of a sitemap that exposed this pattern is built into `tools/seo/sitemap_report.py`.
 
 ## 2. What the US results look like
 
 - **Fragmented.** Across 45 queries no manufacturer appears in more than 4 (a2zmillwork.com). Yelp and AWI's certification site appear in 7 each.
-- **Head terms** ("custom millwork manufacturer", "architectural millwork manufacturer") are held by small regional fabricators, building-supply firms (Builders FirstSource, Carter Lumber), directories (ensun.io, Downtobid) and AWI. Google shows an AI Overview and a local pack. A new Dubai domain should expect 12 to 24 months here, so they are not launch targets.
+- **Head terms** ("custom millwork manufacturer", "architectural millwork manufacturer") are ranked by regional fabricators, building-supply firms (Builders FirstSource, Carter Lumber), directories (ensun.io, Downtobid) and AWI. Google shows an AI Overview and a local pack. A new Dubai domain should expect 12 to 24 months here, so they are not launch targets.
 - **City modifiers** return local fabricators plus Yelp, Houzz and Instagram. Numa has no US location: no location pages, no "near me".
 - **AI Overview on 10 of 10 real topical queries**, local pack on 4 of 10. The overviews name companies whose pages state plain facts ("established 1983", "70,000 sq ft facility", "AWI QCP-certified"), so facts must be on the page as text.
 - **Import and overseas niche.** Served by US sourcing firms (HKP International, House of Imports, IWI Millwork, d-ci.us, Bestmark, Eric Brand). 3 of 6 of those pages have no meta description and one has no H1. House of Imports' 326-word page uses FAQPage + LocalBusiness schema and answers: quality versus a domestic shop, which drawings are needed, lead time (12 to 20 weeks, their claim) and CARB compliance. This is the beachhead.
 - **AWI** (awiqcp.org, awinet.org, woodworkinstitute.com) owns the standards and "what is" queries (Premium, Custom and Economy grades). It is a trust requirement for commercial buyers, not a page to outrank.
 - **Compliance and cost of importing.** EPA, CARB and customs brokers answer TSCA Title VI and CARB. Real questions: "Are kitchen cabinets subject to tariffs?", "What is the HS code for cabinets?".
 - **Product pages** (fluted panels, wall paneling) are retail and e-commerce brands. A made-to-order angle differentiates, but expect Moderate to Hard.
-- **On-page norms.** Median 500 to 600 words on ranking service pages; four rank with 166 to 270 words. Most have canonical, OG and JSON-LD. Thin copy is below the median but not decisive: trust and specificity matter more.
+- **On-page norms.** Median 500 to 600 words on ranking service pages; four rank with 166 to 270 words. Most have canonical, OG and JSON-LD. Short copy is below the median but not decisive: trust and specificity matter more.
 
 ## 3. Vocabulary: ranking US pages (33) versus Numa (7 pages)
 
@@ -80,7 +80,7 @@ The same table is data in `tools/seo/vocab_gap.py` (`TERM_TABLE`), which counts 
 
 ## 5. Baseline scorecard
 
-Scored with the page-audit rubric of the SEO skills. These are judgements, with the evidence above.
+Scored with the page-audit rubric of the SEO skills. These are our own readings of one page each on 18 October 2026, with the evidence above: they are not a verdict on the businesses, and the figures will drift.
 
 | Dimension | Numa home | Millwork USA home | Vintage custom-millwork-3 |
 | --- | --- | --- | --- |

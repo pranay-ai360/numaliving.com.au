@@ -41,12 +41,12 @@ python3.14 $SEO/browse.py serp --queries-file $DATA/tracked.txt                 
 python3 $SEO/google_features.py $DATA/browse/serp
 ```
 
-The brand queries are in `tools/seo/queries/brand-2026-10.txt`. The tools README explains each step, the options and the politeness rules.
+The brand queries are in `tools/seo/queries/brand-2026-10.txt`. The tools README explains each step, the options and the politeness rules of `fetch_pages.py` and `sitemap_report.py`.
 
 ## Limits
 
 - The search results come from SearXNG (Google CSE and DuckDuckGo): no People-also-ask, AI Overview or local pack, `site:` queries under-report, and the run was from an Australian IP. The live Google captures were low volume and said "Can't determine location".
 - There are no search volumes, difficulty scores, backlink data or Search Console data. Difficulty is a reading of each results page.
 - Competitor figures are those of 18 October 2026 and will drift. The competitor study is re-run quarterly (Phase 6).
-- Google's terms restrict automated queries: the browser capture is for small research runs only, stops at the first block page and never tries to get past it.
+- Google's terms restrict automated queries: the browser capture is for small research runs only, stops at the first block page (and after two failed captures in a row), never tries to get past it, and refuses to run again for six hours after a block. Browser screenshots (`browse.py shots`) run a page's own JavaScript and do not read `robots.txt`; the tools README says when that matters.
 - `prestigeartmillwork.com` returned 403 even in the browser, so nothing is inferred about it.

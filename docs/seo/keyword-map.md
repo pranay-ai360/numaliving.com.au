@@ -8,9 +8,9 @@ Wave A pages are launch-critical (about 16 pages); Wave B pages follow in the fi
 
 | Target | URL | Read | Why |
 | --- | --- | --- | --- |
-| Overseas, international or import millwork for US projects | `/overseas-millwork-manufacturer/` | Easy to Moderate | weak ranking pages, the AI Overview cites import firms |
+| Overseas, international or import millwork for US projects | `/overseas-millwork-manufacturer/` | Easy to Moderate | the ranking pages sampled are short and several have no meta description; the AI Overview cites import firms |
 | Buyer questions: cost, AWI grades, shop drawings, lead times, importing | `/resources/*` | Moderate (AWI itself owns "what is") | real People-also-ask questions |
-| Multifamily, hospitality and FF&E, luxury residential | `/sectors/*` | Moderate | fragmented results, no specialist |
+| Multifamily, hospitality and FF&E, luxury residential | `/sectors/*` | Moderate | fragmented results: no manufacturer appears in more than 4 of 45 queries |
 | Wall paneling, kitchens, closets, vanities | `/architectural-millwork/*` | Moderate to Hard | retail brands and big closet companies |
 | Head terms | `/architectural-millwork/`, `/` | Hard | local packs and AI Overviews; supported by the cluster, not a launch KPI |
 
