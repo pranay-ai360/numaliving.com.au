@@ -4,7 +4,6 @@ import {
   FORM_ID,
   FORM_ID_ENV_NAME,
   fetchDelivering,
-  fetchDeliveringPage,
   jsonResponse,
   sentRequest,
 } from "./fetchFixtures";
@@ -97,7 +96,7 @@ describe("submitQuoteRequest", () => {
     });
 
     it("leaves the PDF header to the check made when files are added, so it does not read files again here", async () => {
-      const fetchImpl = fetchDeliveringPage();
+      const fetchImpl = fetchDelivering();
 
       const result = await submitQuoteRequest(makeRequest(), [makeNotPdf("renamed.pdf")], { formId: FORM_ID, fetchImpl });
 
@@ -243,6 +242,22 @@ describe("submitQuoteRequest", () => {
       expect(body.get("Reference")).toBe(result.reference);
     });
 
+    it("attaches each PDF as its own field and says how many to expect", async () => {
+      // Arrange
+      const fetchImpl = fetchDelivering();
+      const files = [makePdf("plan.pdf", 2048), makePdf("boq.pdf", 4096)];
+
+      // Act
+      await submitQuoteRequest(makeRequest(), files, { formId: FORM_ID, fetchImpl });
+
+      // Assert
+      const { body } = sentRequest(fetchImpl);
+      expect((body.get("attachment") as File).name).toBe("plan.pdf");
+      expect((body.get("attachment2") as File).name).toBe("boq.pdf");
+      expect(body.get("Attached drawings")).toBe("Expect 2 PDFs attached: plan.pdf (2 KB); boq.pdf (4 KB)");
+      expect(String(body.get("_subject")).endsWith("[2 PDFs]")).toBe(true);
+    });
+
     it("uses the global fetch when none is supplied", async () => {
       // Arrange
       const globalFetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse({ success: true }));
@@ -260,7 +275,7 @@ describe("submitQuoteRequest", () => {
       const request = Object.freeze(makeRequest({ name: "  Ada  " }));
       const files = Object.freeze([makePdf("plan.pdf")]);
 
-      const result = await submitQuoteRequest(request, files, { formId: FORM_ID, fetchImpl: fetchDeliveringPage() });
+      const result = await submitQuoteRequest(request, files, { formId: FORM_ID, fetchImpl: fetchDelivering() });
 
       expect(result.ok).toBe(true);
       expect(request.name).toBe("  Ada  ");

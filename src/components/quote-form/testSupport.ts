@@ -9,14 +9,7 @@ import { QuoteForm } from "@/components/QuoteForm";
 import { FORM_ID, FORM_ID_ENV_NAME, jsonResponse } from "@/lib/quotes/fetchFixtures";
 import { MIN_FILL_TIME_MS } from "./constants";
 
-export {
-  FORM_ID,
-  FORM_ID_ENV_NAME,
-  PAGE_ENDPOINT,
-  REFERENCE_PATTERN,
-  SUCCESS_PAGE,
-  htmlResponse,
-} from "@/lib/quotes/fetchFixtures";
+export { ENDPOINT, FORM_ID, FORM_ID_ENV_NAME, REFERENCE_PATTERN } from "@/lib/quotes/fetchFixtures";
 
 export type FetchSpy = MockInstance<typeof fetch>;
 
