@@ -1,6 +1,6 @@
 # Numa Living website: guide for Claude Code
 
-A static Next.js 16 site (React 19, Tailwind 4, Zod) for Numa Living, a luxury joinery maker. It is exported to plain files and served by GitHub Pages at https://numaliving.us/. There is no server code. Start with [`README.md`](README.md); the vocabulary is in [`CONTEXT.md`](CONTEXT.md), the operating commands in [`docs/RUNBOOK.md`](docs/RUNBOOK.md), and the reasons behind big choices in [`docs/adr/`](docs/adr/).
+A static Next.js 16 site (React 19, Tailwind 4, Zod) for Numa Living, a luxury custom millwork maker. It is exported to plain files and served by GitHub Pages at https://numaliving.us/. There is no server code. Start with [`README.md`](README.md); the vocabulary is in [`CONTEXT.md`](CONTEXT.md), the operating commands in [`docs/RUNBOOK.md`](docs/RUNBOOK.md), and the reasons behind big choices in [`docs/adr/`](docs/adr/).
 
 ## Commands
 

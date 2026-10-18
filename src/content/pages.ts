@@ -10,12 +10,12 @@ export const home = {
   heroTitle: "Woodwork, Mastered",
   heroSub: "Australia · India · Qatar · UAE · UK · USA",
   intro:
-    "Numa Living crafts details that defines a room: panelled walls, kitchens, wardrobes, doors and statement pieces, engineered in-house and installed anywhere in the world.",
+    "Numa Living crafts details that define a room: paneled walls, kitchens, closets, doors and statement pieces, engineered in-house and installed anywhere in the world.",
   // SAMPLE figures
   stats: [
     { value: "120+", label: "Projects delivered" },
     { value: "14", label: "Countries shipped to" },
-    { value: "18,000 m²", label: "Factory floor" },
+    { value: "194,000 sq ft (18,000 m²)", label: "Factory floor" },
     { value: "250", label: "Craftspeople and engineers" },
   ],
   sectors: [
@@ -29,7 +29,7 @@ export const home = {
     },
     {
       name: "Multifamily",
-      text: "Repeatable, high-finish packages for hundreds of units, on programme.",
+      text: "Repeatable, high-finish packages for hundreds of units, on schedule.",
     },
   ],
 };
@@ -37,10 +37,10 @@ export const home = {
 export const about = {
   title: "From Dubai to the World",
   lead:
-    "Numa Living is the millwork arm of the Conqueror Group, a family enterprise with decades of experience in contracting, development and hospitality across the world. We craft your dream finishes in Dubai and deliver it around the world.",
+    "Numa Living is the millwork arm of the Conqueror Group, a family enterprise with decades of experience in contracting, development and hospitality across the world. We craft your dream finishes in Dubai and deliver them around the world.",
   body: [
-    "We started Numa because the projects we built as developers needed joinery we could not buy: precise, beautifully finished and delivered on the contractor's programme, not the workshop's.",
-    "Today we work directly with owners, architects and main contractors. Our engineers turn design intent into shop drawings, our factory produces to millimetre tolerances, and our site teams install and hand over.",
+    "We started Numa because the projects we built as developers needed millwork we could not buy: precise, beautifully finished and delivered on the contractor's schedule, not the workshop's.",
+    "Today we work directly with owners, architects and general contractors. Our engineers turn design intent into shop drawings, our factory produces to millimeter tolerances, and our site teams install and hand over.",
   ],
   values: [
     { name: "Craft", text: "Bookmatched veneers, hand-finished lacquer and joints you will never see." },
@@ -58,15 +58,15 @@ export const capabilities = {
   groups: [
     {
       name: "Wall & Ceiling",
-      items: ["Veneer wall panelling", "Fluted and slatted panels", "Acoustic panels", "Ceiling features"],
+      items: ["Veneer wall paneling", "Fluted and slatted panels", "Acoustic panels", "Ceiling features"],
     },
     {
-      name: "Kitchens & Wardrobes",
-      items: ["Bespoke kitchens", "Walk-in wardrobes", "Dressing rooms", "Vanities"],
+      name: "Kitchens & Closets",
+      items: ["Custom kitchens", "Walk-in closets", "Dressing rooms", "Vanities"],
     },
     {
       name: "Doors & Openings",
-      items: ["Flush and panelled doors", "Concealed doors", "Fire-rated doors", "Architraves and frames"],
+      items: ["Flush and paneled doors", "Concealed doors", "Fire-rated doors", "Door casing and frames"],
     },
     {
       name: "Statement Pieces",
@@ -78,26 +78,26 @@ export const capabilities = {
     },
     {
       name: "Finishes & Integration",
-      items: ["Natural veneers", "High-gloss and matt lacquer", "Solid surface", "Metal, stone and glass inlays"],
+      items: ["Natural veneers", "High-gloss and matte lacquer", "Solid surface", "Metal, stone and glass inlays"],
     },
   ],
 };
 
 export const factory = {
   title: "The Factory",
-  lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and programme.",
+  lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and schedule.",
   // SAMPLE figures — replace with real ones
   facts: [
-    { value: "18,000 m²", label: "Production floor" },
-    { value: "6", label: "CNC machining centres" },
-    { value: "4", label: "Pressurised spray booths" },
-    { value: "2,500 m²", label: "Monthly panel output" },
+    { value: "194,000 sq ft (18,000 m²)", label: "Production floor" },
+    { value: "6", label: "CNC machining centers" },
+    { value: "4", label: "Pressurized spray booths" },
+    { value: "27,000 sq ft (2,500 m²)", label: "Monthly panel output" },
   ],
   zones: [
-    { name: "Engineering", text: "Shop drawings, cutting lists and CNC programmes produced from your approved design." },
+    { name: "Engineering", text: "Shop drawings, cutting lists and CNC programs produced from your approved design." },
     { name: "Machining", text: "Nested-based CNC, panel saws and edgebanders for repeatable precision." },
     { name: "Veneer", text: "Veneer selection, bookmatching and pressing, with flitches reserved per project." },
-    { name: "Finishing", text: "Dust-controlled spray booths for lacquer and oil finishes, colour-matched to approved samples." },
+    { name: "Finishing", text: "Dust-controlled spray booths for lacquer and oil finishes, color-matched to approved samples." },
     { name: "Assembly & QC", text: "Pre-assembly and dry-fitting, checked against drawings before anything is packed." },
     { name: "Export Packing", text: "Crated, labelled by room and sequence, ready for container or air freight." },
   ],
@@ -106,14 +106,14 @@ export const factory = {
 /**
  * The 8 steps on the Process page and in its diagram.
  * `phase` groups steps under a heading (keep each phase's steps next to each other).
- * `icon` picks the drawing; choose from: enquiry, responsibilities, drawings,
+ * `icon` picks the drawing; choose from: inquiry, responsibilities, drawings,
  * samples, production, quality, shipping, handover.
  */
 export const process = {
   title: "How We Work",
   lead: "A clear path from first conversation to handover. Once a project starts, every step is tracked in your client portal.",
   steps: [
-    { phase: "Brief", icon: "enquiry", name: "Enquiry & Tender", text: "Send drawings, a BOQ or even a scanned sketch (PDF). We review scope and return a priced proposal." },
+    { phase: "Brief", icon: "inquiry", name: "Inquiry & Bid", text: "Send drawings, a quantity takeoff or even a scanned sketch (PDF). We review scope and return a priced proposal." },
     { phase: "Brief", icon: "responsibilities", name: "Responsibilities", text: "At kick-off we agree who on your team uploads drawings, approves samples and signs off quotes." },
     { phase: "Approve", icon: "drawings", name: "Shop Drawings", text: "Our engineers issue shop drawings for review. They are revised until approved." },
     { phase: "Approve", icon: "samples", name: "Samples & Mock-ups", text: "Finishes, veneers and hardware are sampled and approved before production." },
@@ -129,16 +129,16 @@ export const delivery = {
   lead: "Made in our factory, delivered to your site. We handle export packing, freight and installation.",
   // SAMPLE list — replace with real destinations
   regions: [
-    { name: "Middle East", countries: ["UAE", "Qatar"] },
-    { name: "Austalia & Asia", countries: ["Australia", "India"] },
-    { name: "Europe", countries: ["United Kingdom"] },
     { name: "North America", countries: ["United States"] },
+    { name: "Middle East", countries: ["UAE", "Qatar"] },
+    { name: "Australia & Asia", countries: ["Australia", "India"] },
+    { name: "Europe", countries: ["United Kingdom"] },
   ],
   points: [
     { name: "Export packing", text: "Moisture-protected, crated and labelled by room and install sequence." },
     { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared online." },
     { name: "Installation", text: "Our own installers, or supervision of your local team, wherever the site is." },
-    { name: "After care", text: "Spare parts, touch-up kits and a defects period on every project." },
+    { name: "After care", text: "Spare parts, touch-up kits and a warranty period on every project." },
   ],
 };
 
@@ -151,8 +151,8 @@ export const delivery = {
  */
 export const craft = [
   { src: "", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
-  { src: "", material: "oak", alt: "Fluted oak panelling detail", caption: "Fluted oak" },
-  { src: "", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
+  { src: "", material: "oak", alt: "Fluted oak paneling detail", caption: "Fluted oak" },
+  { src: "", material: "brass", alt: "Brass inlay detail in a millwork piece", caption: "Brass inlay" },
   { src: "", material: "lacquer", alt: "Hand-finished lacquer door", caption: "Hand-finished lacquer" },
   { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
 ];

@@ -3,8 +3,9 @@ import { site } from "@/config/site";
 import { pageRegistry, getPageSeo, projectSeo, requirePageSeo } from "@/content/seo";
 import { projects } from "@/content/projects";
 import { canonicalUrl } from "@/lib/seo/canonical";
-import { buildPageMetadata, renderedTitle } from "@/lib/seo/metadata";
+import { buildPageMetadata, DEFAULT_OG_IMAGE, renderedTitle } from "@/lib/seo/metadata";
 import { buildSitemap } from "@/lib/seo/sitemap";
+import { findUkTerms } from "@/lib/vocabulary";
 import type { PageSeo, ShowcaseProject } from "@/lib/types";
 
 /** The longest title a search result shows in full, brand included. */
@@ -12,9 +13,6 @@ const MAX_RENDERED_TITLE_CHARACTERS = 60;
 const INDEXABLE_DESCRIPTION_RANGE = { min: 120, max: 160 } as const;
 const NOINDEX_DESCRIPTION_RANGE = { min: 50, max: 160 } as const;
 const LOGIN_PATH = "/login";
-
-/** Words that only British, Australian or Gulf readers use for what US buyers call something else. */
-const UK_ONLY_TERMS = ["joinery", "wardrobe", "panelling", "panelled", "programme", "colour", "metres", "m²", "organisation"];
 
 const projectPaths = projects.map((project) => `/projects/${project.slug}`);
 const menuPaths = site.nav.map((item) => item.href);
@@ -167,10 +165,10 @@ describe("page registry descriptions", () => {
 
   it("uses US words, not the British, Australian or Gulf ones, in titles and descriptions", () => {
     // Arrange
-    const copy = pageRegistry.map((entry) => ({ path: entry.path, text: `${entry.title} ${entry.description}`.toLowerCase() }));
+    const copy = pageRegistry.map((entry) => ({ path: entry.path, text: `${entry.title} ${entry.description}` }));
 
     // Act
-    const offenders = copy.filter(({ text }) => UK_ONLY_TERMS.some((term) => text.includes(term)));
+    const offenders = copy.filter(({ text }) => findUkTerms(text).length > 0);
 
     // Assert
     expect(offenders.map(({ path }) => path)).toEqual([]);
@@ -225,6 +223,18 @@ describe("page registry share images", () => {
     for (const { project, seo } of entries) {
       expect(seo.ogImage).toEqual({ src: `/og/${project.slug}.jpg`, alt: project.photos[0].alt });
     }
+  });
+
+  it("describes the site-wide share image in the words of the Signature Villa photo it is cut from", () => {
+    // Arrange
+    const cover = projects.find((project) => project.slug === "marina-villa")?.photos[0];
+
+    // Act
+    const alt = DEFAULT_OG_IMAGE.alt;
+
+    // Assert
+    expect(cover).toBeDefined();
+    expect(alt).toBe(cover?.alt);
   });
 
   it("leaves a project without photos, and every other page, on the site-wide share image", () => {

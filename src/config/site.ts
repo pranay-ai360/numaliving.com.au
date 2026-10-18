@@ -10,9 +10,9 @@ export const site = {
   wordmark: "NUMA",
   wordmarkSub: "LIVING",
   group: "A Conqueror Group company",
-  tagline: "Bespoke millwork, built for the world",
+  tagline: "Custom millwork, built for the world",
   description:
-    "Numa Living designs, engineers and manufactures luxury joinery and millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
+    "Numa Living designs, engineers and manufactures luxury custom millwork for residences, workplaces and multifamily buildings, and delivers it worldwide.",
 
   // Where the site is served, as an origin: no trailing slash and no path (the base path is separate,
   // see src/lib/seo/canonical.ts). Canonical links, Open Graph URLs, the sitemap and the structured

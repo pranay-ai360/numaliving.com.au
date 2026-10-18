@@ -5,7 +5,7 @@ import { home } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { site } from "@/config/site";
 import { LineArt, Wordmark } from "@/components/Brand";
-import { ButtonLink, Container, ProjectCard, SectionTitle } from "@/components/ui";
+import { ButtonLink, Container, FigureValue, ProjectCard, SectionTitle } from "@/components/ui";
 
 export const metadata: Metadata = pageMetadata("/");
 
@@ -49,7 +49,9 @@ export default function HomePage() {
             {home.stats.map((s) => (
               <div key={s.label} className="bg-paper p-6 sm:p-8">
                 <dt className="text-sm text-ink-muted">{s.label}</dt>
-                <dd className="display mt-2 normal-case text-2xl text-gold sm:text-3xl">{s.value}</dd>
+                <dd className="display mt-2 normal-case text-2xl text-gold sm:text-3xl">
+                  <FigureValue value={s.value} />
+                </dd>
               </div>
             ))}
           </dl>
@@ -120,9 +122,9 @@ export default function HomePage() {
       {/* CTA */}
       <section className="py-24">
         <Container className="text-center">
-          <SectionTitle ghost="Enquire" title="Start a Project" align="center" />
+          <SectionTitle ghost="Inquire" title="Start a Project" align="center" />
           <p className="mx-auto mt-8 max-w-xl text-lg text-ink-muted">
-            Send drawings, a BOQ or a scanned sketch (PDF). We reply with scope, programme and a priced proposal.
+            Send drawings, a quantity takeoff or a scanned sketch (PDF). We reply with scope, schedule and a priced proposal.
           </p>
           <div className="mt-8">
             <ButtonLink href="/contact">Request a Quote</ButtonLink>

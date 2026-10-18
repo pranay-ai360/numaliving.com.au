@@ -50,7 +50,7 @@ async function openMobileMenu(page: Page): Promise<Locator> {
 }
 
 test.describe("desktop", () => {
-  test.skip(({ isMobile }) => isMobile, "The header links and the Enquire Now tab only show on wide screens.");
+  test.skip(({ isMobile }) => isMobile, "The header links and the Inquire Now tab only show on wide screens.");
 
   test("every header link opens its page, which is then highlighted", async ({ page }) => {
     await openSettled(page, LOGIN_PATH);
@@ -73,10 +73,10 @@ test.describe("desktop", () => {
     }
   });
 
-  test("the Enquire Now tab opens the Contact page", async ({ page }) => {
+  test("the Inquire Now tab opens the Contact page", async ({ page }) => {
     await page.goto(pageUrl(PROJECTS_PATH));
 
-    await page.getByRole("link", { name: "Enquire Now", exact: true }).click();
+    await page.getByRole("link", { name: "Inquire Now", exact: true }).click();
 
     await expectAt(page, CONTACT_PATH);
   });

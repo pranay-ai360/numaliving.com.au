@@ -20,7 +20,7 @@ import {
 } from "./quote-form/testSupport";
 
 const PRIVACY_NOTE =
-  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your enquiry.";
+  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your inquiry.";
 
 // The classes the form had before this migration; the design must not drift.
 const ORIGINAL_FIELD_CLASS =
@@ -90,7 +90,7 @@ describe("QuoteForm", () => {
       expect(input).toHaveAttribute("type", "file");
       expect(input).toHaveAttribute("accept", "application/pdf");
       expect(input).toHaveAttribute("multiple");
-      expect(screen.getByText("Attach drawings or BOQ (PDF)")).toBeInTheDocument();
+      expect(screen.getByText("Attach drawings or a quantity takeoff (PDF)")).toBeInTheDocument();
       expect(screen.getByText("Up to 10 files, 9 MB in total")).toBeInTheDocument();
     });
 

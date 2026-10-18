@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { capabilities, craft, factory, factoryPhoto } from "@/content/pages";
-import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
+import { ButtonLink, Container, FigureValue, PageHero, SectionTitle } from "@/components/ui";
 import { CraftGallery, PhotoTile } from "@/components/CraftGallery";
 
 export const metadata: Metadata = pageMetadata("/capabilities");
@@ -53,7 +53,9 @@ export default function CapabilitiesPage() {
             {factory.facts.map((f) => (
               <div key={f.label} className="flex flex-col-reverse justify-end pr-6">
                 <dt className="text-sm text-ink-muted">{f.label}</dt>
-                <dd className="display mb-1 normal-case text-2xl text-gold">{f.value}</dd>
+                <dd className="display mb-1 normal-case text-2xl text-gold">
+                  <FigureValue value={f.value} />
+                </dd>
               </div>
             ))}
           </dl>

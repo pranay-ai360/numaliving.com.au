@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
  */
 const icons: Record<string, ReactNode> = {
   // pencil
-  enquiry: (
+  inquiry: (
     <>
       <path d="M4 20h4L19.5 8.5l-4-4L4 16v4z" />
       <path d="M13 7l4 4" />
@@ -82,7 +82,7 @@ export function ProcessIcon({ name, className = "" }: { name: string; className?
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {icons[name] ?? icons.enquiry}
+      {icons[name] ?? icons.inquiry}
     </svg>
   );
 }

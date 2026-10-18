@@ -320,7 +320,7 @@ describe("buildSiteMetadata", () => {
     const metadata = buildSiteMetadata(options);
 
     // Assert
-    expect(metadata.title).toEqual({ default: "Numa Living | Bespoke millwork, built for the world", template: "%s | Numa Living" });
+    expect(metadata.title).toEqual({ default: "Numa Living | Custom millwork, built for the world", template: "%s | Numa Living" });
     expect(metadata.description).toBe(site.description);
   });
 

@@ -81,7 +81,7 @@ const PAGES: readonly PageSeo[] = [
  */
 const PROJECT_DESCRIPTIONS: Readonly<Record<string, string>> = {
   "marina-villa": "Full interior millwork for a beachfront villa in Dubai Marina: walnut wall paneling, a bookmatched veneer library and a lacquered kitchen with integrated stone.",
-  sonate: "Executive floor fit-out for a family office in Dubai: a reception desk, boardroom table and acoustic oak slat walls, with pantry millwork and executive suites.",
+  sonate: "Executive floor build-out for a family office in Dubai: a reception desk, boardroom table, acoustic oak slat walls, pantry millwork and executive suites.",
   penthouse25: "Repeatable kitchen and closet packages for luxury apartments in Dubai, engineered for fast installation and a consistent finish in every unit.",
   "golf-links": "A duplex penthouse in Sports City, UAE, with curved stair cladding, a smoked oak bar, custom dressing rooms in silk-lined lacquer and a media wall.",
   "london-mayfair-apartment": "Made in our Dubai factory and shipped to London in two containers: paneled reception rooms, a kitchen, closets and vanities for four bathrooms.",

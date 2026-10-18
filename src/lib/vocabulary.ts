@@ -61,6 +61,8 @@ export const UK_TERMS: readonly UkTermRule[] = [
   { term: "metre", us: "meter, millimeter, centimeter, kilometer", pattern: /\b(?:milli|centi|kilo)?metres?\b/gi },
   { term: "architrave", us: "casing (door casing)", pattern: /\barchitraves?\b/gi },
   { term: "tender", us: "bid or bidding", pattern: /\btender(?:s|ed|ing)?\b/gi },
+  { term: "main contractor", us: "general contractor", pattern: /\bmain contractors?\b/gi },
+  { term: "working days", us: "business days", pattern: /\bworking days?\b/gi },
   { term: "enquiry", us: "inquiry, inquire, inquiries", pattern: /\benqui(?:ry|ries|re|res|red|ring)\b/gi },
   { term: "BOQ", us: "quantity takeoff", pattern: /\bBOQs?\b/gi },
   { term: "defects period", us: "warranty period", pattern: /\bdefects?(?:[- ]liability)? period\b/gi },

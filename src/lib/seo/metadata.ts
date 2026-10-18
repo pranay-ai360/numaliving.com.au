@@ -24,7 +24,7 @@ export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
  */
 export const DEFAULT_OG_IMAGE: OgImage = {
   src: "/og/default.jpg",
-  alt: "Open-plan living room with a curved cream sofa, a grey kitchen with island behind it and a glass-sided staircase",
+  alt: "Open-plan living room with a curved cream sofa, a gray kitchen with island behind it and a glass-sided staircase",
 };
 
 /** Bing's ownership tag has no field of its own in Next.js, so it goes through `verification.other`. */

@@ -11,7 +11,7 @@ import {
 describe("option lists", () => {
   it("offers the four roles in display order", () => {
     // Arrange / Act / Assert
-    expect(ROLE_OPTIONS).toEqual(["Owner / developer", "Architect / designer", "Main contractor", "Other"]);
+    expect(ROLE_OPTIONS).toEqual(["Owner / developer", "Architect / designer", "General contractor", "Other"]);
   });
 
   it("offers the five project types in display order", () => {
@@ -20,7 +20,7 @@ describe("option lists", () => {
 
   it("offers the four timelines in display order", () => {
     expect(TIMELINE_OPTIONS).toEqual([
-      "Tendering now",
+      "Bidding now",
       "Start within 3 months",
       "Start in 3 to 6 months",
       "Later / exploring",

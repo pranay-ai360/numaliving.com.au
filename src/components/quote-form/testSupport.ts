@@ -76,7 +76,7 @@ export function getSendButton(): HTMLElement {
 }
 
 export function getDrawingsInput(): HTMLElement {
-  return screen.getByLabelText(/Attach drawings or BOQ/);
+  return screen.getByLabelText(/Attach drawings or a quantity takeoff/);
 }
 
 /** The dashed area around the file picker that also accepts dropped files. */

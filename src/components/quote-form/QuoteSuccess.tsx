@@ -20,10 +20,10 @@ export function QuoteSuccess({ reference, onSendAnother }: Props) {
       <h2 ref={headingRef} tabIndex={-1} className="display text-lg text-gold">
         Thank You
       </h2>
-      <p className="mt-4 text-lg">We have your request. Our team will reply within two working days.</p>
+      <p className="mt-4 text-lg">We have your request. Our team will reply within two business days.</p>
       <p className="mt-2 text-sm text-ink-muted">Reference: {reference}</p>
       <p className="mt-2 text-sm text-ink-muted">
-        No reply within two working days? Email{" "}
+        No reply within two business days? Email{" "}
         <a href={followUpEmailHref(reference)} className="underline hover:text-gold">
           {site.contact.email}
         </a>{" "}

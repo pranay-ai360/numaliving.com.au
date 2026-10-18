@@ -34,7 +34,7 @@ export default function ContactPage() {
             <div>
               <p className="eyebrow">What happens next</p>
               <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink-muted">
-                <li>We review your scope within two working days.</li>
+                <li>We review your scope within two business days.</li>
                 <li>We will get in touch with you to understand your project better.</li>
                 <li>We provide you with a proposal.</li>
                 <li>Once agreed, your team gets access to the client portal.</li>

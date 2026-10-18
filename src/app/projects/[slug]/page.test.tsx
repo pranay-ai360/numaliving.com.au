@@ -109,6 +109,46 @@ describe("project page gallery", () => {
   });
 });
 
+describe("project page wording", () => {
+  it("labels the project's duration as Duration, not with the UK word for a schedule", async () => {
+    // Arrange
+    await renderProjectPage("marina-villa");
+
+    // Act
+    const label = screen.getByText("Duration");
+
+    // Assert
+    expect(label).toBeInTheDocument();
+    expect(label.parentElement).toHaveTextContent("26 weeks");
+    expect(screen.queryByText("Programme")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["marina-villa", "More Residential Work"],
+    ["sonate", "More Multifamily Work"],
+  ])("heads the other projects of the same sector with a phrase that reads as a sentence: %s", async (slug, heading) => {
+    // Arrange
+    await renderProjectPage(slug);
+
+    // Act
+    const found = screen.getByRole("heading", { level: 2, name: heading });
+
+    // Assert
+    expect(found).toBeInTheDocument();
+  });
+
+  it("shows no other-projects heading for a project that is alone in its sector", async () => {
+    // Arrange
+    await renderProjectPage("trivandrum-tech-campus");
+
+    // Act
+    const heading = screen.queryByRole("heading", { level: 2, name: /^More / });
+
+    // Assert
+    expect(heading).not.toBeInTheDocument();
+  });
+});
+
 describe("project page metadata", () => {
   function propsFor(slug: string): ProjectPageProps {
     return { params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) };

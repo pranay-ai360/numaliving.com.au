@@ -45,9 +45,9 @@ describe("QuoteForm focus and field errors", () => {
       const reference = String(sentBody(fetchSpy()).get("Reference"));
       expect(reference).toMatch(REFERENCE_PATTERN);
       expect(screen.getByText(`Reference: ${reference}`)).toBeVisible();
-      expect(screen.getByText("We have your request. Our team will reply within two working days.")).toBeVisible();
-      const followUp = screen.getByText(/^No reply within two working days\?/);
-      expect(followUp).toHaveTextContent(`No reply within two working days? Email ${site.contact.email} quoting ${reference}.`);
+      expect(screen.getByText("We have your request. Our team will reply within two business days.")).toBeVisible();
+      const followUp = screen.getByText(/^No reply within two business days\?/);
+      expect(followUp).toHaveTextContent(`No reply within two business days? Email ${site.contact.email} quoting ${reference}.`);
       expect(screen.getByRole("link", { name: site.contact.email })).toHaveAttribute(
         "href",
         `mailto:${site.contact.email}?subject=${encodeURIComponent(`Quote Request ${reference}`)}`,

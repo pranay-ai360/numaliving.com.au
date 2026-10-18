@@ -1,6 +1,6 @@
 # Numa Living website
 
-The public website for Numa Living, a luxury joinery and millwork manufacturer. It has Home, About, Projects (with a page for each project), Capabilities, Process, Request a Quote and Client Login. It is a Next.js site exported as plain static files and published on GitHub Pages by GitHub Actions. Nothing runs on a server and nothing is stored in a database. Quote Requests are emailed to Numa through FormSubmit.co. Client Login is a design-only page standing in for the future Client Portal.
+The public website for Numa Living, a luxury custom millwork manufacturer. It has Home, About, Projects (with a page for each project), Capabilities, Process, Request a Quote and Client Login. It is a Next.js site exported as plain static files and published on GitHub Pages by GitHub Actions. Nothing runs on a server and nothing is stored in a database. Quote Requests are emailed to Numa through FormSubmit.co. Client Login is a design-only page standing in for the future Client Portal.
 
 **Live site:** https://numaliving.us/ (the earlier preview address, https://pranay-ai360.github.io/numaliving.com.au/, now redirects there).
 
@@ -80,10 +80,10 @@ The form is on the Contact page (`/contact/`). The site has no server, so the vi
 
 **What the visitor sees.**
 
-- **Sent:** a Thank You panel with the reference: "We have your request. Our team will reply within two working days." Under it, a line asks the visitor to email Numa, quoting the reference, if no reply comes within two working days; the address in that line opens an email with the reference in the subject, for example "Quote Request NL-7K3QX9". No confirmation email goes to the visitor, because FormSubmit's `_autoresponse` does not work over AJAX.
+- **Sent:** a Thank You panel with the reference: "We have your request. Our team will reply within two business days." Under it, a line asks the visitor to email Numa, quoting the reference, if no reply comes within two business days; the address in that line opens an email with the reference in the subject, for example "Quote Request NL-7K3QX9". No confirmation email goes to the visitor, because FormSubmit's `_autoresponse` does not work over AJAX.
 - **A problem with the details** (a missing or invalid field, a file that is not a PDF, too many or too large files): a message saying what to fix. Nothing is sent.
 - **Sending did not work out** (including a site built without a form id): one of the messages in the table below, with an "Email us instead" link. The details stay in the form so the visitor can try again. The form only says "Thank You" once FormSubmit confirms it has the request; it never pretends to send.
-- Under the Send button, the privacy note (`PRIVACY_NOTE` in `src/components/quote-form/constants.ts`): "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your enquiry."
+- Under the Send button, the privacy note (`PRIVACY_NOTE` in `src/components/quote-form/constants.ts`): "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your inquiry."
 
 The messages are in `src/lib/quotes/messages.ts`; `{email}` stands for the email address in `src/config/site.ts`. The "Email us instead" link opens an email to that address whose subject carries the short code from the first column, for example "Quote Request (website error: rejected)" (`src/lib/quotes/emailLinks.ts`), so Numa can see what went wrong without asking the visitor.
 

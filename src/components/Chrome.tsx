@@ -48,7 +48,7 @@ export function Footer() {
   );
 }
 
-/** "Enquire Now" side tab plus phone and WhatsApp buttons, as on the Condor site. */
+/** "Inquire Now" side tab plus phone and WhatsApp buttons, as on the Condor site. */
 export function FloatingActions() {
   return (
     <>
@@ -57,7 +57,7 @@ export function FloatingActions() {
         className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 bg-gold px-2.5 py-5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-gold-dark md:block"
         style={{ writingMode: "vertical-rl", transform: "translateY(-50%) rotate(180deg)" }}
       >
-        Enquire Now
+        Inquire Now
       </Link>
       <div className="fixed bottom-5 left-4 z-30 flex flex-col gap-2">
         

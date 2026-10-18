@@ -3,9 +3,18 @@ import { notFound } from "next/navigation";
 import { getProject, projects } from "@/content/projects";
 import { getPageSeo } from "@/content/seo";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import type { Sector } from "@/lib/types";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ProjectGallery } from "@/components/ProjectGallery";
 import { ButtonLink, Container, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
+
+/** The heading above the other projects in the same sector, worded as a sentence for every sector. */
+const MORE_WORK_HEADINGS: Readonly<Record<Sector, string>> = {
+  Residences: "More Residential Work",
+  Office: "More Office Work",
+  Multifamily: "More Multifamily Work",
+  Hospitality: "More Hospitality Work",
+};
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -28,7 +37,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
     { label: "Sector", value: project.sector },
     { label: "Location", value: `${project.city}, ${project.country}` },
     { label: "Completed", value: String(project.year) },
-    { label: "Programme", value: `${project.durationWeeks} weeks` },
+    { label: "Duration", value: `${project.durationWeeks} weeks` },
   ];
 
   return (
@@ -105,7 +114,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
       {more.length > 0 && (
         <section className="linen py-20">
           <Container>
-            <h2 className="display text-xl">More {project.sector} Work</h2>
+            <h2 className="display text-xl">{MORE_WORK_HEADINGS[project.sector]}</h2>
             <div className="mt-10 grid gap-10 md:grid-cols-3">
               {more.map((p) => (
                 <ProjectCard key={p.slug} project={p} />

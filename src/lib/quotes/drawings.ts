@@ -1,5 +1,5 @@
 /**
- * Drawings: the PDF drawings or BOQ a visitor attaches to a Quote Request.
+ * Drawings: the PDF drawings or quantity takeoff a visitor attaches to a Quote Request.
  *
  * FormSubmit allows 10 MB of attachments per submission; the 9 MB limit
  * here leaves headroom for the rest of the request. Larger sets go in the

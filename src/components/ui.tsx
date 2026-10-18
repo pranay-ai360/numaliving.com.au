@@ -42,6 +42,21 @@ export function PageHero({ eyebrow, title, lead }: { eyebrow: string; title: str
   );
 }
 
+/**
+ * A figure as the content writes it, such as "194,000 sq ft (18,000 m²)": the number large (in the
+ * heading font its parent sets), the unit and the metric twin small beside it, so a long figure still
+ * fits a narrow tile. A figure with no unit, such as "120+", is shown as it is.
+ */
+export function FigureValue({ value }: { value: string }) {
+  const [figure, ...unitWords] = value.split(" ");
+  if (unitWords.length === 0) return <>{figure}</>;
+  return (
+    <>
+      {figure} <span className="font-sans text-sm font-medium tracking-normal text-ink-muted">{unitWords.join(" ")}</span>
+    </>
+  );
+}
+
 export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }

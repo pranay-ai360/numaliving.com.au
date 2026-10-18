@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CARD_PHOTO_SIZES, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual } from "@/components/ui";
+import { CARD_PHOTO_SIZES, FigureValue, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual } from "@/components/ui";
 import type { ShowcaseProject } from "@/lib/types";
 
 const PROJECT: ShowcaseProject = {
@@ -126,5 +126,32 @@ describe("ProjectCard link", () => {
 
     // Assert
     expect(avif).toHaveAttribute("sizes", CARD_PHOTO_SIZES);
+  });
+});
+
+describe("FigureValue", () => {
+  it("writes a figure with its unit and metric twin as one line of text, the unit in a smaller span", () => {
+    // Arrange
+    const { container } = render(<FigureValue value="194,000 sq ft (18,000 m²)" />);
+
+    // Act
+    const unit = screen.getByText("sq ft (18,000 m²)");
+
+    // Assert
+    expect(container.textContent).toBe("194,000 sq ft (18,000 m²)");
+    expect(unit.tagName).toBe("SPAN");
+    expect(container.querySelectorAll("span")).toHaveLength(1);
+  });
+
+  it("shows a figure that has no unit as it is, with no span", () => {
+    // Arrange
+    const { container } = render(<FigureValue value="120+" />);
+
+    // Act
+    const spans = container.querySelectorAll("span");
+
+    // Assert
+    expect(container.textContent).toBe("120+");
+    expect(spans).toHaveLength(0);
   });
 });

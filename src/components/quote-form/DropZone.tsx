@@ -44,7 +44,7 @@ export function DropZone({ inputRef, problemsId, isDisabled, onAdd }: Props) {
 
   return (
     <label onDragOver={allowDrop} onDrop={handleDrop} className={DROP_ZONE_CLASS}>
-      <span className="font-medium">Attach drawings or BOQ (PDF)</span>
+      <span className="font-medium">Attach drawings or a quantity takeoff (PDF)</span>
       <span className="mt-1 text-sm text-ink-muted">{LIMITS_TEXT}</span>
       <input
         ref={inputRef}

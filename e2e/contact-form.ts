@@ -9,7 +9,7 @@ import { CONTACT_PATH, pageUrl } from "./site";
 export const FORMSUBMIT_ROUTE = "https://formsubmit.co/ajax/**";
 
 /** The visible text of the dashed Drawings drop zone (a label around the hidden file picker). */
-const DROP_ZONE_TEXT = "Attach drawings or BOQ (PDF)";
+const DROP_ZONE_TEXT = "Attach drawings or a quantity takeoff (PDF)";
 
 /** A little more than the form's minimum fill time, so the check is clearly passed. */
 const FILL_TIME_MARGIN_MS = 100;
