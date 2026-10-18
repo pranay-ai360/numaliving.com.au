@@ -16,6 +16,7 @@ from urllib.parse import urlunsplit
 
 from fetch_pages import FetchResult
 from html_facts import PageFacts, extract_facts
+from launch_model import Site
 from seo_common import SeoToolError, safe_urlsplit, without_fragment
 from sitemap_report import fetch_problem
 
@@ -70,21 +71,22 @@ class Crawl:
         return self.index.get(url_key(url))
 
 
-def _facts_of(result: FetchResult) -> Optional[PageFacts]:
-    if fetch_problem(result) or not is_html(result):
+def _facts_of(site: Site, result: FetchResult) -> Optional[PageFacts]:
+    """The facts of an HTML page that answered 200 on the site itself; a link that ends elsewhere is never read."""
+    if fetch_problem(result) or not is_html(result) or not site.is_own(result.final_url):
         return None
     return extract_facts(result.body.decode("utf-8", errors="replace"), result.final_url)
 
 
-def _visit(fetch: FetchFunction, url: str, source: str, is_seed: bool) -> Fetched:
+def _visit(site: Site, fetch: FetchFunction, url: str, source: str, is_seed: bool) -> Fetched:
     try:
         result = fetch(url)
     except SeoToolError as error:  # an address the fetcher refuses (a space in a link, say) is a finding, not a crash
         result = FetchResult(requested=url, final_url=url, error=str(error))
-    return Fetched(url, result, _facts_of(result), source, is_seed)
+    return Fetched(url, result, _facts_of(site, result), source, is_seed)
 
 
-def crawl_site(fetch: FetchFunction, seeds: Sequence[str], max_pages: int) -> Crawl:
+def crawl_site(site: Site, fetch: FetchFunction, seeds: Sequence[str], max_pages: int) -> Crawl:
     """Fetch the seeds in order, then every internal link they and the pages after them carry, up to ``max_pages``."""
     queue: Deque[Tuple[str, str]] = deque()  # (key, address) in the order found
     sources: Dict[str, str] = {}  # key -> the page that linked to it first
@@ -105,7 +107,7 @@ def crawl_site(fetch: FetchFunction, seeds: Sequence[str], max_pages: int) -> Cr
         key, url = queue.popleft()
         if key in index:  # an earlier fetch already ended at this address
             continue
-        item = _visit(fetch, url, sources[key], key in seed_keys)
+        item = _visit(site, fetch, url, sources[key], key in seed_keys)
         fetched.append(item)
         index[key] = item
         index.setdefault(url_key(item.final_url), item)

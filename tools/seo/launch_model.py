@@ -70,19 +70,25 @@ def judge(
     subjects: Sequence[T],
     test: Callable[[T], str],
     url_of: Callable[[T], str],
-    noun: str = "pages",
+    noun: str = "page",
 ) -> CheckResult:
     """Run ``test`` on every subject: it returns "" when the subject is fine, else what is wrong with it.
 
-    With nothing to judge the check is skipped, never passed: a pass would claim something was verified.
+    ``noun`` is singular ("page"); the summary pluralises it. With nothing to judge the check is skipped, never
+    passed: a pass would claim something was verified.
     """
     if not subjects:
-        return skipped(check_id, scope, title, f"no {noun} to check")
+        return skipped(check_id, scope, title, f"no {noun}s to check")
     problems = [(subject, test(subject)) for subject in subjects]
     failures = tuple(Failure(url_of(subject), problem) for subject, problem in problems if problem)
     if failures:
-        return failing(check_id, scope, title, failures, f"{len(failures)} of {len(subjects)} {noun}")
-    return passing(check_id, scope, title, f"{len(subjects)} {noun}")
+        return failing(check_id, scope, title, failures, f"{len(failures)} of {counted(len(subjects), noun)}")
+    return passing(check_id, scope, title, counted(len(subjects), noun))
+
+
+def counted(number: int, noun: str) -> str:
+    """"1 page", "2 pages": the noun is singular and gets an s unless there is exactly one."""
+    return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
 
 
 def origin_of(url: str) -> str:
