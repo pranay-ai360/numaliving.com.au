@@ -8,16 +8,16 @@
  * - `updated` is the day the page's content last changed in a way worth telling search engines
  *   (YYYY-MM-DD, written by hand, never "today" by code). Change it when you change the page.
  *
- * The copy below is interim: it says only what the pages already say, in US words, until the US
- * wording pass rewrites the pages. A project's entry is made from the project itself
- * (src/content/projects.ts): its name, a description from PROJECT_DESCRIPTIONS (its summary until
- * one is written there) and the share image cut from its first photo.
+ * The copy below is written in US words and says only what the pages themselves say (the home page's
+ * title and description are the draft the owner's plan approved). A project's entry is made from the
+ * project itself (src/content/projects.ts): its name, a description from PROJECT_DESCRIPTIONS (its
+ * summary until one is written there) and the share image cut from its first photo.
  */
 import { projects } from "@/content/projects";
 import type { PageSeo, ShowcaseProject } from "@/lib/types";
 
-/** The day the interim copy below was written. */
-const INTERIM_COPY_DATE = "2026-10-18";
+/** The day the US wording pass finished the copy below, and so the day every page last changed. */
+const US_COPY_DATE = "2026-10-18";
 
 const PROJECTS_PATH = "/projects";
 
@@ -25,52 +25,52 @@ const PROJECTS_PATH = "/projects";
 const PAGES: readonly PageSeo[] = [
   {
     path: "/",
-    title: "Custom Luxury Millwork, Made in Dubai",
-    description: "Numa Living designs, engineers and builds custom luxury millwork in Dubai for residences, workplaces and multifamily buildings, and delivers it worldwide.",
+    title: "Custom Architectural Millwork for US Projects",
+    description: "Numa Living engineers and builds custom architectural millwork and FF&E in Dubai for US architects, designers and contractors. Send drawings for a quote.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: "/about",
-    title: "About Us: Millwork Made in Dubai",
+    title: "About Us: Custom Millwork Made in Dubai",
     description: "Numa Living is the millwork arm of the Conqueror Group, a family enterprise in contracting, development and hospitality. Made in Dubai, delivered worldwide.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: PROJECTS_PATH,
     title: "Selected Millwork Projects",
     description: "Browse selected Numa Living projects by sector and country, from residences and offices to multifamily buildings, with the scope and materials of each.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: "/capabilities",
     title: "Capabilities: Custom Millwork and FF&E",
     description: "Wall paneling, kitchens, walk-in closets, doors, reception desks, bars, loose FF&E and finishes in veneer, lacquer and stone, all built in one Dubai factory.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: "/process",
     title: "Our Process: From Quote to Handover",
-    description: "Send drawings for a priced proposal, approve shop drawings and samples, then we build, dry-fit, export-pack and ship, and support your installers to handover.",
+    description: "Our process for custom millwork: send drawings for a priced proposal, approve shop drawings and samples, then we build, dry-fit and ship, with install support.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: "/contact",
     title: "Request a Quote for Custom Millwork",
     description: "Tell us about your project and attach drawings as PDFs, or paste a link to larger files. We review your scope within two business days and send a proposal.",
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
   {
     path: "/login",
     title: "Client Login",
     description: "Sign-in page for Numa Living clients. The client portal opens soon: drawings, approvals, RFIs and production status for your project in one place.",
     indexable: false,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
   },
 ];
 
@@ -96,7 +96,7 @@ export function projectSeo(project: ShowcaseProject): PageSeo {
     title: project.name,
     description: PROJECT_DESCRIPTIONS[project.slug] ?? project.summary,
     indexable: true,
-    updated: INTERIM_COPY_DATE,
+    updated: US_COPY_DATE,
     ...(cover === undefined ? {} : { ogImage: { src: `/og/${project.slug}.jpg`, alt: cover.alt } }),
   };
 }

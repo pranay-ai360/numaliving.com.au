@@ -175,6 +175,47 @@ describe("page registry descriptions", () => {
   });
 });
 
+describe("the search copy of the existing pages", () => {
+  const HOME_TITLE = "Custom Architectural Millwork for US Projects | Numa Living";
+  const HOME_DESCRIPTION =
+    "Numa Living engineers and builds custom architectural millwork and FF&E in Dubai for US architects, designers and contractors. Send drawings for a quote.";
+
+  it("gives the home page the approved title, 59 characters with the brand, and the approved description", () => {
+    // Arrange
+    const home = requirePageSeo("/");
+
+    // Act
+    const title = renderedTitle(home);
+
+    // Assert
+    expect(title).toBe(HOME_TITLE);
+    expect(title).toHaveLength(59);
+    expect(home.description).toBe(HOME_DESCRIPTION);
+  });
+
+  it("tells a US buyer what each page offers, not just which page it is: every page but the project pages and the login names millwork or the work", () => {
+    // Arrange
+    const pages = ["/", "/about", "/projects", "/capabilities", "/process", "/contact"].map((path) => requirePageSeo(path));
+
+    // Act
+    const vague = pages.filter((page) => !/millwork/i.test(`${page.title} ${page.description}`));
+
+    // Assert
+    expect(vague.map((page) => page.path)).toEqual([]);
+  });
+
+  it("promises nothing the pages do not say: no certification, ranking, year, number of projects or price in a title or description", () => {
+    // Arrange
+    const copy = pageRegistry.filter((page) => !page.path.startsWith("/projects/")).map((page) => ({ path: page.path, text: `${page.title} ${page.description}` }));
+
+    // Act
+    const claims = copy.filter(({ text }) => /\b(ISO|AWI|FSC|certified|award|best|leading|#1|since \d{4}|\d+\+? (projects|years|countries)|from \$)/i.test(text));
+
+    // Assert
+    expect(claims.map(({ path }) => path)).toEqual([]);
+  });
+});
+
 describe("page registry dates and flags", () => {
   it("writes every last-modified date as a real calendar day, YYYY-MM-DD", () => {
     // Arrange

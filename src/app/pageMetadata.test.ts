@@ -34,7 +34,7 @@ describe("pageMetadata", () => {
     const metadata = pageMetadata(path);
 
     // Assert
-    expect(metadata.title).toEqual({ absolute: "Custom Luxury Millwork, Made in Dubai | Numa Living" });
+    expect(metadata.title).toEqual({ absolute: "Custom Architectural Millwork for US Projects | Numa Living" });
   });
 
   it("stops with a plain message when the page has no entry, instead of publishing it without a title", () => {
