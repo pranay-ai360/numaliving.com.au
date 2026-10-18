@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { site } from "@/config/site";
+import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
+import type { CompanyFacts } from "@/content/company";
 import {
   articleJsonLd,
   breadcrumbJsonLd,
@@ -12,25 +13,44 @@ import {
 } from "@/lib/seo/jsonld";
 
 const PLACEHOLDER_PHONE = "+971 4 000 0000";
-const PLACEHOLDER_ADDRESS = "Factory address, Dubai, UAE";
+const PLACEHOLDER_STREET = "Factory address";
 
 /** A site whose details are real, as the launch guard requires before the site may be indexed. */
 const REAL_SITE: JsonLdSite = {
   name: "Numa Living",
   description: "Numa Living builds custom millwork in its Dubai factory.",
   locale: "en-US",
-  legalName: null,
-  foundingYear: null,
   social: [],
-  contact: { email: "hello@example.com", phone: "+1 512 555 0100", address: "100 Example Street, Austin, TX 78701, USA" },
+  contact: {
+    email: "hello@example.com",
+    phone: "+1 512 555 0147",
+    address: { street: "100 Example Street", locality: "Austin", region: "TX", postalCode: "78701", country: "United States" },
+  },
+};
+
+/** The same site with the placeholder phone number and address it ships with. */
+const STUB_SITE: JsonLdSite = {
+  ...REAL_SITE,
+  contact: { email: "hello@example.com", phone: PLACEHOLDER_PHONE, address: { street: PLACEHOLDER_STREET, locality: "Dubai", country: "UAE" } },
+};
+
+/** Company facts that are all set and valid, so the structured data may publish them. */
+const KNOWN_FACTS: CompanyFacts = {
+  legalName: "Numa Living FZ-LLC",
+  foundingYear: 2015,
+  factoryAreaSqFt: 194000,
+  headcount: 250,
+  certifications: [{ name: "ISO 9001", documentUrl: "https://example.com/iso-9001.pdf" }],
+  leadership: [{ name: "Ada Lovelace", role: "Managing Director", profileUrl: null }],
+  parentGroupUrl: "https://example.com/conqueror-group",
 };
 
 const BASE_PATH_URLS = { basePath: "/numaliving.com.au" };
 
 describe("organizationJsonLd", () => {
-  it("describes the company with its name, address on the web, logo, description and contact email", () => {
+  it("describes the company with its name, address on the web, logo, description, contact email and, as they are real, phone and address", () => {
     // Arrange
-    const options = { site: REAL_SITE, isIndexable: false };
+    const options = { site: REAL_SITE, facts: EMPTY_COMPANY_FACTS };
 
     // Act
     const organization = organizationJsonLd(options);
@@ -45,13 +65,22 @@ describe("organizationJsonLd", () => {
       logo: "https://numaliving.us/logo.png",
       description: "Numa Living builds custom millwork in its Dubai factory.",
       areaServed: "US",
-      contactPoint: [{ "@type": "ContactPoint", contactType: "sales", email: "hello@example.com" }],
+      contactPoint: [{ "@type": "ContactPoint", contactType: "sales", email: "hello@example.com", telephone: "+1 512 555 0147" }],
+      telephone: "+1 512 555 0147",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "100 Example Street",
+        addressLocality: "Austin",
+        addressRegion: "TX",
+        postalCode: "78701",
+        addressCountry: "United States",
+      },
     });
   });
 
   it("leaves out the profiles, legal name and founding date while they are not known", () => {
     // Arrange
-    const options = { site: REAL_SITE, isIndexable: false };
+    const options = { site: REAL_SITE, facts: EMPTY_COMPANY_FACTS };
 
     // Act
     const organization = organizationJsonLd(options);
@@ -64,15 +93,10 @@ describe("organizationJsonLd", () => {
 
   it("lists the profiles, the legal name and the founding year once they are set", () => {
     // Arrange
-    const known: JsonLdSite = {
-      ...REAL_SITE,
-      legalName: "Numa Living FZ-LLC",
-      foundingYear: 2015,
-      social: ["https://www.linkedin.com/company/example", "https://www.instagram.com/example"],
-    };
+    const known: JsonLdSite = { ...REAL_SITE, social: ["https://www.linkedin.com/company/example", "https://www.instagram.com/example"] };
 
     // Act
-    const organization = organizationJsonLd({ site: known, isIndexable: false });
+    const organization = organizationJsonLd({ site: known, facts: KNOWN_FACTS });
 
     // Assert
     expect(organization).toMatchObject({
@@ -82,38 +106,65 @@ describe("organizationJsonLd", () => {
     });
   });
 
-  it("publishes no phone number or address while the site is not indexable, because the real ones are not in place", () => {
+  it("publishes the legal name and the founding year the company facts validate, never a raw value: trimmed, and left out when blank or out of range", () => {
     // Arrange
-    const options = { site, isIndexable: false };
+    const trimmed: CompanyFacts = { ...KNOWN_FACTS, legalName: "  Numa Living FZ-LLC  " };
+    const unusable: CompanyFacts = { ...KNOWN_FACTS, legalName: "   ", foundingYear: 3000 };
+
+    // Act
+    const fromTrimmed = organizationJsonLd({ site: REAL_SITE, facts: trimmed });
+    const fromUnusable = organizationJsonLd({ site: REAL_SITE, facts: unusable });
+
+    // Assert
+    expect(fromTrimmed).toMatchObject({ legalName: "Numa Living FZ-LLC" });
+    expect(fromUnusable).not.toHaveProperty("legalName");
+    expect(fromUnusable).not.toHaveProperty("foundingDate");
+  });
+
+  it("publishes no phone number or address while they are the placeholders, whether or not the site is indexable", () => {
+    // Arrange
+    const options = { site: STUB_SITE, facts: EMPTY_COMPANY_FACTS };
 
     // Act
     const json = serializeJsonLd(organizationJsonLd(options));
 
     // Assert
     expect(json).not.toContain(PLACEHOLDER_PHONE);
-    expect(json).not.toContain(PLACEHOLDER_ADDRESS);
+    expect(json).not.toContain(PLACEHOLDER_STREET);
     expect(json).not.toContain('"telephone"');
     expect(json).not.toContain('"address"');
   });
 
-  it("publishes the phone number and address once the site is indexable, when the launch guard has made them real", () => {
+  it("publishes nothing about a phone number or address that is only a stub with a digit changed", () => {
     // Arrange
-    const options = { site: REAL_SITE, isIndexable: true };
+    const nudged: JsonLdSite = {
+      ...REAL_SITE,
+      contact: { email: "hello@example.com", phone: "+971 4 000 0001", address: { street: "Factory address.", locality: "Dubai", country: "UAE" } },
+    };
 
     // Act
-    const organization = organizationJsonLd(options);
+    const organization = organizationJsonLd({ site: nudged, facts: EMPTY_COMPANY_FACTS });
 
     // Assert
-    expect(organization).toMatchObject({
-      telephone: "+1 512 555 0100",
-      address: { "@type": "PostalAddress", streetAddress: "100 Example Street, Austin, TX 78701, USA" },
-      contactPoint: [{ "@type": "ContactPoint", contactType: "sales", email: "hello@example.com", telephone: "+1 512 555 0100" }],
-    });
+    expect(organization).not.toHaveProperty("telephone");
+    expect(organization).not.toHaveProperty("address");
+    expect(JSON.stringify(organization.contactPoint)).not.toContain("telephone");
+  });
+
+  it("leaves a region and a postal code out of the address when they are not set", () => {
+    // Arrange
+    const site: JsonLdSite = { ...REAL_SITE, contact: { ...REAL_SITE.contact, address: { street: "Plot 12, Al Quoz 3", locality: "Dubai", country: "United Arab Emirates" } } };
+
+    // Act
+    const organization = organizationJsonLd({ site, facts: EMPTY_COMPANY_FACTS });
+
+    // Assert
+    expect(organization.address).toEqual({ "@type": "PostalAddress", streetAddress: "Plot 12, Al Quoz 3", addressLocality: "Dubai", addressCountry: "United Arab Emirates" });
   });
 
   it("writes every address below the base path when the site is served from a sub-path", () => {
     // Arrange
-    const options = { site: REAL_SITE, isIndexable: false, urls: BASE_PATH_URLS };
+    const options = { site: REAL_SITE, facts: EMPTY_COMPANY_FACTS, urls: BASE_PATH_URLS };
 
     // Act
     const organization = organizationJsonLd(options);
@@ -128,7 +179,7 @@ describe("organizationJsonLd", () => {
 
   it("returns a new object on every call", () => {
     // Arrange
-    const options = { site: REAL_SITE, isIndexable: false };
+    const options = { site: REAL_SITE, facts: EMPTY_COMPANY_FACTS };
     const first = organizationJsonLd(options);
 
     // Act

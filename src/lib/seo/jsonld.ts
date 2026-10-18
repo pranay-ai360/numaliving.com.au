@@ -5,11 +5,16 @@
  * are used by the site today; the others are ready for the service, guide and FAQ pages.
  *
  * Nothing here is invented: a field that has no real value yet (legal name, founding year,
- * profiles) is left out, and the phone number and address are published only once the site is
- * indexable, which the launch guard (src/config/launchGuard.test.ts) allows only with real ones.
+ * profiles) is left out. The legal name and the founding year are the company facts that pass
+ * `publishableFacts` (src/content/company.ts), never a raw setting; the phone number and the address
+ * are published only when they are real (src/lib/realContact.ts), the same rule that decides whether the
+ * Contact page shows them (src/components/ContactDetails.tsx), so the markup never says more than a
+ * visitor can read.
  */
-import { isIndexable as siteIsIndexable, site } from "@/config/site";
+import { site } from "@/config/site";
+import { companyFacts, publishableFacts, type CompanyFacts } from "@/content/company";
 import { absoluteUrl, canonicalUrl, type UrlOptions } from "@/lib/seo/canonical";
+import { isRealAddress, isRealPhoneNumber, type ContactInfo, type PostalAddress } from "@/lib/realContact";
 
 /** One JSON-LD entity: plain data that serializes to JSON. */
 export type JsonLdNode = Readonly<Record<string, unknown>>;
@@ -19,10 +24,8 @@ export type JsonLdSite = Readonly<{
   name: string;
   description: string;
   locale: string;
-  legalName: string | null;
-  foundingYear: number | null;
   social: readonly string[];
-  contact: Readonly<{ email: string; phone: string; address: string }>;
+  contact: Pick<ContactInfo, "email" | "phone" | "address">;
 }>;
 
 export type BreadcrumbItem = Readonly<{ name: string; path: string }>;
@@ -63,8 +66,8 @@ type SiteOptions = Readonly<{
 
 export type OrganizationOptions = SiteOptions &
   Readonly<{
-    /** Whether the site may be indexed; defaults to `isIndexable` in src/config/site.ts. Phone and address are published only when it is. */
-    isIndexable?: boolean;
+    /** The owner's confirmed company facts; the live ones by default. Only the usable ones are published. */
+    facts?: CompanyFacts;
   }>;
 
 const SCHEMA_CONTEXT = "https://schema.org";
@@ -79,10 +82,28 @@ function organizationReference(urls: UrlOptions | undefined): JsonLdNode {
   return { "@id": absoluteUrl("/#organization", urls) };
 }
 
+function isSet(value: string | undefined): value is string {
+  return value !== undefined && value.trim() !== "";
+}
+
+/** The address as schema.org writes it, from the same parts the Contact page prints. */
+function postalAddressJsonLd(address: PostalAddress): JsonLdNode {
+  return {
+    "@type": "PostalAddress",
+    streetAddress: address.street,
+    addressLocality: address.locality,
+    ...(isSet(address.region) ? { addressRegion: address.region } : {}),
+    ...(isSet(address.postalCode) ? { postalCode: address.postalCode } : {}),
+    addressCountry: address.country,
+  };
+}
+
 /** The company: who it is, how to reach it and where it serves customers. */
 export function organizationJsonLd(options: OrganizationOptions = {}): JsonLdNode {
-  const { site: source = site, isIndexable = siteIsIndexable, urls } = options;
+  const { site: source = site, facts = companyFacts, urls } = options;
   const { email, phone, address } = source.contact;
+  const published = publishableFacts(facts);
+  const hasPhone = isRealPhoneNumber(phone);
   return {
     "@context": SCHEMA_CONTEXT,
     "@type": "Organization",
@@ -92,12 +113,12 @@ export function organizationJsonLd(options: OrganizationOptions = {}): JsonLdNod
     logo: absoluteUrl(LOGO_PATH, urls),
     description: source.description,
     areaServed: DEFAULT_AREA_SERVED,
-    contactPoint: [{ "@type": "ContactPoint", contactType: "sales", email, ...(isIndexable ? { telephone: phone } : {}) }],
-    ...(source.legalName === null ? {} : { legalName: source.legalName }),
-    ...(source.foundingYear === null ? {} : { foundingDate: String(source.foundingYear) }),
+    contactPoint: [{ "@type": "ContactPoint", contactType: "sales", email, ...(hasPhone ? { telephone: phone } : {}) }],
+    ...(published.legalName === undefined ? {} : { legalName: published.legalName }),
+    ...(published.foundingYear === undefined ? {} : { foundingDate: String(published.foundingYear) }),
     ...(source.social.length === 0 ? {} : { sameAs: [...source.social] }),
-    // The address is one line of text today, so it is published as the street address.
-    ...(isIndexable ? { telephone: phone, address: { "@type": "PostalAddress", streetAddress: address } } : {}),
+    ...(hasPhone ? { telephone: phone } : {}),
+    ...(isRealAddress(address) ? { address: postalAddressJsonLd(address) } : {}),
   };
 }
 

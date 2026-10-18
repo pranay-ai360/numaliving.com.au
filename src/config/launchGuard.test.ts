@@ -26,11 +26,11 @@ import { legalDraftBlockers } from "@/content/legal";
 import { projects } from "@/content/projects";
 import { contentBlockers, sampleContentBlockers } from "@/content/readiness";
 import { photoMetadataBlockers, scanPhotos, type PhotoFinding } from "@/lib/photoMetadata";
-import { isRealAddress, isRealPhoneNumber, isRealWhatsappNumber } from "@/lib/realContact";
+import { formatAddress, isRealAddress, isRealPhoneNumber, isRealWhatsappNumber, type ContactInfo } from "@/lib/realContact";
 import type { ShowcaseProject } from "@/lib/types";
 
 type ContactField = "email" | "phone" | "whatsapp" | "address";
-type ContactDetails = Readonly<Record<ContactField, string>>;
+type ContactDetails = Pick<ContactInfo, ContactField>;
 type ProjectFlags = Readonly<Pick<ShowcaseProject, "slug" | "sample">>;
 
 /** What the guard looks at: the search-engine switch, and everything that must be real before it is on. */
@@ -50,7 +50,7 @@ const PLACEHOLDER_CONTACT: ContactDetails = {
   email: "projects@numaliving.com",
   phone: "+971 4 000 0000",
   whatsapp: "971400000000",
-  address: "Factory address, Dubai, UAE",
+  address: { street: "Factory address", locality: "Dubai", country: "UAE" },
 };
 
 const CONTACT_FIELDS: readonly ContactField[] = ["email", "phone", "whatsapp", "address"];
@@ -60,7 +60,7 @@ const REAL_CONTACT: ContactDetails = {
   email: "enquiries@example.com",
   phone: "+61 2 5550 0100",
   whatsapp: "61255500100",
-  address: "1 Example Street, Sydney NSW 2000, Australia",
+  address: { street: "1 Example Street", locality: "Sydney", region: "NSW", postalCode: "2000", country: "Australia" },
 };
 
 /** A site that is ready for search engines, for the tests of the guard itself. */
@@ -98,16 +98,21 @@ const SAMPLE_RIBBON_TEXT = "Preview: projects, figures and photos on this site a
 const LOOKS_LIKE_AN_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** How the guard judges each contact detail, and what it tells the owner a real one looks like. */
-const CONTACT_CHECKS: Readonly<Record<ContactField, { isReal: (value: string) => boolean; rule: string }>> = {
-  email: { isReal: (value) => value !== PLACEHOLDER_CONTACT.email && LOOKS_LIKE_AN_EMAIL.test(value), rule: "a real email address, not the old placeholder" },
-  phone: { isReal: isRealPhoneNumber, rule: "a real phone number has at least 7 digits and no run of four zeros" },
-  whatsapp: { isReal: isRealWhatsappNumber, rule: "a real WhatsApp number is digits only, at least 7 of them, with no run of four zeros" },
-  address: { isReal: isRealAddress, rule: "a real address is a street address with a number in it, not the stub" },
+const CONTACT_CHECKS: Readonly<Record<ContactField, { isReal: (contact: ContactDetails) => boolean; rule: string }>> = {
+  email: { isReal: ({ email }) => email !== PLACEHOLDER_CONTACT.email && LOOKS_LIKE_AN_EMAIL.test(email), rule: "a real email address, not the old placeholder" },
+  phone: { isReal: ({ phone }) => isRealPhoneNumber(phone), rule: "a real phone number has at least 7 digits and no run of four zeros" },
+  whatsapp: { isReal: ({ whatsapp }) => isRealWhatsappNumber(whatsapp), rule: "a real WhatsApp number is digits only, at least 7 of them, with no run of four zeros" },
+  address: { isReal: ({ address }) => isRealAddress(address), rule: "a real address has a street with a number in it (not the stub), a city and a country" },
 };
 
+/** A contact detail as the guard prints it: text as written, an address on one line. */
+function shownValue(contact: ContactDetails, field: ContactField): string {
+  return field === "address" ? formatAddress(contact.address) : contact[field];
+}
+
 function contactBlockers(contact: ContactDetails): readonly string[] {
-  return CONTACT_FIELDS.filter((field) => !CONTACT_CHECKS[field].isReal(contact[field])).map(
-    (field) => `site.contact.${field} is still ${JSON.stringify(contact[field])}, which is not real: ${CONTACT_CHECKS[field].rule}`,
+  return CONTACT_FIELDS.filter((field) => !CONTACT_CHECKS[field].isReal(contact)).map(
+    (field) => `site.contact.${field} is still ${JSON.stringify(shownValue(contact, field))}, which is not real: ${CONTACT_CHECKS[field].rule}`,
   );
 }
 
@@ -173,21 +178,24 @@ describe("launchBlockers", () => {
       'site.contact.email is still "projects@numaliving.com", which is not real: a real email address, not the old placeholder',
       'site.contact.phone is still "+971 4 000 0000", which is not real: a real phone number has at least 7 digits and no run of four zeros',
       'site.contact.whatsapp is still "971400000000", which is not real: a real WhatsApp number is digits only, at least 7 of them, with no run of four zeros',
-      'site.contact.address is still "Factory address, Dubai, UAE", which is not real: a real address is a street address with a number in it, not the stub',
+      'site.contact.address is still "Factory address, Dubai, UAE", which is not real: a real address has a street with a number in it (not the stub), a city and a country',
     ]);
   });
 
   it.each([
     ["the stub phone with its last digit changed", { phone: "+971 4 000 0001" }, "phone"],
     ["the stub WhatsApp number with its last digit changed", { whatsapp: "971400000001" }, "whatsapp"],
-    ["the stub address with a full stop added", { address: "Factory address, Dubai, UAE." }, "address"],
+    ["the stub street with a full stop added", { address: { street: "Factory address.", locality: "Dubai", country: "UAE" } }, "address"],
+    ["the whole stub address pasted into the street", { address: { street: "Factory address, Dubai, UAE.", locality: "Dubai", country: "UAE" } }, "address"],
     ["an empty phone number", { phone: "" }, "phone"],
     ["an empty WhatsApp number", { whatsapp: "" }, "whatsapp"],
-    ["an empty address", { address: "" }, "address"],
+    ["an empty street", { address: { street: "", locality: "Dubai", country: "UAE" } }, "address"],
+    ["an address with no city", { address: { street: "1 Example Street", locality: "", country: "UAE" } }, "address"],
+    ["an address with no country", { address: { street: "1 Example Street", locality: "Dubai", country: "" } }, "address"],
     ["an empty email address", { email: "" }, "email"],
     ["a phone number of six digits", { phone: "555 014" }, "phone"],
     ["a WhatsApp number with a plus sign, which the wa.me link cannot take", { whatsapp: "+61255500100" }, "whatsapp"],
-    ["an address with no number", { address: "Al Quoz Industrial Area, Dubai, UAE" }, "address"],
+    ["a street with no number", { address: { street: "Al Quoz Industrial Area", locality: "Dubai", country: "UAE" } }, "address"],
     ["an email address without a domain", { email: "projects" }, "email"],
   ] as const)("still blocks %s", (_label, override, field) => {
     // Arrange
@@ -203,7 +211,12 @@ describe("launchBlockers", () => {
 
   it("lets real details through, written the way people write them", () => {
     // Arrange
-    const contact: ContactDetails = { email: "projects@numaliving.us", phone: "+1 (512) 555-0147", whatsapp: "15125550147", address: "Plot 12, Al Quoz Industrial Area 3, Dubai, UAE" };
+    const contact: ContactDetails = {
+      email: "projects@numaliving.us",
+      phone: "+1 (512) 555-0147",
+      whatsapp: "15125550147",
+      address: { street: "Plot 12, Al Quoz Industrial Area 3", locality: "Dubai", country: "UAE" },
+    };
 
     // Act
     const blockers = launchBlockers({ ...READY_STATE, contact });

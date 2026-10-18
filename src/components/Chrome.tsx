@@ -64,21 +64,16 @@ export function Footer() {
   );
 }
 
-/** "Inquire Now" side tab plus phone and WhatsApp buttons, as on the Condor site. */
+/** The "Inquire Now" side tab, shown from tablet width up. */
 export function FloatingActions() {
   return (
-    <>
-      <Link
-        href="/contact"
-        className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 bg-gold px-2.5 py-5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-gold-dark md:block"
-        style={{ writingMode: "vertical-rl", transform: "translateY(-50%) rotate(180deg)" }}
-      >
-        Inquire Now
-      </Link>
-      <div className="fixed bottom-5 left-4 z-30 flex flex-col gap-2">
-        
-      </div>
-    </>
+    <Link
+      href="/contact"
+      className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 bg-gold px-2.5 py-5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-gold-dark md:block"
+      style={{ writingMode: "vertical-rl", transform: "translateY(-50%) rotate(180deg)" }}
+    >
+      Inquire Now
+    </Link>
   );
 }
 

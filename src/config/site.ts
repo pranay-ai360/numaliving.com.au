@@ -1,4 +1,4 @@
-import { companyFacts } from "@/content/company";
+import type { PostalAddress } from "@/lib/realContact";
 
 /** Search-engine ownership tokens (public by design, they sit in the page source); null until the owner supplies one. */
 export type SearchVerification = Readonly<{ google: string | null; bing: string | null }>;
@@ -25,10 +25,8 @@ export const site = {
   // The language and region of the copy, for <html lang> and Open Graph (written "en_US" there).
   locale: "en-US",
 
-  // Facts the structured data (src/lib/seo/jsonld.ts) only publishes once they are set. They come from
-  // the company facts (src/content/company.ts), which stay empty until Numa confirms them.
-  legalName: companyFacts.legalName,
-  foundingYear: companyFacts.foundingYear,
+  // The legal name and the founding year are not here: they are company facts (src/content/company.ts),
+  // which the structured data publishes only once they are set and valid (`publishableFacts`).
   // Full URLs of Numa's real profiles (LinkedIn, Instagram, Houzz and so on), published as `sameAs`.
   social: [] as readonly string[],
   verification: { google: null, bing: null } as SearchVerification,
@@ -41,7 +39,8 @@ export const site = {
     email: "projects@numaliving.us",
     phone: "+971 4 000 0000",
     whatsapp: "971400000000", // digits only, used for the wa.me link
-    address: "Factory address, Dubai, UAE",
+    // In parts, so the Contact page and the structured data print the same address (src/lib/realContact.ts).
+    address: { street: "Factory address", locality: "Dubai", country: "UAE" } as PostalAddress,
     // Optional: the Contact page shows them only when set, for example "Monday to Friday, 9 am to 5 pm"
     // and "Central Time". Null until the owner supplies them; the launch guard does not require them.
     hours: null as string | null,

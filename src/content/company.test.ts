@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
 import { companyFacts, companyFactsBlockers, publishableFacts, type CompanyFacts } from "@/content/company";
+import { organizationJsonLd } from "@/lib/seo/jsonld";
 
 /** A company whose every fact is supplied, for the tests of the blockers themselves. */
 const KNOWN: CompanyFacts = {
@@ -217,35 +218,38 @@ describe("publishableFacts", () => {
 });
 
 describe("the structured data", () => {
-  afterEach(() => {
-    vi.doUnmock("@/content/company");
-    vi.resetModules();
-  });
-
-  it("publishes the legal name and the founding year in the Organization data once the company facts hold them", async () => {
+  it("publishes the legal name and the founding year in the Organization data once the company facts hold them", () => {
     // Arrange
-    vi.resetModules();
-    vi.doMock("@/content/company", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/content/company")>()), companyFacts: KNOWN }));
-    const { organizationJsonLd } = await import("@/lib/seo/jsonld");
+    const options = { facts: KNOWN };
 
     // Act
-    const organization = organizationJsonLd();
+    const organization = organizationJsonLd(options);
 
     // Assert
     expect(organization).toMatchObject({ legalName: "Numa Living FZ-LLC", foundingDate: "2015" });
   });
 
-  it("leaves both out while the company facts are empty", async () => {
+  it("leaves both out while the company facts are empty", () => {
     // Arrange
-    vi.resetModules();
-    vi.doMock("@/content/company", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/content/company")>()), companyFacts: EMPTY_COMPANY_FACTS }));
-    const { organizationJsonLd } = await import("@/lib/seo/jsonld");
+    const options = { facts: EMPTY_COMPANY_FACTS };
+
+    // Act
+    const organization = organizationJsonLd(options);
+
+    // Assert
+    expect(organization).not.toHaveProperty("legalName");
+    expect(organization).not.toHaveProperty("foundingDate");
+  });
+
+  it("reads the live company facts when it is given none", () => {
+    // Arrange
+    const published = publishableFacts();
 
     // Act
     const organization = organizationJsonLd();
 
     // Assert
-    expect(organization).not.toHaveProperty("legalName");
-    expect(organization).not.toHaveProperty("foundingDate");
+    expect(organization.legalName).toBe(published.legalName);
+    expect(organization.foundingDate).toBe(published.foundingYear === undefined ? undefined : String(published.foundingYear));
   });
 });

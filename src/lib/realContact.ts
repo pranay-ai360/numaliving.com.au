@@ -31,8 +31,42 @@ export function isRealWhatsappNumber(value: string): boolean {
   return DIGITS_ONLY.test(value) && isRealPhoneNumber(value);
 }
 
-/** Not empty, not the stub and with a number in it (a street number, a plot or a postal code). */
-export function isRealAddress(value: string): boolean {
+/**
+ * A postal address in parts, as schema.org writes it. The Contact page shows the parts and the
+ * structured data publishes them exactly as written here, so what search engines read is what a
+ * visitor sees. `country` is a name ("United Arab Emirates") or a two-letter code ("AE").
+ */
+export type PostalAddress = Readonly<{ street: string; locality: string; region?: string; postalCode?: string; country: string }>;
+
+/** The contact details the Contact page shows: `site.contact` in src/config/site.ts. The hours and the time zone are optional (null until the owner supplies them). */
+export type ContactInfo = Readonly<{
+  email: string;
+  phone: string;
+  /** Digits only, because it goes into a wa.me link. */
+  whatsapp: string;
+  address: PostalAddress;
+  hours: string | null;
+  timezone: string | null;
+}>;
+
+function isFilled(value: string | undefined): value is string {
+  return value !== undefined && value.trim() !== "";
+}
+
+/** Not empty, not the stub and with a number in it (a street number or a plot). */
+export function isRealStreet(value: string): boolean {
   const text = value.trim();
   return text !== "" && ANY_DIGIT.test(text) && !STUB_ADDRESS.test(text);
+}
+
+/** A real street, and a city and a country: the region and the postal code are optional. */
+export function isRealAddress(address: PostalAddress): boolean {
+  return isRealStreet(address.street) && isFilled(address.locality) && isFilled(address.country);
+}
+
+/** The address on one line: "1 Example Street, Austin, TX 78701, United States"; a part that is blank is left out. */
+export function formatAddress(address: PostalAddress): string {
+  const place = [address.locality, address.region].filter(isFilled).join(", ");
+  const city = isFilled(address.postalCode) ? `${place} ${address.postalCode}` : place;
+  return [address.street, city, address.country].filter(isFilled).join(", ");
 }

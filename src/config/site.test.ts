@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
-import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
-import { companyFacts } from "@/content/company";
 
 describe("site contact details", () => {
   it("publishes projects@numaliving.us as the contact email", () => {
@@ -58,33 +56,15 @@ describe("site address and language", () => {
 });
 
 describe("site identity facts that are not known yet", () => {
-  afterEach(() => {
-    vi.doUnmock("@/content/company");
-    vi.resetModules();
-  });
-
-  it("leaves the legal name and the founding year empty while the company facts hold neither", async () => {
+  it("holds no legal name or founding year of its own: they are company facts, published only once validated", () => {
     // Arrange
-    vi.resetModules();
-    vi.doMock("@/content/company", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/content/company")>()), companyFacts: EMPTY_COMPANY_FACTS }));
+    const keys = Object.keys(site);
 
     // Act
-    const { site: freshSite } = await import("@/config/site");
+    const raw = keys.filter((key) => key === "legalName" || key === "foundingYear");
 
     // Assert
-    expect(freshSite.legalName).toBeNull();
-    expect(freshSite.foundingYear).toBeNull();
-  });
-
-  it("takes both from the company facts, the one place the owner's confirmed facts are kept", () => {
-    // Arrange
-    const { legalName, foundingYear } = site;
-
-    // Act
-    const same = legalName === companyFacts.legalName && foundingYear === companyFacts.foundingYear;
-
-    // Assert
-    expect(same).toBe(true);
+    expect(raw).toEqual([]);
   });
 
   it("lists no social profiles until real ones exist", () => {

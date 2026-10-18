@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRealAddress, isRealPhoneNumber, isRealWhatsappNumber } from "@/lib/realContact";
+import { formatAddress, isRealAddress, isRealPhoneNumber, isRealStreet, isRealWhatsappNumber, type PostalAddress } from "@/lib/realContact";
 
 describe("isRealPhoneNumber", () => {
   it.each([
@@ -86,28 +86,29 @@ describe("isRealWhatsappNumber", () => {
   });
 });
 
-describe("isRealAddress", () => {
+describe("isRealStreet", () => {
   it.each([
-    ["a Dubai street address", "Plot 12, Al Quoz Industrial Area 3, Dubai, UAE"],
-    ["a US street address", "1 Example Street, Austin, TX 78701, USA"],
-    ["an address that starts with the word factory but names a street", "Factory 4, Street 12, Dubai"],
+    ["a Dubai street address", "Plot 12, Al Quoz Industrial Area 3"],
+    ["a US street address", "1 Example Street"],
+    ["an address that starts with the word factory but names a street", "Factory 4, Street 12"],
   ])("accepts %s", (_label, value) => {
     // Arrange
     // (the table supplies the value)
 
     // Act
-    const isReal = isRealAddress(value);
+    const isReal = isRealStreet(value);
 
     // Assert
     expect(isReal).toBe(true);
   });
 
   it.each([
-    ["the address the site shipped with", "Factory address, Dubai, UAE"],
+    ["the street the site shipped with", "Factory address"],
+    ["the whole stub address pasted into the street", "Factory address, Dubai, UAE"],
     ["the same stub with a full stop", "Factory address, Dubai, UAE."],
     ["the stub in other capitals", "FACTORY ADDRESS, DUBAI, UAE"],
-    ["the stub with a number added to it", "Factory address, Dubai, UAE 1"],
-    ["an address with no number", "Dubai, UAE"],
+    ["the stub with a number added to it", "Factory address 1"],
+    ["a street with no number", "Al Quoz Industrial Area"],
     ["an empty string", ""],
     ["spaces only", "   "],
   ])("refuses %s", (_label, value) => {
@@ -115,9 +116,86 @@ describe("isRealAddress", () => {
     // (the table supplies the value)
 
     // Act
-    const isReal = isRealAddress(value);
+    const isReal = isRealStreet(value);
 
     // Assert
     expect(isReal).toBe(false);
+  });
+});
+
+const REAL_ADDRESS: PostalAddress = { street: "1 Example Street", locality: "Austin", region: "TX", postalCode: "78701", country: "United States" };
+const STUB_ADDRESS: PostalAddress = { street: "Factory address", locality: "Dubai", country: "UAE" };
+
+describe("isRealAddress", () => {
+  it.each([
+    ["a full US address", REAL_ADDRESS],
+    ["an address with no region or postal code", { street: "Plot 12, Al Quoz Industrial Area 3", locality: "Dubai", country: "United Arab Emirates" }],
+  ])("accepts %s", (_label, address) => {
+    // Arrange
+    // (the table supplies the address)
+
+    // Act
+    const isReal = isRealAddress(address);
+
+    // Assert
+    expect(isReal).toBe(true);
+  });
+
+  it.each([
+    ["the address the site shipped with", STUB_ADDRESS],
+    ["the stub street with a full stop", { ...REAL_ADDRESS, street: "Factory address." }],
+    ["an empty street", { ...REAL_ADDRESS, street: "" }],
+    ["a street with no number", { ...REAL_ADDRESS, street: "Example Street" }],
+    ["an empty city", { ...REAL_ADDRESS, locality: "" }],
+    ["a city of spaces", { ...REAL_ADDRESS, locality: "   " }],
+    ["an empty country", { ...REAL_ADDRESS, country: "" }],
+  ])("refuses %s", (_label, address) => {
+    // Arrange
+    // (the table supplies the address)
+
+    // Act
+    const isReal = isRealAddress(address);
+
+    // Assert
+    expect(isReal).toBe(false);
+  });
+});
+
+describe("formatAddress", () => {
+  it("writes the parts on one line, in the order a US reader expects", () => {
+    // Arrange
+    const address = REAL_ADDRESS;
+
+    // Act
+    const line = formatAddress(address);
+
+    // Assert
+    expect(line).toBe("1 Example Street, Austin, TX 78701, United States");
+  });
+
+  it("leaves out a region and a postal code that are not set", () => {
+    // Arrange
+    const address: PostalAddress = { street: "Plot 12", locality: "Dubai", country: "United Arab Emirates" };
+
+    // Act
+    const line = formatAddress(address);
+
+    // Assert
+    expect(line).toBe("Plot 12, Dubai, United Arab Emirates");
+  });
+
+  it.each([
+    ["a region alone", { region: "TX" }, "1 Example Street, Austin, TX, United States"],
+    ["a postal code alone", { postalCode: "78701" }, "1 Example Street, Austin 78701, United States"],
+    ["a blank region and postal code", { region: "  ", postalCode: "" }, "1 Example Street, Austin, United States"],
+  ])("writes %s", (_label, parts, expected) => {
+    // Arrange
+    const address: PostalAddress = { street: "1 Example Street", locality: "Austin", country: "United States", ...parts };
+
+    // Act
+    const line = formatAddress(address);
+
+    // Assert
+    expect(line).toBe(expected);
   });
 });

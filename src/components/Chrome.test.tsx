@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Footer } from "@/components/Chrome";
+import { FloatingActions, Footer } from "@/components/Chrome";
 
 describe("Footer", () => {
   it("links the privacy notice and the website terms, which have no place in the main menu", () => {
@@ -38,5 +38,30 @@ describe("Footer", () => {
 
     // Assert
     expect(link).toHaveAttribute("href", "mailto:projects@numaliving.us");
+  });
+});
+
+describe("FloatingActions", () => {
+  it("offers the Inquire Now tab, which leads to the Contact page", () => {
+    // Arrange
+    render(<FloatingActions />);
+
+    // Act
+    const link = screen.getByRole("link", { name: "Inquire Now" });
+
+    // Assert
+    expect(link).toHaveAttribute("href", "/contact");
+  });
+
+  it("renders nothing else: no empty box is left where phone and WhatsApp buttons once were", () => {
+    // Arrange
+    const { container } = render(<FloatingActions />);
+
+    // Act
+    const emptyElements = Array.from(container.querySelectorAll("*")).filter((element) => element.children.length === 0 && (element.textContent ?? "").trim() === "");
+
+    // Assert
+    expect(emptyElements).toEqual([]);
+    expect(container.children).toHaveLength(1);
   });
 });
