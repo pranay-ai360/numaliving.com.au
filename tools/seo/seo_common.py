@@ -124,7 +124,8 @@ def ascii_url(url: str) -> str:
         userinfo = netloc.rpartition("@")[0]
         port = f":{parts.port}" if parts.port else ""
         netloc = (userinfo + "@" if userinfo else "") + (f"[{host}]" if ":" in host else host) + port
-    return urlunsplit((parts.scheme, netloc, quote(parts.path, safe=PATH_SAFE), quote(parts.query, safe=QUERY_SAFE), ""))
+    path, query = quote(parts.path, safe=PATH_SAFE), quote(parts.query, safe=QUERY_SAFE)
+    return urlunsplit((parts.scheme, netloc, path, query, ""))
 
 
 def without_fragment(url: str) -> str:

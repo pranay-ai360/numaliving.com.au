@@ -45,7 +45,7 @@ def is_public_address(text: str) -> bool:
 
 
 def non_public_reason(host: str, resolve: Resolver = resolve_addresses) -> str:
-    """"" when the host is public, or cannot be found at all (the request will then fail by itself); otherwise why not."""
+    """"" when the host is public or cannot be found at all (the request will fail by itself); else why not."""
     try:
         ipaddress.ip_address(host)
         addresses: Sequence[str] = (host,)

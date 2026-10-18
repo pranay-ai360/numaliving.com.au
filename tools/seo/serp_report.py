@@ -173,13 +173,15 @@ def render_report(
 ) -> str:
     lines = [f"{len(records)} queries, top {top} results each", "", "=== per query: top domains ==="]
     for record in records:
-        lines.append(f"- {str(record['query'])[:QUERY_COLUMN_WIDTH]:<{QUERY_COLUMN_WIDTH}} " + " | ".join(top_domains(record, top)))
+        query = str(record["query"])[:QUERY_COLUMN_WIDTH]
+        lines.append(f"- {query:<{QUERY_COLUMN_WIDTH}} " + " | ".join(top_domains(record, top)))
     lines += ["", f"=== domain frequency (queries in which it appears in the top {top}) ==="]
     shown = [stat for stat in domain_frequency(records, top) if not (hide_noise and stat.is_noise)]
     for stat in shown[:limit]:
         tag = "   [noise]" if stat.is_noise else ""
         lines.append(
-            f"{stat.queries:>3}  {stat.domain:<{DOMAIN_COLUMN_WIDTH}} avg first-rank {stat.average_first_rank:4.1f}{tag}"
+            f"{stat.queries:>3}  {stat.domain:<{DOMAIN_COLUMN_WIDTH}} "
+            f"avg first-rank {stat.average_first_rank:4.1f}{tag}"
         )
     return printable("\n".join(lines))
 

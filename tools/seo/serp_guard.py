@@ -87,7 +87,9 @@ def seconds_until_allowed(marker: Path, now: float) -> float:
     except FileNotFoundError:
         return 0.0
     except OSError as error:
-        raise SeoToolError(f"cannot check {marker} ({error.strerror or error}); not asking Google until that is fixed") from error
+        raise SeoToolError(
+            f"cannot check {marker} ({error.strerror or error}); not asking Google until that is fixed"
+        ) from error
     return max(0.0, blocked_at + BLOCK_COOLDOWN_SECONDS - now)
 
 

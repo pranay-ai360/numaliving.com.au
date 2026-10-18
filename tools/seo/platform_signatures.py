@@ -54,7 +54,9 @@ PLATFORM_SIGNATURES: Tuple[Signature, ...] = (
     _signature("gtm", r"googletagmanager\.com/(?:gtm\.js|ns\.html)|\bGTM-[A-Z0-9]{4,}\b"),
     _signature(
         "ga4",
-        r"googletagmanager\.com/gtag/js|\bgtag\(\s*['\"](?:config|js|event|set|consent)['\"]|['\"]G-[A-Z0-9]{8,12}['\"]",
+        r"googletagmanager\.com/gtag/js"
+        r"|\bgtag\(\s*['\"](?:config|js|event|set|consent)['\"]"
+        r"|['\"]G-[A-Z0-9]{8,12}['\"]",
     ),
     _signature("meta-pixel", r"fbevents\.js|\bfbq\("),
     _signature("hubspot", r"hubspot|hs-scripts", ignore_case=True),

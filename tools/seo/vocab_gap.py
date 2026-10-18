@@ -2,7 +2,8 @@
 """Compare the vocabulary of ranking pages with the site's own pages.
 
 Usage:
-    vocab_gap.py --ranking PATH [PATH ...] --own PATH [PATH ...] [--min-share F] [--min-pages N] [--limit N] [--no-terms]
+    vocab_gap.py --ranking PATH [PATH ...] --own PATH [PATH ...] [--min-share F] [--min-pages N] [--limit N]
+                 [--no-terms]
 
 A PATH is a page text file written by audit_pages.py, a folder of them, or a pattern such as "pages/own_*.txt".
 Only the headings and main text count: the nav, header, footer and aside text of each page is left out, and so are
@@ -122,9 +123,16 @@ TERM_TABLE: Tuple[TermRow, ...] = (
         _group("architectural millwork", ["architectural millwork"], 12, 0),
         _group("architectural woodwork", ["architectural woodwork"], 9, 0),
     ),
-    _row("add (import hub)", _group("import / overseas / international", ["import", "overseas", "international"], 9, 0)),
+    _row(
+        "add (import hub)",
+        _group("import / overseas / international", ["import", "overseas", "international"], 9, 0),
+    ),
     _row("only if true", _group("AWI / AWS standards", ["awi", "aws"], 5, 0)),
-    _row("only if true", _group("licensed / insured", ["licensed", "insured"], 7, 0), _group("warranty", ["warranty"], 4, 0)),
+    _row(
+        "only if true",
+        _group("licensed / insured", ["licensed", "insured"], 7, 0),
+        _group("warranty", ["warranty"], 4, 0),
+    ),
     _row(
         "add (audiences)",
         _group("general contractors", ["general contractors"], 5, 0),
@@ -242,7 +250,9 @@ def find_own_only_terms(
 
 def count_pages_with(texts: Sequence[str], group: TermGroup) -> int:
     """How many texts contain any pattern of the group as whole words, ignoring case."""
-    regexes = [re.compile(r"(?<![a-z0-9])" + re.escape(pattern.lower()) + r"(?![a-z0-9])") for pattern in group.patterns]
+    regexes = [
+        re.compile(r"(?<![a-z0-9])" + re.escape(pattern.lower()) + r"(?![a-z0-9])") for pattern in group.patterns
+    ]
     return len([text for text in texts if any(regex.search(text.lower()) for regex in regexes)])
 
 
@@ -284,7 +294,8 @@ def collect_text_files(arguments: Sequence[str]) -> Tuple[Path, ...]:
         if path.is_dir():
             found.extend(item for item in sorted(path.glob("*.txt")) if not is_boilerplate_page(item.name))
         elif any(char in argument for char in "*?["):
-            found.extend(item for item in sorted(path.parent.glob(path.name)) if item.is_file() and not is_boilerplate_page(item.name))
+            matches = sorted(path.parent.glob(path.name))
+            found.extend(item for item in matches if item.is_file() and not is_boilerplate_page(item.name))
         elif path.is_file():
             found.append(path)
         else:
@@ -318,10 +329,13 @@ def render_report(
     gaps = find_core_gaps(ranking, own, len(ranking_texts), min_pages, min_share, limit)
     threshold = core_threshold(len(ranking_texts), min_pages, min_share)
     lines += ["", f"=== terms on at least {threshold} ranking pages and on NO own page (core vocabulary gaps) ==="]
-    lines += _gap_lines(gaps, len(ranking_texts), len(own_texts), own_first=False) or ["  (none: try a lower --min-pages)"]
+    lines += _gap_lines(gaps, len(ranking_texts), len(own_texts), own_first=False)
+    lines += [] if gaps else ["  (none: try a lower --min-pages)"]
     lines += ["", f"=== Numa vocabulary that ranking pages rarely use (on {OWN_ONLY_MIN_OWN_PAGES}+ own pages, "
                   f"at most {OWN_ONLY_MAX_RANKING_PAGES} ranking page) ==="]
-    lines += _gap_lines(find_own_only_terms(ranking, own), len(ranking_texts), len(own_texts), own_first=True) or ["  (none)"]
+    own_only = find_own_only_terms(ranking, own)
+    lines += _gap_lines(own_only, len(ranking_texts), len(own_texts), own_first=True)
+    lines += [] if own_only else ["  (none)"]
     return printable("\n".join(lines))
 
 
@@ -344,7 +358,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-share", type=_share, default=DEFAULT_MIN_SHARE, metavar="F",
                         help=f"share of ranking pages a phrase must be on, 0 to 1 (default {DEFAULT_MIN_SHARE})")
     parser.add_argument("--min-pages", type=positive_int, default=DEFAULT_MIN_PAGES, metavar="N",
-                        help=f"least number of ranking pages (default {DEFAULT_MIN_PAGES}); the larger of the two applies")
+                        help=f"least number of ranking pages (default {DEFAULT_MIN_PAGES}); "
+                             "the larger of the two applies")
     parser.add_argument("--limit", type=positive_int, default=DEFAULT_LIMIT, metavar="N",
                         help=f"phrases to list in the gap section (default {DEFAULT_LIMIT})")
     parser.add_argument("--no-terms", action="store_true", help="leave out the US-versus-UK term table")

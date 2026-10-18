@@ -134,7 +134,8 @@ class PoliteFetcher:
         requested = require_http_url(url)
         journey = Journey(requested, requested)
         while True:
-            refusal = self._gave_up.get(_netloc(journey.current)) or self._policy(journey.current).refusal(journey.current)
+            here = journey.current
+            refusal = self._gave_up.get(_netloc(here)) or self._policy(here).refusal(here)
             if refusal:
                 return journey.result(skipped=refusal)
             reply = self._exchange(journey.current)
@@ -198,7 +199,8 @@ class PoliteFetcher:
         wait = DEFAULT_BACKOFF_SECONDS if asked is None else asked
         if wait > MAX_CRAWL_DELAY_SECONDS:
             self._gave_up[host] = (
-                f"{host} answered HTTP {reply.status} and asked clients to wait {format_seconds(wait)} s (Retry-After), "
+                f"{host} answered HTTP {reply.status} and asked clients to wait {format_seconds(wait)} s "
+                "(Retry-After), "
                 f"longer than the {format_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
             )
         else:

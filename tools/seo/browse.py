@@ -126,7 +126,9 @@ def validate_serp_request(queries: Sequence[str], delay: float) -> Tuple[str, ..
             "(Google's terms restrict automated queries, so keep these runs small)"
         )
     if delay < MIN_SERP_DELAY_SECONDS:
-        raise SeoToolError(f"--delay {delay:g} is too short: queries must be at least {MIN_SERP_DELAY_SECONDS:g} seconds apart")
+        raise SeoToolError(
+            f"--delay {delay:g} is too short: queries must be at least {MIN_SERP_DELAY_SECONDS:g} seconds apart"
+        )
     return unique
 
 
@@ -319,7 +321,8 @@ def build_parser() -> argparse.ArgumentParser:
     serp.add_argument("--queries-file", type=Path, metavar="FILE", help="a list of queries, one per line")
     serp.add_argument("--out-dir", type=Path, metavar="DIR", help="default: <data folder>/browse/serp")
     serp.add_argument("--delay", type=non_negative_float, default=DEFAULT_SERP_DELAY_SECONDS, metavar="SECONDS",
-                      help=f"pause between queries, at least {MIN_SERP_DELAY_SECONDS:g} (default {DEFAULT_SERP_DELAY_SECONDS:g})")
+                      help=f"pause between queries, at least {MIN_SERP_DELAY_SECONDS:g} "
+                           f"(default {DEFAULT_SERP_DELAY_SECONDS:g})")
     return parser
 
 

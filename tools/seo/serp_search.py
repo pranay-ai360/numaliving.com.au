@@ -347,7 +347,9 @@ def _pages(text: str) -> int:
 def _delay(text: str) -> float:
     value = non_negative_float(text)
     if value < MIN_DELAY_SECONDS:
-        raise argparse.ArgumentTypeError(f"{text!r} is too short: queries must be at least {MIN_DELAY_SECONDS:g} second apart")
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is too short: queries must be at least {MIN_DELAY_SECONDS:g} second apart"
+        )
     return value
 
 
@@ -363,7 +365,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pages", type=_pages, default=DEFAULT_PAGES, metavar="N",
                         help=f"result pages per query, 1 to {MAX_PAGES} (default {DEFAULT_PAGES})")
     parser.add_argument("--delay", type=_delay, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
-                        help=f"pause between queries, at least {MIN_DELAY_SECONDS:g} (default {DEFAULT_DELAY_SECONDS:g})")
+                        help=f"pause between queries, at least {MIN_DELAY_SECONDS:g} "
+                             f"(default {DEFAULT_DELAY_SECONDS:g})")
     parser.add_argument("--language", default=DEFAULT_LANGUAGE, metavar="LOCALE",
                         help=f"search locale (default {DEFAULT_LANGUAGE})")
     return parser

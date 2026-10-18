@@ -210,7 +210,9 @@ class _FactsParser(HTMLParser):
 
     def _add_text(self, data: str) -> None:
         """Whitespace between inline elements is kept inside a line and dropped at the start of one."""
-        targets = (self._buffer, self._heading[1] if self._heading else None, self._anchor["parts"] if self._anchor else None)
+        heading_parts = self._heading[1] if self._heading else None
+        anchor_parts = self._anchor["parts"] if self._anchor else None
+        targets = (self._buffer, heading_parts, anchor_parts)
         for parts in targets:
             if parts is not None and (parts or data.strip()):
                 parts.append(data)

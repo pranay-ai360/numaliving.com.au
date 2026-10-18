@@ -68,10 +68,14 @@ def _unescape_unreserved(match: "re.Match[str]") -> str:
     return character if character in UNRESERVED else "%" + match.group(1).upper()
 
 
+def _percent_encode(character: str) -> str:
+    return "".join(f"%{byte:02X}" for byte in character.encode("utf-8", "replace"))
+
+
 def normalise(text: str) -> str:
     """Percent-encode spaces, controls and non-ASCII text (UTF-8); upper-case the hex of escapes that stay."""
     escaped = "".join(
-        character if "!" <= character <= "~" else "".join(f"%{byte:02X}" for byte in character.encode("utf-8", "replace"))
+        character if "!" <= character <= "~" else _percent_encode(character)
         for character in text
     )
     return ESCAPE.sub(_unescape_unreserved, escaped)

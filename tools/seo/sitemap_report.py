@@ -164,7 +164,9 @@ def group_entries(entries: Sequence[SitemapEntry], samples: int = DEFAULT_SAMPLE
         segments = [part for part in path.split("/") if part]
         key = (segments[0] if segments else HOME_SEGMENT, len(segments))
         buckets.setdefault(key, []).append(path or "/")
-    groups = [UrlGroup(segment, depth, len(paths), tuple(paths[:samples])) for (segment, depth), paths in buckets.items()]
+    groups = [
+        UrlGroup(segment, depth, len(paths), tuple(paths[:samples])) for (segment, depth), paths in buckets.items()
+    ]
     return tuple(sorted(groups, key=lambda group: (-group.count, group.depth, group.segment)))
 
 
@@ -260,7 +262,9 @@ def build_report(
     entries = tuple(entry for document in documents for entry in document.entries)
     unreadable = len([entry for entry in entries if safe_urlsplit(entry.loc) is None])
     if unreadable:
-        notes.append(f"{unreadable} of {len(entries)} listed URLs are not valid web addresses and are not in the groups")
+        notes.append(
+            f"{unreadable} of {len(entries)} listed URLs are not valid web addresses and are not in the groups"
+        )
     days, undated = daily_counts(entries)
     sources = (origin, *(document.source for document in documents)) if sitemap.is_index else (sitemap.source,)
     return SitemapReport(
@@ -320,7 +324,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("source", metavar="SOURCE", help="a sitemap file (.xml or .xml.gz) or an http(s) URL")
     parser.add_argument("--max-children", type=_child_limit, default=MAX_CHILD_SITEMAPS, metavar="N",
-                        help=f"child sitemaps to read from an index, 0 to {MAX_CHILD_SITEMAPS} (default {MAX_CHILD_SITEMAPS})")
+                        help=f"child sitemaps to read from an index, 0 to {MAX_CHILD_SITEMAPS} "
+                             f"(default {MAX_CHILD_SITEMAPS})")
     parser.add_argument("--top", type=positive_int, default=DEFAULT_TOP_GROUPS, metavar="N",
                         help=f"URL groups to show (default {DEFAULT_TOP_GROUPS})")
     parser.add_argument("--max-days", type=positive_int, default=DEFAULT_MAX_DAYS, metavar="N",
@@ -328,7 +333,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--samples", type=positive_int, default=DEFAULT_SAMPLES, metavar="N",
                         help=f"sample paths per group (default {DEFAULT_SAMPLES})")
     parser.add_argument("--delay", type=non_negative_float, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
-                        help=f"least pause between requests to one host when fetching (default {DEFAULT_DELAY_SECONDS:g})")
+                        help="least pause between requests to one host when fetching "
+                             f"(default {DEFAULT_DELAY_SECONDS:g})")
     parser.add_argument("--allow-private-hosts", action="store_true",
                         help="also follow redirects to local and private addresses, for your own local preview server")
     return parser
