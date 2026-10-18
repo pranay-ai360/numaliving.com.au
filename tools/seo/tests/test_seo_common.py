@@ -266,6 +266,17 @@ class RequireHttpUrlTests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(SeoToolError):
                 seo_common.require_http_url(url)
 
+    def test_the_hint_after_a_wrong_scheme_can_be_changed_or_left_out(self) -> None:
+        with self.assertRaises(SeoToolError) as default:
+            seo_common.require_http_url("ftp://a.test/")
+        self.assertIn("(start it with https://)", str(default.exception))
+        with self.assertRaises(SeoToolError) as custom:
+            seo_common.require_http_url("ftp://a.test/", hint="for example http://localhost:8080")
+        self.assertIn("(for example http://localhost:8080)", str(custom.exception))
+        with self.assertRaises(SeoToolError) as bare:
+            seo_common.require_http_url("ftp://a.test/", hint="")
+        self.assertTrue(str(bare.exception).endswith("got 'ftp://a.test/'"))
+
     def test_rejects_embedded_credentials(self) -> None:
         with self.assertRaises(SeoToolError) as caught:
             seo_common.require_http_url("https://user:secret@x.test/")

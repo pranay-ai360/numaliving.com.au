@@ -269,6 +269,29 @@ class DamagedInputTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 2)
 
 
+class ChildListTests(unittest.TestCase):
+    def test_a_child_listed_twice_is_read_once_and_counted_once(self) -> None:
+        index = (b'<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                 b'<sitemap><loc>https://example.test/a.xml</loc></sitemap>'
+                 b'<sitemap><loc>https://example.test/a.xml</loc></sitemap>'
+                 b'<sitemap><loc>https://www.example.test/b.xml</loc></sitemap></sitemapindex>')
+        table = {"https://example.test/a.xml": urlset(("https://example.test/p", "2026-10-01")),
+                 "https://www.example.test/b.xml": urlset(("https://example.test/q", "2026-10-02"))}
+        calls: List[str] = []
+        sitemap = sitemap_report.parse_sitemap(index, "index.xml")
+        report = sitemap_report.build_report(sitemap, "https://example.test/i.xml", fake_fetch(table, calls))
+        self.assertEqual(calls, ["https://example.test/a.xml", "https://www.example.test/b.xml"])
+        self.assertEqual(report.total_urls, 2)
+
+    def test_the_note_about_a_location_that_is_not_a_web_address_has_no_misleading_hint(self) -> None:
+        index = b"<sitemapindex><sitemap><loc>file:///etc/passwd</loc></sitemap></sitemapindex>"
+        sitemap = sitemap_report.parse_sitemap(index, "index.xml")
+        report = sitemap_report.build_report(sitemap, "index.xml", fake_fetch({}))
+        note = next(note for note in report.notes if "file:" in note)
+        self.assertNotIn("start it with https://", note)
+        self.assertIn("only http and https URLs are accepted", note)
+
+
 class CalendarTests(unittest.TestCase):
     """A lastmod must start with a real calendar day; anything else is "undated", not a day of its own."""
 
@@ -304,6 +327,11 @@ class TruncationTests(unittest.TestCase):
         problem = sitemap_report.fetch_problem(self.cut(b"x" * 6_000_000))
         self.assertIn("truncated", problem)
         self.assertIn("6.0 MB", problem)
+
+    def test_a_small_cut_off_body_is_sized_in_bytes_not_in_zero_megabytes(self) -> None:
+        problem = sitemap_report.fetch_problem(self.cut(b"x" * 1234))
+        self.assertIn("1,234 bytes", problem)
+        self.assertNotIn("0.0 MB", problem)
 
     def test_a_complete_answer_has_no_problem(self) -> None:
         ok = FetchResult(requested=self.URL, final_url=self.URL, status=200, body=b"<urlset/>")
