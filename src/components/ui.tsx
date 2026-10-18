@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { withBasePath } from "@/lib/assetPath";
 import type { Material, ShowcaseProject } from "@/lib/types";
 import { LineArt } from "./Brand";
+import { Photo } from "./Photo";
+import type { PhotoLoading } from "./photoLoading";
+
+// The loading modes live in photoLoading.ts (Photo.tsx needs them too); these are re-exported for the code that imports them from here.
+export { LAZY_IMAGE_PROPS } from "./photoLoading";
+export type { PhotoLoading } from "./photoLoading";
 
 /** Section title with the large outlined ghost word behind it. */
 export function SectionTitle({ ghost, title, eyebrow, align = "left" }: { ghost?: string; title: string; eyebrow?: string; align?: "left" | "center" }) {
@@ -66,7 +71,7 @@ export const MATERIAL_FILL: Record<Material, string> = {
 
 /**
  * Placeholder visual built from a project's material palette.
- * Shown until real photos are added to the project's `images`.
+ * Shown until real photos are added to the project's `photos`.
  */
 export function MaterialVisual({ palette, className = "" }: { palette: Material[]; className?: string }) {
   const [a, b, c] = [palette[0] ?? "oak", palette[1] ?? "linen", palette[2] ?? "brass"];
@@ -79,37 +84,28 @@ export function MaterialVisual({ palette, className = "" }: { palette: Material[
   );
 }
 
-/** For photos below the fold: fetched only as they near the screen, and decoded off the main thread. */
-export const LAZY_IMAGE_PROPS = { loading: "lazy", decoding: "async" } as const;
-
-/** For photos in view on arrival, such as the first row of project cards: fetched straight away, decoded off the main thread. */
-const EAGER_IMAGE_PROPS = { loading: "eager", decoding: "async" } as const;
-
-/** For the one photo in view on arrival (a project page's main photo): fetched straight away, ahead of other images. */
-const PRIORITY_IMAGE_PROPS = { loading: "eager", fetchPriority: "high" } as const;
-
 /**
- * How a project photo loads: "lazy" (the default) below the fold, "eager" when it is in view on
- * arrival, and "priority" for a page's main photo.
+ * `sizes` for a project card's photo: three columns from 1024 px wide, two from 640 px, one below
+ * (the grids of the Projects page and the home page). Only px and vw lengths, see Photo.tsx.
  */
-export type PhotoLoading = "lazy" | "eager" | "priority";
+export const CARD_PHOTO_SIZES = "(min-width: 1280px) 390px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
 
-const PHOTO_LOADING_PROPS = {
-  lazy: LAZY_IMAGE_PROPS,
-  eager: EAGER_IMAGE_PROPS,
-  priority: PRIORITY_IMAGE_PROPS,
-} as const satisfies Record<PhotoLoading, object>;
+/** `sizes` for the photo at the top of a project page: the width of the page's content, 1232 px at most. */
+export const HERO_PHOTO_SIZES = "(min-width: 1280px) 1232px, 100vw";
 
 type ProjectVisualProps = {
   project: ShowcaseProject;
+  /** How wide the photo is drawn at each screen width, for the browser to pick a copy (CARD_PHOTO_SIZES, HERO_PHOTO_SIZES). */
+  sizes: string;
   className?: string;
   photoLoading?: PhotoLoading;
 };
 
-export function ProjectVisual({ project, className = "", photoLoading = "lazy" }: ProjectVisualProps) {
-  if (project.images.length > 0) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={withBasePath(project.images[0])} alt={project.name} {...PHOTO_LOADING_PROPS[photoLoading]} className={`object-cover ${className}`} />;
+/** The project's cover photo, or a swatch drawn from its materials while it has no photos. */
+export function ProjectVisual({ project, sizes, className = "", photoLoading = "lazy" }: ProjectVisualProps) {
+  const [cover] = project.photos;
+  if (cover !== undefined) {
+    return <Photo photo={cover} sizes={sizes} loading={photoLoading} className={`object-cover ${className}`} />;
   }
   return <MaterialVisual palette={project.palette} className={className} />;
 }
@@ -126,7 +122,7 @@ export function ProjectCard({ project, photoLoading = "lazy" }: ProjectCardProps
   return (
     <Link href={`/projects/${project.slug}`} className="group block">
       <div className="overflow-hidden">
-        <ProjectVisual project={project} photoLoading={photoLoading} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
+        <ProjectVisual project={project} sizes={CARD_PHOTO_SIZES} photoLoading={photoLoading} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
       </div>
       <p className="eyebrow mt-5">
         {project.sector} · {project.city}, {project.country}

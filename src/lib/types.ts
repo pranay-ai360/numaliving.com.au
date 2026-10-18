@@ -18,6 +18,23 @@ export type Sector = "Residences" | "Office" | "Multifamily" | "Hospitality";
 /** A material finish used to draw placeholder visuals until photos exist. */
 export type Material = "walnut" | "oak" | "lacquer" | "stone" | "brass" | "linen";
 
+/** A project photo: the source JPEG under /public/projects and what is known about it. */
+export interface ShowcasePhoto {
+  /**
+   * Root-relative path of the source JPEG, such as "/projects/golf-links/golf-links-01.jpg". The
+   * AVIF and WebP copies the page actually loads sit next to it (`npm run images:build`).
+   */
+  src: string;
+  /** What the picture shows, for people who cannot see it: 8 to 20 words, plain description, no brand claims. */
+  alt: string;
+  caption?: string;
+  /** Who to credit, such as "Photo by Intelier". Not shown on the site yet. */
+  credit?: string;
+  /** The source's size in pixels. They stop the page jumping as the photo loads and decide which copies exist. */
+  width: number;
+  height: number;
+}
+
 export interface ShowcaseProject {
   slug: string;
   name: string;
@@ -29,8 +46,8 @@ export interface ShowcaseProject {
   scope: string[];
   materials: string[];
   durationWeeks: number;
-  /** Photo paths under /public/projects. Empty = material placeholder. */
-  images: string[];
+  /** The project's photos, the cover first. Empty = material placeholder. */
+  photos: ShowcasePhoto[];
   palette: Material[];
   featured?: boolean;
   /** Marks invented sample content so it is easy to find and replace. */

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/content/projects";
-import { withBasePath } from "@/lib/assetPath";
-import { ButtonLink, Container, LAZY_IMAGE_PROPS, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
+import { ProjectGallery } from "@/components/ProjectGallery";
+import { ButtonLink, Container, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -42,7 +42,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
             {project.sector} · {project.city}, {project.country}
           </p>
           <h1 className="display mt-4 max-w-4xl text-2xl sm:text-4xl">{project.name}</h1>
-          <ProjectVisual project={project} photoLoading="priority" className="mt-10 aspect-[16/8] w-full" />
+          <ProjectVisual project={project} sizes={HERO_PHOTO_SIZES} photoLoading="priority" className="mt-10 aspect-[16/8] w-full" />
         </Container>
       </section>
 
@@ -72,21 +72,14 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
                 </ul>
               </div>
             </div>
-            {project.images.length === 0 && (
+            {project.photos.length === 0 && (
               <div className="mt-12 grid grid-cols-3 gap-3">
                 {[0, 1, 2].map((i) => (
                   <MaterialVisual key={i} palette={[project.palette[(i + 1) % 3], project.palette[(i + 2) % 3], project.palette[i % 3]]} className="aspect-square" />
                 ))}
               </div>
             )}
-            {project.images.length > 1 && (
-              <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {project.images.slice(1).map((src) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={src} src={withBasePath(src)} alt={project.name} {...LAZY_IMAGE_PROPS} className="aspect-square w-full object-cover" />
-                ))}
-              </div>
-            )}
+            <ProjectGallery photos={project.photos} />
           </div>
 
           <aside className="h-fit bg-linen p-8">

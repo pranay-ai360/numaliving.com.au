@@ -15,7 +15,7 @@ function projectWithPhoto(slug: string): ShowcaseProject {
     scope: ["Kitchen"],
     materials: ["Oak veneer"],
     durationWeeks: 12,
-    images: [`/projects/${slug}/cover.jpg`],
+    photos: [{ src: `/projects/${slug}/${slug}-01.jpg`, alt: `Photo of project ${slug}`, width: 1600, height: 1067 }],
     palette: ["oak", "linen", "brass"],
   };
 }
@@ -23,7 +23,7 @@ function projectWithPhoto(slug: string): ShowcaseProject {
 const PROJECTS: readonly ShowcaseProject[] = ["one", "two", "three", "four", "five"].map(projectWithPhoto);
 
 function photosOf(projects: readonly ShowcaseProject[]): readonly HTMLElement[] {
-  return projects.map((project) => screen.getByRole("img", { name: project.name }));
+  return projects.map((project) => screen.getByRole("img", { name: project.photos[0].alt }));
 }
 
 describe("ProjectsGallery", () => {

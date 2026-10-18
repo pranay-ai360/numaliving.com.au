@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ProjectCard, ProjectVisual } from "@/components/ui";
+import { CARD_PHOTO_SIZES, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual } from "@/components/ui";
 import type { ShowcaseProject } from "@/lib/types";
 
 const PROJECT: ShowcaseProject = {
@@ -14,9 +14,15 @@ const PROJECT: ShowcaseProject = {
   scope: ["Kitchen"],
   materials: ["Oak veneer"],
   durationWeeks: 12,
-  images: ["/projects/test-villa/cover.jpg", "/projects/test-villa/detail.jpg"],
+  photos: [
+    { src: "/projects/test-villa/test-villa-01.jpg", alt: "A villa living room with a walnut-paneled wall", width: 1600, height: 1067 },
+    { src: "/projects/test-villa/test-villa-02.jpg", alt: "A villa kitchen with a lacquered island", width: 1600, height: 1067 },
+  ],
   palette: ["oak", "linen", "brass"],
 };
+
+/** The project's cover photo is described by this text, not by the project's name. */
+const COVER_ALT = PROJECT.photos[0].alt;
 
 describe("ProjectCard", () => {
   it("loads its photo lazily, as it nears the screen", () => {
@@ -24,7 +30,7 @@ describe("ProjectCard", () => {
     render(<ProjectCard project={PROJECT} />);
 
     // Act
-    const photo = screen.getByRole("img", { name: PROJECT.name });
+    const photo = screen.getByRole("img", { name: COVER_ALT });
 
     // Assert
     expect(photo).toHaveAttribute("loading", "lazy");
@@ -37,7 +43,7 @@ describe("ProjectCard", () => {
     render(<ProjectCard project={PROJECT} photoLoading="eager" />);
 
     // Act
-    const photo = screen.getByRole("img", { name: PROJECT.name });
+    const photo = screen.getByRole("img", { name: COVER_ALT });
 
     // Assert
     expect(photo).toHaveAttribute("loading", "eager");
@@ -49,10 +55,10 @@ describe("ProjectCard", () => {
 describe("ProjectVisual", () => {
   it("loads lazily by default", () => {
     // Arrange
-    render(<ProjectVisual project={PROJECT} />);
+    render(<ProjectVisual project={PROJECT} sizes={HERO_PHOTO_SIZES} />);
 
     // Act
-    const photo = screen.getByRole("img", { name: PROJECT.name });
+    const photo = screen.getByRole("img", { name: COVER_ALT });
 
     // Assert
     expect(photo).toHaveAttribute("loading", "lazy");
@@ -60,10 +66,10 @@ describe("ProjectVisual", () => {
 
   it("loads a page's main photo straight away and ahead of other images", () => {
     // Arrange
-    render(<ProjectVisual project={PROJECT} photoLoading="priority" />);
+    render(<ProjectVisual project={PROJECT} sizes={HERO_PHOTO_SIZES} photoLoading="priority" />);
 
     // Act
-    const photo = screen.getByRole("img", { name: PROJECT.name });
+    const photo = screen.getByRole("img", { name: COVER_ALT });
 
     // Assert
     expect(photo).toHaveAttribute("loading", "eager");
@@ -73,12 +79,52 @@ describe("ProjectVisual", () => {
 
   it("shows the material placeholder instead of an image when the project has no photos", () => {
     // Arrange
-    const withoutPhotos: ShowcaseProject = { ...PROJECT, images: [] };
+    const withoutPhotos: ShowcaseProject = { ...PROJECT, photos: [] };
 
     // Act
-    render(<ProjectVisual project={withoutPhotos} photoLoading="priority" />);
+    render(<ProjectVisual project={withoutPhotos} sizes={HERO_PHOTO_SIZES} photoLoading="priority" />);
 
     // Assert
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+});
+
+describe("ProjectVisual photo", () => {
+  it("shows the cover, the first photo, as a picture with fast copies and the JPEG as fallback", () => {
+    // Arrange
+    const { container } = render(<ProjectVisual project={PROJECT} sizes={HERO_PHOTO_SIZES} />);
+
+    // Act
+    const sources = Array.from(container.querySelectorAll("source"));
+
+    // Assert
+    expect(sources.map((source) => source.getAttribute("type"))).toEqual(["image/avif", "image/webp"]);
+    expect(sources[0].getAttribute("srcset")).toContain("/projects/test-villa/test-villa-01-480.avif 480w");
+    expect(sources[0]).toHaveAttribute("sizes", HERO_PHOTO_SIZES);
+    expect(screen.getByRole("img", { name: COVER_ALT })).toHaveAttribute("src", "/projects/test-villa/test-villa-01.jpg");
+  });
+
+  it("does not show the project's other photos", () => {
+    // Arrange
+    render(<ProjectVisual project={PROJECT} sizes={HERO_PHOTO_SIZES} />);
+
+    // Act
+    const images = screen.getAllByRole("img");
+
+    // Assert
+    expect(images).toHaveLength(1);
+  });
+});
+
+describe("ProjectCard link", () => {
+  it("draws its photo for the browser at card width, so a small copy is chosen", () => {
+    // Arrange
+    const { container } = render(<ProjectCard project={PROJECT} />);
+
+    // Act
+    const [avif] = Array.from(container.querySelectorAll("source"));
+
+    // Assert
+    expect(avif).toHaveAttribute("sizes", CARD_PHOTO_SIZES);
   });
 });
