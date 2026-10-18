@@ -55,7 +55,9 @@ export function setUpSending(): () => FetchSpy {
  * that the file input's `accept` filter would otherwise hide from the browser.
  */
 export function renderQuoteForm(options: { isAged?: boolean; applyAccept?: boolean } = {}): UserEvent {
-  const user = userEvent.setup({ applyAccept: options.applyAccept ?? true });
+  // `delay: null` skips the real timer user-event starts between key presses, which adds up to seconds
+  // when a long form is typed on a busy machine. Nothing in these tests depends on that pause.
+  const user = userEvent.setup({ applyAccept: options.applyAccept ?? true, delay: null });
   render(createElement(QuoteForm));
   if (options.isAged ?? true) passTime(MIN_FILL_TIME_MS);
   return user;

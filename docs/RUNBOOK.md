@@ -52,6 +52,8 @@ python3 -m unittest discover -s tools/seo/tests           # the SEO research too
 
 Nothing runs the Python tests automatically (CI only runs the npm checks), so run them when you touch `tools/` (the SEO tools' tests included). After you add or change a project photo, run `npm run images:build` first (section 11): the unit tests fail while a photo's copies are missing or out of date.
 
+On a shared or busy machine (other agents, builds or a browser eating the CPU), cap Vitest's workers so it leaves room for them: `npm run test:coverage -- --maxWorkers=50%` (or `npx vitest run --maxWorkers=50%`). A slow run still passes: each test may take 20 seconds, each hook 30, and `findBy*` waits 5 seconds (`vitest.config.mts`, `vitest.setup.ts`, pinned by `src/config/testRunner.test.ts`). If a Quote Request form test still times out, read the test's own duration before raising a limit; the form tests normally take about one second each.
+
 CI uses Playwright's own Chromium. Locally, set `CHROMIUM_EXECUTABLE_PATH` to any Chrome-family browser; the installed Google Chrome works:
 
 ```bash
