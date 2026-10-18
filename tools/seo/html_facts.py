@@ -21,16 +21,17 @@ from collections import defaultdict
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
-from urllib.parse import urljoin
 
+from html_links import Anchor, Link, classify_link, host_of
 from json_ld import JSON_LD_TYPE, MAX_TYPE_CHARS, json_ld_types
 from platform_signatures import PLATFORM_SIGNATURES, Signature, detect_platforms, signature_markup
-from seo_common import ALLOWED_URL_SCHEMES, safe_urlsplit
 
 __all__ = [
     "PLATFORM_SIGNATURES", "MAX_TYPE_CHARS", "Signature", "detect_platforms", "json_ld_types",  # re-exported
-    "FormInfo", "Heading", "Image", "Link", "PageFacts", "classify_link", "extract_facts", "host_of",
+    "Anchor", "Link", "classify_link", "host_of",  # re-exported from html_links
+    "FormInfo", "Heading", "Image", "PageFacts", "extract_facts",
 ]
+_Anchor = Anchor  # the old private name, kept for code that imports it
 
 VOID_TAGS = frozenset("area base br col embed hr img input link meta param source track wbr".split())
 SKIP_TEXT_TAGS = frozenset(
@@ -45,7 +46,6 @@ BLOCK_TAGS = frozenset(
 HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
 MAX_STACK_DEPTH = 512
 WORD_CHARACTER = re.compile(r"[^\W_]")  # a letter or digit in any script
-BROWSER_IGNORED = re.compile(r"[\t\r\n]")  # a browser drops these from inside an address
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
 
 
@@ -56,29 +56,12 @@ class Heading:
 
 
 @dataclass(frozen=True)
-class Link:
-    url: str
-    text: str
-    kind: str  # internal, external, tel, mailto or other
-    rel: str = ""
-    in_boilerplate: bool = False
-
-
-@dataclass(frozen=True)
 class Image:
     src: str
     alt: Optional[str]  # None: no alt attribute; "": empty alt (decorative); otherwise the text
     has_size: bool  # both width and height are set
     loading: str
     has_srcset: bool
-    in_boilerplate: bool
-
-
-@dataclass(frozen=True)
-class _Anchor:
-    href: str
-    rel: str
-    text: str
     in_boilerplate: bool
 
 
@@ -126,13 +109,6 @@ class PageFacts:
         )
 
 
-def host_of(url: str) -> str:
-    """The site a URL belongs to: lower-case host and port, without a user name or a leading www."""
-    parts = safe_urlsplit(url)
-    netloc = parts.netloc.lower().rpartition("@")[2] if parts is not None else ""
-    return netloc[4:] if netloc.startswith("www.") else netloc
-
-
 def _clean(text: str) -> str:
     return " ".join(text.split())
 
@@ -152,7 +128,7 @@ class _FactsParser(HTMLParser):
         self.meta: Dict[str, str] = {}
         self.link_tags: List[Dict[str, str]] = []
         self.headings: List[Heading] = []
-        self.anchors: List[_Anchor] = []
+        self.anchors: List[Anchor] = []
         self.images: List[Image] = []
         self.forms: List[FormInfo] = []
         self.source_types: List[str] = []
@@ -313,7 +289,7 @@ class _FactsParser(HTMLParser):
         if self._anchor is not None:
             anchor = self._anchor
             text = _clean("".join(anchor["parts"]))
-            self.anchors.append(_Anchor(anchor["href"], anchor["rel"], text, anchor["in_boilerplate"]))
+            self.anchors.append(Anchor(anchor["href"], anchor["rel"], text, anchor["in_boilerplate"]))
             self._anchor = None
 
     def _finish_heading(self) -> None:
@@ -345,31 +321,7 @@ class _FactsParser(HTMLParser):
         self._flush_line()
 
 
-def classify_link(anchor: _Anchor, base_url: str) -> Optional[Link]:
-    """A Link for the anchor, or None for empty, fragment-only and javascript: links."""
-    target = BROWSER_IGNORED.sub("", anchor.href).strip()  # "Java\tScript:" is javascript: to a browser
-    lowered = target.lower()
-    if not target or target.startswith("#") or lowered.startswith("javascript:"):
-        return None
-
-    def link(url: str, kind: str) -> Link:
-        return Link(url, anchor.text, kind, anchor.rel, anchor.in_boilerplate)
-
-    if lowered.startswith(("tel:", "mailto:")):
-        return link(target, lowered.split(":", 1)[0])
-    try:
-        absolute = urljoin(base_url, target)
-        parts = safe_urlsplit(absolute)
-        if parts is None:  # a malformed URL such as an unclosed IPv6 bracket
-            return link(target, "other")
-        if parts.scheme.lower() not in ALLOWED_URL_SCHEMES:
-            return link(absolute, "other")
-        return link(absolute, "internal" if host_of(absolute) == host_of(base_url) else "external")
-    except ValueError:  # urljoin itself can refuse an address
-        return link(target, "other")
-
-
-def _links(anchors: List[_Anchor], base_url: str) -> Tuple[Link, ...]:
+def _links(anchors: List[Anchor], base_url: str) -> Tuple[Link, ...]:
     classified = (classify_link(anchor, base_url) for anchor in anchors)
     return tuple(link for link in classified if link is not None)
 

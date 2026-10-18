@@ -10,6 +10,7 @@ from unittest import mock
 from helpers import fixture_text
 
 import html_facts  # noqa: E402
+import html_links  # noqa: E402
 from html_facts import FormInfo, Heading, extract_facts  # noqa: E402
 
 BASE = "https://example.test/services/millwork/"
@@ -378,8 +379,8 @@ class LeftoverBranchTests(unittest.TestCase):
         self.assertEqual((facts.jsonld_blocks, facts.jsonld_errors), (1, 1))
 
     def test_an_address_urljoin_hands_back_unsplittable_is_a_link_of_another_kind(self) -> None:
-        anchor = html_facts._Anchor("x", "", "text", False)
-        with mock.patch.object(html_facts, "urljoin", return_value="http://["):
+        anchor = html_links.Anchor("x", "", "text", False)
+        with mock.patch.object(html_links, "urljoin", return_value="http://["):
             link = html_facts.classify_link(anchor, BASE)
         self.assertEqual((link.kind, link.url), ("other", "x"))
 
