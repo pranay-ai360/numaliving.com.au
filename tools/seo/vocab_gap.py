@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import FrozenSet, Iterator, List, Mapping, Optional, Sequence, Tuple
 
-from seo_common import SeoToolError, positive_int, read_text_file, run_cli
+from seo_common import SeoToolError, emit, positive_int, read_text_file, run_cli
 
 STOP_WORDS = frozenset(
     """
@@ -309,7 +309,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     own_files = collect_text_files(args.own)
     ranking_texts = [page_text(read_text_file(path)) for path in ranking_files]
     own_texts = [page_text(read_text_file(path)) for path in own_files]
-    print(render_report(ranking_texts, own_texts, args.min_share, args.min_pages, args.limit, not args.no_terms))
+    emit(render_report(ranking_texts, own_texts, args.min_share, args.min_pages, args.limit, not args.no_terms))
     return 0
 
 

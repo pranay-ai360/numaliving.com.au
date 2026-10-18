@@ -29,6 +29,7 @@ from fetch_pages import FetchResult, PoliteFetcher, default_opener
 from html_facts import host_of
 from seo_common import (
     SeoToolError,
+    emit,
     non_negative_float,
     positive_int,
     read_bytes_file,
@@ -352,7 +353,7 @@ def main(argv: Optional[Sequence[str]] = None, fetch: Optional[FetchFunction] = 
     data, origin = load_source(args.source, fetcher)
     sitemap = parse_sitemap(data, args.source)
     report = build_report(sitemap, origin, fetcher, args.max_children, args.samples)
-    print(render_report(report, max_days=args.max_days, top=args.top))
+    emit(render_report(report, max_days=args.max_days, top=args.top))
     return 0
 
 

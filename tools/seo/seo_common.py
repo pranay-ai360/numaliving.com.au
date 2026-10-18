@@ -38,9 +38,35 @@ class SeoToolError(Exception):
     exit_code = EXIT_USAGE
 
 
+UNSAFE_CHARACTERS = re.compile(
+    "[\x00-\x08\x0b-\x1f\x7f-\x9f"  # C0 controls (tab and newline stay), DEL and the C1 controls
+    "\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069"  # direction marks and overrides, line separators
+    "\ud800-\udfff]"  # lone surrogates, which a UTF-8 terminal cannot be sent
+)
+
+
+def _escape(match: "re.Match[str]") -> str:
+    code = ord(match.group(0))
+    return f"\\x{code:02x}" if code < 0x100 else f"\\u{code:04x}"
+
+
+def printable(text: str) -> str:
+    """The text with control characters, direction overrides and line separators shown as \\x1b or \\u202e escapes.
+
+    Page text, search results and server answers are data from elsewhere: raw, they can set the window title,
+    clear the screen, write to the clipboard on some terminals, or reorder the line. Tab and newline stay.
+    """
+    return UNSAFE_CHARACTERS.sub(_escape, text)
+
+
+def emit(text: str) -> None:
+    """Print a tool's own output (a table, a result line) to stdout in its safe form."""
+    print(printable(text), flush=True)
+
+
 def log(message: str) -> None:
     """Diagnostics go to stderr, so a tool's own output (tables, URL lists) stays clean to pipe."""
-    print(f"[seo] {message}", file=sys.stderr, flush=True)
+    print(f"[seo] {printable(message)}", file=sys.stderr, flush=True)
 
 
 def utc_now() -> str:

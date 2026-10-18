@@ -37,6 +37,7 @@ from seo_common import (
     REPO_ROOT,
     SeoToolError,
     data_dir,
+    emit,
     hashed_slug,
     log,
     non_negative_float,
@@ -250,10 +251,10 @@ def run_queries(
             record = run_query(connection.client, query, settings, sleep=sleep)
         except connection.error_type as error:
             failures += 1
-            print(f"{prefix} ERROR {error} | {query!r}", flush=True)
+            emit(f"{prefix} ERROR {error} | {query!r}")
         else:
             write_json_file(out_dir / f"{hashed_slug(query)}.json", record)
-            print(status_line(prefix, query, record), flush=True)
+            emit(status_line(prefix, query, record))
         if index < len(queries):
             sleep(delay)
     return 1 if failures else 0

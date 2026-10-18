@@ -54,6 +54,7 @@ from seo_common import (
     hashed_slug,
     log,
     non_negative_float,
+    printable,
     read_query_file,
     run_cli,
     url_slug,
@@ -219,7 +220,7 @@ def _capture_view(
             page.screenshot(path=str(whole), full_page=True)
             result["shots"].append(whole.name)
         if not mobile:
-            write_text_file(out_dir / f"{label}.txt", page.evaluate(JS_TEXT))
+            write_text_file(out_dir / f"{label}.txt", printable(page.evaluate(JS_TEXT)))
             result["text"] = True
     except Exception as error:  # Playwright raises its own error types; record and carry on with the next page
         result["error"] = f"{type(error).__name__}: {error}"
@@ -267,7 +268,7 @@ def _capture_serp(browser: Any, query: str, out_dir: Path) -> Dict[str, Any]:  #
         record.update({key: data[key] for key in ("title", "organicTitles", "hasAds")})
         if not record["blocked"]:
             label = serp_label(query)
-            write_text_file(out_dir / f"{label}.txt", data["text"])
+            write_text_file(out_dir / f"{label}.txt", printable(data["text"]))
             page.screenshot(path=str(out_dir / f"{label}.png"), full_page=False)
     except Exception as error:  # record it and let the caller decide; a block page is handled by the caller
         record["error"] = f"{type(error).__name__}: {error}"

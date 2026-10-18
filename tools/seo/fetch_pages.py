@@ -39,6 +39,7 @@ from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_targ
 from seo_common import (
     SeoToolError,
     assign_stems,
+    emit,
     log,
     non_negative_float,
     read_list_file,
@@ -451,7 +452,7 @@ def fetch_all(fetcher: PoliteFetcher, urls: Sequence[str], out_dir: Path) -> int
     for index, url in enumerate(urls, start=1):
         result = fetcher.fetch(url)
         save_result(out_dir, result, stems[url])
-        print(result_line(index, len(urls), result), flush=True)
+        emit(result_line(index, len(urls), result))
         failed += 1 if result.error else 0
         skipped += 1 if result.skipped else 0
     log(f"{len(urls) - failed - skipped} fetched, {skipped} skipped, {failed} failed; files are in {out_dir}")

@@ -22,7 +22,9 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from html_facts import PageFacts, extract_facts, host_of
 from seo_common import (
     SeoToolError,
+    emit,
     log,
+    printable,
     read_json_file,
     read_text_file,
     require_http_url,
@@ -147,7 +149,7 @@ def render_text_file(facts: PageFacts) -> str:
     """Headings, then the main text, then the boilerplate text: the input of vocab_gap.py."""
     outline = [f"H{heading.level}: {heading.text}" for heading in facts.headings]
     sections = ["# HEADINGS", *outline, "", "# TEXT", *facts.main_lines, "", "# BOILERPLATE", *facts.boilerplate_lines]
-    return "\n".join(sections) + "\n"
+    return printable("\n".join(sections)) + "\n"
 
 
 def audit_file(html_path: Path, fallback_base_url: str = DEFAULT_BASE_URL) -> Dict[str, Any]:
@@ -262,7 +264,7 @@ def audit_all(html_paths: Sequence[Path], base_url: str) -> int:
     failed = 0
     for html_path in html_paths:
         try:
-            print(format_summary(audit_file(html_path, base_url)))
+            emit(format_summary(audit_file(html_path, base_url)))
         except SeoToolError as error:
             failed += 1
             log(f"error: {error}")
@@ -278,7 +280,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.table and args.files:
         parser.error("give either HTML files or --table DIR, not both")
     if args.table:
-        print(table_for(args.table))
+        emit(table_for(args.table))
         return 0
     if not args.files:
         parser.error("give one or more HTML files, or --table DIR")

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Sequence, Tuple
 
-from seo_common import SeoToolError, read_text_file, run_cli
+from seo_common import SeoToolError, emit, read_text_file, run_cli
 
 AI_OVERVIEW = "AI Overview"
 AI_OVERVIEW_END = "AI responses may include mistakes"
@@ -159,8 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     features = load_captures(args.captures_dir)
-    print("\n\n".join(render_features(item) for item in features))
-    print("\n" + render_summary(summary_counts(features)))
+    emit("\n\n".join(render_features(item) for item in features))
+    emit("\n" + render_summary(summary_counts(features)))
     return 0
 
 

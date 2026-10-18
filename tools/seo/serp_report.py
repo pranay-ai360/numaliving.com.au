@@ -25,7 +25,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from urllib.parse import urlunsplit
 
-from seo_common import SeoToolError, log, positive_int, read_text_file, require_http_url, run_cli, safe_urlsplit
+from seo_common import (
+    SeoToolError,
+    emit,
+    log,
+    positive_int,
+    read_text_file,
+    require_http_url,
+    run_cli,
+    safe_urlsplit,
+)
 
 NOISE_DOMAINS = (
     "yelp.com", "instagram.com", "linkedin.com", "youtube.com", "facebook.com", "wikipedia.org", "reddit.com",
@@ -193,9 +202,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     records = load_records(args.serp_dir)
     if args.urls:
-        print("\n".join(top_result_urls(records, args.urls)))
+        emit("\n".join(top_result_urls(records, args.urls)))
     else:
-        print(render_report(records, args.top, args.limit, args.hide_noise))
+        emit(render_report(records, args.top, args.limit, args.hide_noise))
     return 0
 
 

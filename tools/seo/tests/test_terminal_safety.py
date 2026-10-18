@@ -47,7 +47,7 @@ class PrintableTests(unittest.TestCase):
     def test_control_characters_are_shown_as_escapes(self) -> None:
         self.assertEqual(seo_common.printable(f"a{ESC}[2Jb"), "a\\x1b[2Jb")
         self.assertEqual(seo_common.printable(f"x{BEL}y\x00z\x7f"), "x\\x07y\\x00z\\x7f")
-        self.assertEqual(seo_common.printable("line\roverwrite"), "line\\roverwrite")
+        self.assertEqual(seo_common.printable("line\roverwrite"), "line\\x0doverwrite")
 
     def test_eight_bit_controls_are_escaped_too(self) -> None:
         self.assertEqual(seo_common.printable(f"{CSI}31m\x85"), "\\x9b31m\\x85")
