@@ -173,6 +173,29 @@ class RequireHttpUrlTests(unittest.TestCase):
             seo_common.require_http_url("https://x.test:notaport/")
 
 
+class SafeUrlSplitTests(unittest.TestCase):
+    """urlsplit raises ValueError for some hostile or broken addresses; safe_urlsplit answers None instead."""
+
+    def test_a_normal_url_is_split(self) -> None:
+        parts = seo_common.safe_urlsplit("https://a.test/x?y=1#z")
+        self.assertIsNotNone(parts)
+        self.assertEqual((parts.netloc, parts.path, parts.query, parts.fragment), ("a.test", "/x", "y=1", "z"))
+
+    def test_an_unclosed_ipv6_bracket_gives_none(self) -> None:
+        self.assertIsNone(seo_common.safe_urlsplit("http://[::1/"))
+        self.assertIsNone(seo_common.safe_urlsplit("http://["))
+
+    def test_a_host_that_changes_shape_under_unicode_normalisation_gives_none(self) -> None:
+        # U+2100 normalises to "a/c" and U+FF0F to "/": urlsplit refuses both with a ValueError.
+        self.assertIsNone(seo_common.safe_urlsplit("http://a℀.test/"))
+        self.assertIsNone(seo_common.safe_urlsplit("http://／／evil.test/"))
+
+    def test_a_value_that_is_not_text_gives_none(self) -> None:
+        for value in (None, 5, ["http://a.test/"], b"http://a.test/"):
+            with self.subTest(value=value):
+                self.assertIsNone(seo_common.safe_urlsplit(value))  # type: ignore[arg-type]
+
+
 class FileHelperTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
