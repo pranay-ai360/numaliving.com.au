@@ -31,7 +31,8 @@ import urllib.request
 import zlib
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from email.message import Message
+from typing import IO, Any, Callable, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urljoin, urlsplit
 
 from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
@@ -196,8 +197,19 @@ def redirect_target(current: str, reply: RawReply) -> Tuple[str, str]:
         return "", f"redirect from {current} refused: {error}"
 
 
+def _kept_headers(response: Any) -> Headers:
+    """The headers worth keeping. A header sent more than once (two Link lines, X-Robots-Tag: all plus a
+    per-robot one) is joined with ", ", as HTTP allows, so that no value is lost."""
+    kept = []
+    for name in KEPT_HEADERS:
+        joined = ", ".join(value for value in response.headers.get_all(name) or [] if value)
+        if joined:
+            kept.append((name, joined))
+    return tuple(kept)
+
+
 def _read_reply(response: Any, status: int, max_bytes: int = MAX_BYTES) -> RawReply:
-    headers = tuple((name, value) for name in KEPT_HEADERS for value in [response.headers.get(name)] if value)
+    headers = _kept_headers(response)
     try:
         raw = response.read(max_bytes + 1)
         body, truncated = decode_body(raw, response.headers.get("Content-Encoding") or "", max_bytes)
@@ -323,12 +335,35 @@ class PoliteFetcher:
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     """Never follow a redirect inside urllib: PoliteFetcher follows them itself, one checked hop at a time."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102, ANN001
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: Message,
+        newurl: str,
+    ) -> Optional[urllib.request.Request]:
         return None
 
 
 def default_opener() -> Opener:
-    return urllib.request.build_opener(_NoRedirect)
+    """urllib's opener with only what this tool needs: proxies from the environment, http and https, no redirects.
+
+    build_opener() would add the file:, ftp: and data: handlers too (and its own redirect handler).
+    """
+    opener = urllib.request.OpenerDirector()
+    for handler in (
+        urllib.request.ProxyHandler(),
+        urllib.request.UnknownHandler(),
+        urllib.request.HTTPHandler(),
+        urllib.request.HTTPSHandler(),
+        urllib.request.HTTPDefaultErrorHandler(),
+        _NoRedirect(),
+        urllib.request.HTTPErrorProcessor(),
+    ):
+        opener.add_handler(handler)
+    return opener
 
 
 def meta_record(result: FetchResult) -> Dict[str, Any]:
