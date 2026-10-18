@@ -736,6 +736,21 @@ class RealOpenerTests(unittest.TestCase):
         self.assertEqual((result.status, result.error), (200, ""))
         self.assertEqual(result.redirects[0].target, server.url("/caf\u00e9"))
 
+    def test_a_body_the_server_cut_short_is_recorded_as_an_error(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/short": Page(200, b"only ten b", [("Content-Length", "100")])})
+        result = self.fetcher().fetch(server.url("/short"))
+        self.assertEqual(result.status, 200)
+        self.assertIn("IncompleteRead", result.error)
+
+    def test_the_fetchers_clock_times_the_download(self) -> None:
+        clock = FakeClock()
+        fetcher = PoliteFetcher(FakeOpener({ROBOTS: Reply(404), PAGE: Reply(200, HTML)}, clock=clock), delay=0, clock=clock, sleep=clock.sleep)
+        with mock.patch.object(fetch_pages, "read_reply", wraps=fetch_pages.read_reply) as spy:
+            fetcher.fetch(PAGE)
+        self.assertTrue(spy.call_args_list)
+        for call in spy.call_args_list:
+            self.assertIs(call.kwargs["clock"], clock)
+
     def test_the_opener_only_speaks_http_and_https(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             local = Path(folder) / "secret.txt"
