@@ -221,7 +221,9 @@ def _seed_problem(site: Site, item: Fetched) -> str:
 
 def _status_check(site: Site, crawl: Crawl) -> CheckResult:
     seeds = [item for item in crawl.fetched if item.is_seed]
-    title = "the home page and every sitemap URL answer 200 with an HTML page"
+    title = "the home page answers 200 with an HTML page"
+    if site.mode == MODE_LIVE:
+        title = "the home page and every sitemap URL answer 200 with an HTML page"
     return judge("status-200", PAGE_SCOPE, title, seeds, lambda item: _seed_problem(site, item), lambda i: i.requested)
 
 
@@ -258,18 +260,15 @@ def page_checks(site: Site, views: Sequence[PageView], crawl: Crawl) -> Tuple[Ch
         title = f"the description is {DESCRIPTION_MIN_CHARS} to {DESCRIPTION_MAX_CHARS} characters"
         results.append(check("description-length", title, _description_length_problem))
     results += [
-        check("canonical", "one absolute canonical link: the canonical host plus the page path", canonical_problem),
+        check("canonical", "one canonical link: the canonical host plus the page path", canonical_problem),
         check("robots-meta", "robots tags match the mode: noindex only where it is expected", _robots_problem),
         check("html-lang", f'<html lang="{EXPECTED_LANG}">', _lang_problem),
         check("h1-single", "exactly one non-empty H1", _h1_problem),
         check("heading-order", "heading levels never skip (H1, then H2, then H3)", _heading_order_problem),
-        check("open-graph", "Open Graph title, description, url, image, type and locale; og:url is the canonical",
-              _open_graph_problem),
+        check("open-graph", "Open Graph tags are complete and og:url is the canonical", _open_graph_problem),
         check("twitter-card", f"{TWITTER_CARD_KEY} is present", _twitter_card_problem),
         check("images-alt-size", "every image has an alt attribute, a width and a height", _image_problem),
-        check("links-resolve", "every internal link ends on a page that answers 200",
-              lambda view: _broken_links(site, crawl, view)),
-        check("no-http-resources", "no script, style, image or frame is loaded over http://",
-              _insecure_resource_problem),
+        check("links-resolve", "every internal link ends on a 200", lambda view: _broken_links(site, crawl, view)),
+        check("no-http-resources", "nothing is loaded over http://", _insecure_resource_problem),
     ]
     return tuple(results)

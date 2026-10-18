@@ -86,7 +86,7 @@ python3 tools/seo/launch_check.py --base-url https://numaliving.us/ --mode live 
 
 | Check | What has to be true |
 | --- | --- |
-| `status-200` | the home page and every sitemap URL answer 200 with an HTML page on the site, and `robots.txt` does not keep them out |
+| `status-200` | the home page (live: and every sitemap URL) answers 200 with an HTML page on the site, and `robots.txt` does not keep it out |
 | `title-single`, `title-unique`, `title-length` | exactly one non-empty `<title>` (an SVG title does not count), no two pages share one, at most 60 characters as shown (entities decoded) |
 | `description-present`, `description-unique`, `description-length` | a meta description on every page, none shared; **live only:** 120 to 160 characters |
 | `canonical` | exactly one absolute canonical link, equal to the canonical host plus the page's path |

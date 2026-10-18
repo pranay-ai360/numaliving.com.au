@@ -33,11 +33,10 @@ LASTMOD = re.compile(
 )
 UNUSABLE = "sitemap.xml is not usable (see sitemap-valid)"
 TITLES = {
-    "robots-txt": "robots.txt is served and fits the mode: live has one right Sitemap line and no blanket Disallow, "
-                  "preview has no Sitemap line",
+    "robots-txt": "robots.txt is served and fits the mode",
     "sitemap-valid": "sitemap.xml is a valid urlset",
     "sitemap-empty": "the sitemap is empty while the site is noindex",
-    "sitemap-locations": "every sitemap location is an absolute address on the canonical host",
+    "sitemap-locations": "every sitemap location is on the canonical host",
     "sitemap-duplicates": "no location is listed twice",
     "sitemap-lastmod": "every lastmod is an ISO 8601 date",
     "sitemap-no-noindex": "no noindex page is listed",

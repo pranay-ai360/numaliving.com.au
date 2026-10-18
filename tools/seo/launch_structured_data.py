@@ -243,10 +243,10 @@ def structured_data_checks(views: Sequence[PageView]) -> Tuple[CheckResult, ...]
                      lambda view: view.url, noun)
 
     return (
-        check("json-ld-valid", "JSON-LD blocks parse and name schema.org as their @context", _valid_problem, views),
+        check("json-ld-valid", "JSON-LD parses and names schema.org as its @context", _valid_problem, views),
         check("json-ld-organization", "an Organization is declared on every page", _organization_problem, views),
         check("json-ld-breadcrumbs", "inner pages declare a well-formed BreadcrumbList", _breadcrumb_problem, inner,
               "inner page"),
-        check("json-ld-placeholders", "structured data holds no placeholder, and its phone and address are shown "
-              "as text on the page", _placeholder_problem, views),
+        check("json-ld-placeholders", "no placeholder in structured data; its phone and address are on the page",
+              _placeholder_problem, views),
     )

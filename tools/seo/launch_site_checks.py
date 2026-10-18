@@ -24,9 +24,9 @@ MAX_UNVISITED_LISTED = 50
 REDIRECT_IDS = ("redirect-https", "redirect-www")
 TITLES = {
     "index-html-canonical": "/index.html names the home page as its canonical",
-    "missing-page-404": "a missing page answers 404 with noindex and a title of its own",
+    "missing-page-404": "a missing page answers 404, noindex, with a title of its own",
     "login-noindex": "the login page is noindex in both modes",
-    "share-images": "every og:image and twitter:image address answers 200 with an image content type",
+    "share-images": "og:image and twitter:image answer 200 with an image content type",
     "redirect-https": "http:// redirects to https:// in one permanent hop",
     "redirect-www": "www redirects to the apex in one permanent hop",
     "crawl-complete": "the crawl got through every internal address it found",

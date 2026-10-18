@@ -166,6 +166,11 @@ class StatusTests(unittest.TestCase):
         results = run_checks(web, seeds=[HOME, ABOUT])
         self.assertIn("other.example.test", failures_of(results["status-200"])[ABOUT])
 
+    def test_the_title_says_what_is_seeded_in_each_mode(self) -> None:
+        self.assertIn("every sitemap URL", run_checks(build_web())["status-200"].title)
+        preview = run_checks(build_web(mode="preview"), "preview")["status-200"]
+        self.assertNotIn("sitemap", preview.title)
+
     def test_only_the_seeded_addresses_are_judged(self) -> None:
         web = build_web()
         edit_page(web, HOME, '<a href="/about/">About</a>', '<a href="/gone/">G</a><a href="/about/">About</a>')
