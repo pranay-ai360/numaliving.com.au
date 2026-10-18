@@ -11,12 +11,18 @@ shots  for each page: a desktop screenshot of the first screen (1440x900), a mob
 serp   for each query: the text and a screenshot of Google's results page (English, US: hl=en, gl=us, no
        personalisation). google_features.py reads the text files. Default folder: <data>/browse/serp.
 
-The free CloakBrowser licence has ONE seat, shared with the other tools. If it is taken the launch fails and this
-script exits with code 76: find out whose browser it is before closing it (see docs/RUNBOOK.md).
+The free CloakBrowser licence has ONE seat, shared with the other tools. If the browser cannot be launched (most
+often because the seat is taken) this script exits with code 76: find out whose browser it is before closing it
+(see docs/RUNBOOK.md). Errors inside a running session are reported as ordinary failures, never as 76.
 
 Google's terms restrict automated queries, so `serp` is for small research runs only. It refuses more than 15
 queries in one run and a --delay under 10 seconds, it stops at the first block page (unusual traffic, a captcha,
-a /sorry/ address, HTTP 429) and it never tries to get past one.
+a /sorry/ address, HTTP 429) and never tries to get past one, it stops after two failed captures in a row, and
+after a block it refuses to run again for six hours (the marker file <data>/browse/blocked-at). It exits 1 when
+any capture failed. `shots` refuses Google addresses; use `serp` for those.
+
+`shots` is not polite in the way fetch_pages.py is: it drives a real browser that runs the page's JavaScript and
+follows redirects, and it does not read robots.txt. Point it only at pages you would open yourself.
 """
 
 from __future__ import annotations
@@ -29,10 +35,18 @@ import sys
 import time
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Callable, ContextManager, Dict, Iterator, List, Optional, Sequence, Tuple
 from urllib.parse import quote_plus
 
 from fetch_pages import collect_urls
+from serp_guard import (
+    capture_queries,
+    default_marker,
+    exit_code,
+    record_block,
+    refuse_while_blocked,
+    reject_google_urls,
+)
 from seo_common import (
     SeoToolError,
     data_dir,
@@ -49,7 +63,6 @@ from seo_common import (
 QA_DIR = Path(__file__).resolve().parent.parent / "site-qa"
 LAUNCHER_MODULE = "qa_common"
 EXIT_SEAT_TAKEN = 76
-EXIT_BLOCKED = 1
 MAX_SERP_QUERIES = 15
 MIN_SERP_DELAY_SECONDS = 10.0
 DEFAULT_SERP_DELAY_SECONDS = 15.0
@@ -67,6 +80,8 @@ MOBILE_SCALE = 2
 TEXT_LIMIT = 30_000
 SERP_TEXT_LIMIT = 20_000
 SERP_LABEL_LENGTH = 70
+VIEWS = (("desktop", False), ("mobile", True))
+Launch = Callable[[], ContextManager[Any]]
 
 JS_TEXT = f"() => (document.body ? document.body.innerText : '').slice(0, {TEXT_LIMIT})"
 JS_SERP = f"""
@@ -151,13 +166,21 @@ def load_launcher() -> ModuleType:
 
 
 @contextlib.contextmanager
-def seat(qa: ModuleType) -> Iterator[Any]:  # pragma: no cover - needs the real browser
-    """The single browser seat; a failed launch becomes BrowserSeatError (exit code 76)."""
-    try:
-        with qa.open_browser() as browser:
-            yield browser
-    except qa.QAError as error:
-        raise BrowserSeatError(str(error)) from error
+def seat(qa: ModuleType) -> Iterator[Any]:
+    """The single browser seat. Only a failed LAUNCH becomes BrowserSeatError (exit code 76): an error raised by
+    the code that uses the browser passes through unchanged and the browser is still closed."""
+    with contextlib.ExitStack() as stack:
+        try:
+            browser = stack.enter_context(qa.open_browser())
+        except qa.QAError as error:
+            raise BrowserSeatError(str(error)) from error
+        yield browser
+
+
+def open_seat() -> ContextManager[Any]:
+    """Check that the browser package is installed, load the launcher and take the seat."""
+    require_cloakbrowser()
+    return seat(load_launcher())
 
 
 def _context(qa: ModuleType, browser: Any, viewport: Tuple[int, int], mobile: bool) -> Any:  # pragma: no cover
@@ -171,8 +194,9 @@ def _context(qa: ModuleType, browser: Any, viewport: Tuple[int, int], mobile: bo
 
 
 def _capture_view(
-    qa: ModuleType, browser: Any, url: str, out_dir: Path, label: str, name: str, mobile: bool, full_page: bool
+    browser: Any, url: str, out_dir: Path, label: str, name: str, mobile: bool, full_page: bool
 ) -> Dict[str, Any]:  # pragma: no cover - needs the real browser
+    qa = load_launcher()
     viewport = MOBILE if mobile else DESKTOP
     context = _context(qa, browser, viewport, mobile)
     result: Dict[str, Any] = {"status": None, "shots": [], "text": False, "error": None}
@@ -203,24 +227,27 @@ def _capture_view(
     return result
 
 
-def run_shots(args: argparse.Namespace, urls: Sequence[str]) -> int:  # pragma: no cover - needs the real browser
-    require_cloakbrowser()
-    qa = load_launcher()
+def run_shots(
+    args: argparse.Namespace,
+    urls: Sequence[str],
+    launch: Optional[Launch] = None,
+    capture_view: Optional[Callable[..., Dict[str, Any]]] = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> int:
+    """Capture each page on desktop and mobile. Returns 1 when any view failed (the other pages still run)."""
     out_dir = args.out_dir or data_dir() / "browse" / "shots"
+    view = capture_view or _capture_view
     pages: List[Dict[str, Any]] = []
-    with seat(qa) as browser:
+    with (launch or open_seat)() as browser:
         for index, url in enumerate(urls):
             log(f"shots: {url}")
             label = shot_label(url)
-            views = [
-                _capture_view(qa, browser, url, out_dir, label, name, mobile, args.full_page)
-                for name, mobile in (("desktop", False), ("mobile", True))
-            ]
+            views = [view(browser, url, out_dir, label, name, mobile, args.full_page) for name, mobile in VIEWS]
             pages.append({"label": label, "url": url, "views": views})
             if index < len(urls) - 1:
-                time.sleep(args.delay)
+                sleep(args.delay)
     write_json_file(out_dir / "manifest.json", {"pages": pages})
-    failed = [page for page in pages if any(view["error"] for view in page["views"])]
+    failed = [page for page in pages if any(item["error"] for item in page["views"])]
     log(f"done: {len(pages) - len(failed)}/{len(pages)} pages captured in {out_dir}")
     return 1 if failed else 0
 
@@ -246,26 +273,29 @@ def _capture_serp(browser: Any, query: str, out_dir: Path) -> Dict[str, Any]:  #
     return record
 
 
-def run_serp(args: argparse.Namespace, queries: Sequence[str]) -> int:  # pragma: no cover - needs the real browser
-    require_cloakbrowser()
-    qa = load_launcher()
+def run_serp(
+    args: argparse.Namespace,
+    queries: Sequence[str],
+    launch: Optional[Launch] = None,
+    capture: Optional[Callable[[Any, str, Path], Dict[str, Any]]] = None,
+    sleep: Optional[Callable[[float], None]] = None,
+    now: Callable[[], float] = time.time,
+) -> int:
+    """Capture each query (see serp_guard for when it stops). Exit code 1 when any capture failed or was blocked."""
     out_dir = args.out_dir or data_dir() / "browse" / "serp"
-    records: List[Dict[str, Any]] = []
-    blocked = False
-    with seat(qa) as browser:
-        for index, query in enumerate(queries):
-            log(f"google: {query!r}")
-            records.append(_capture_serp(browser, query, out_dir))
-            if records[-1]["blocked"]:
-                blocked = True
-                log("Google showed a block page: stopping here. This tool never tries to get past it; "
-                    "wait a good while before another run, and keep the runs small.")
-                break
-            if index < len(queries) - 1:
-                time.sleep(args.delay)
-    write_json_file(out_dir / "manifest.json", {"queries": records})
-    log(f"done: {len(records)} of {len(queries)} queries captured in {out_dir}")
-    return EXIT_BLOCKED if blocked else 0
+    marker = default_marker()
+    refuse_while_blocked(marker, now())  # before anything else: no browser, no request
+    take = capture or _capture_serp
+    with (launch or open_seat)() as browser:
+        run = capture_queries(
+            queries, args.delay, lambda query: {**take(browser, query, out_dir), "label": serp_label(query)},
+            sleep or time.sleep,
+        )
+    if run.blocked:
+        record_block(marker)
+    write_json_file(out_dir / "manifest.json", {"queries": list(run.records)})
+    log(f"done: {run.captured} of {len(queries)} queries captured in {out_dir}")
+    return exit_code(run)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -295,7 +325,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "shots":
         if not args.urls and args.urls_file is None:
             parser.error("shots needs at least one URL, or --urls-file FILE")
-        return run_shots(args, collect_urls(args.urls, args.urls_file))
+        urls = collect_urls(args.urls, args.urls_file)
+        reject_google_urls(urls)
+        return run_shots(args, urls)
     if not args.queries and args.queries_file is None:
         parser.error("serp needs at least one query, or --queries-file FILE")
     listed = list(args.queries) + (list(read_query_file(args.queries_file)) if args.queries_file else [])
