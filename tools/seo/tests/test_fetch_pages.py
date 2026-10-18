@@ -15,6 +15,7 @@ import urllib.request
 import zlib
 from pathlib import Path
 from unittest import mock
+from urllib.parse import urlsplit
 
 from helpers import FakeClock, FakeOpener, Reply, captured
 from loopback import LoopbackServer, Page, free_port
@@ -420,6 +421,105 @@ class FetchTests(unittest.TestCase):
 
 
 ROBOTS_BLOCKING_PRIVATE = b"User-agent: *\nDisallow: /private/\n"
+DNS = {
+    "localhost": ("127.0.0.1", "::1"), "intranet.test": ("10.1.2.3",), "rebind.test": ("93.184.216.34", "10.0.0.9"),
+    "2130706433": ("127.0.0.1",), "0x7f.0.0.1": ("127.0.0.1",), "0": ("0.0.0.0",), "elsewhere.test": ("93.184.216.34",),
+}
+PRIVATE_TARGETS = (
+    "http://127.0.0.1:8080/admin/reboot", "http://localhost:3000/logout", "http://[::1]:9000/",
+    "http://169.254.169.254/latest/meta-data/", "http://192.168.1.1/cgi-bin/restart", "http://10.0.0.5/",
+    "http://[::ffff:7f00:1]/", "http://2130706433/", "http://0x7f.0.0.1/", "http://0/", "http://intranet.test/",
+    "http://rebind.test/x",
+)
+
+
+class PrivateRedirectTests(unittest.TestCase):
+    """A public page must not be able to send this tool to the owner's own machine or network."""
+
+    PAGE = "https://public.test/page"
+    PUBLIC_ROBOTS = "https://public.test/robots.txt"
+
+    def fetcher(self, routes, allow_private=False, resolver=lambda host: DNS.get(host, ())):
+        clock = FakeClock()
+        opener = FakeOpener(routes, clock=clock, seconds_per_request=0.1)
+        fetcher = PoliteFetcher(
+            opener, delay=0, clock=clock, sleep=clock.sleep, allow_private_hosts=allow_private, resolver=resolver
+        )
+        return fetcher, opener
+
+    def test_a_redirect_to_a_local_or_private_address_is_refused_and_never_requested(self) -> None:
+        for target in PRIVATE_TARGETS:
+            with self.subTest(target=target):
+                routes = {self.PUBLIC_ROBOTS: Reply(404), self.PAGE: Reply(302, b"", {"Location": target}),
+                          target: Reply(200, b"INTERNAL")}
+                fetcher, opener = self.fetcher(routes)
+                result = fetcher.fetch(self.PAGE)
+                self.assertEqual(result.status, 302)
+                self.assertIn("refused", result.error)
+                self.assertIn("--allow-private-hosts", result.error)
+                self.assertEqual(opener.urls, [self.PUBLIC_ROBOTS, self.PAGE])
+                self.assertEqual(result.body, b"")
+
+    def test_a_redirect_to_another_public_host_is_followed(self) -> None:
+        routes = {self.PUBLIC_ROBOTS: Reply(404), self.PAGE: Reply(301, b"", {"Location": "https://elsewhere.test/landing"}),
+                  "https://elsewhere.test/robots.txt": Reply(404), "https://elsewhere.test/landing": Reply(200, HTML)}
+        fetcher, _ = self.fetcher(routes)
+        self.assertEqual(fetcher.fetch(self.PAGE).status, 200)
+
+    def test_a_redirect_that_stays_on_the_requested_host_is_not_checked_even_when_that_host_is_local(self) -> None:
+        """The owner's own local preview: the address was asked for, and /about -> /about/ must keep working."""
+
+        def no_dns(host: str):
+            raise AssertionError("no lookup is needed when the host is the one that was asked for")
+
+        def robots_of(url: str) -> str:
+            parts = urlsplit(url)
+            return f"{parts.scheme}://{parts.netloc.lower()}/robots.txt"
+
+        cases = (
+            ("http://127.0.0.1:8000/about", "http://127.0.0.1:8000/about/"),
+            ("http://localhost:3000/a", "http://LOCALHOST:3000/a/"),
+            ("http://127.0.0.1:8000/a", "http://127.0.0.1:9000/b"),
+            ("http://[::1]:8000/a", "http://[::1]:8000/a/"),
+        )
+        for start, hop in cases:
+            with self.subTest(start=start, hop=hop):
+                routes = {robots_of(start): Reply(404), robots_of(hop): Reply(404),
+                          start: Reply(301, b"", {"Location": hop}), hop: Reply(200, HTML)}
+                fetcher, _ = self.fetcher(routes, resolver=no_dns)
+                self.assertEqual(fetcher.fetch(start).status, 200)
+
+    def test_the_flag_follows_such_redirects(self) -> None:
+        target = "http://127.0.0.1:8080/admin"
+        routes = {self.PUBLIC_ROBOTS: Reply(404), self.PAGE: Reply(302, b"", {"Location": target}),
+                  "http://127.0.0.1:8080/robots.txt": Reply(404), target: Reply(200, HTML)}
+        fetcher, opener = self.fetcher(routes, allow_private=True)
+        self.assertEqual(fetcher.fetch(self.PAGE).status, 200)
+        self.assertIn(target, opener.urls)
+
+    def test_a_robots_txt_that_redirects_to_a_private_address_skips_the_site(self) -> None:
+        target = "http://127.0.0.1:8080/robots.txt"
+        routes = {self.PUBLIC_ROBOTS: Reply(301, b"", {"Location": target}), target: Reply(200, b""), self.PAGE: Reply(200, HTML)}
+        fetcher, opener = self.fetcher(routes)
+        result = fetcher.fetch(self.PAGE)
+        self.assertIn("robots.txt could not be read", result.skipped)
+        self.assertIn("refused", result.skipped)
+        self.assertEqual(opener.urls, [self.PUBLIC_ROBOTS])
+
+    def test_a_name_that_does_not_resolve_is_left_to_fail_by_itself(self) -> None:
+        target = "https://nowhere.test/x"
+        routes = {self.PUBLIC_ROBOTS: Reply(404), self.PAGE: Reply(302, b"", {"Location": target}),
+                  "https://nowhere.test/robots.txt": Reply(404), target: urllib.error.URLError("no such host")}
+        fetcher, opener = self.fetcher(routes)
+        result = fetcher.fetch(self.PAGE)
+        self.assertIn("no such host", result.error)
+        self.assertIn(target, opener.urls)
+
+    def test_the_default_resolver_is_the_operating_systems(self) -> None:
+        import url_guard
+
+        fetcher = PoliteFetcher(FakeOpener({}))
+        self.assertIs(fetcher._resolve, url_guard.resolve_addresses)
 
 
 class RealOpenerTests(unittest.TestCase):
@@ -643,6 +743,18 @@ class SaveAndMainTests(unittest.TestCase):
         meta = json.loads((self.out / "evil.test_x.meta.json").read_text(encoding="utf-8"))
         self.assertIn("refused", meta["error"])
         self.assertEqual(len(out.strip().splitlines()), 3)
+
+    def test_a_redirect_to_a_private_address_is_an_error_unless_the_flag_is_given(self) -> None:
+        target = "http://127.0.0.1:8080/admin"
+        routes = {ROBOTS: Reply(404), PAGE: Reply(302, b"", {"Location": target}), "http://127.0.0.1:8080/robots.txt": Reply(404),
+                  target: Reply(200, HTML)}
+        code, out, _, opener = self.run_main([str(self.out), PAGE], routes)
+        self.assertEqual(code, 1)
+        self.assertIn("refused", out)
+        self.assertNotIn(target, opener.urls)
+        code, out, _, opener = self.run_main([str(self.out), PAGE, "--allow-private-hosts"], routes)
+        self.assertEqual(code, 0)
+        self.assertIn(target, opener.urls)
 
     def test_urls_file_and_arguments_are_merged_without_repeats(self) -> None:
         urls_file = Path(self._tmp.name) / "urls.txt"

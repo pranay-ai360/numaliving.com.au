@@ -221,6 +221,29 @@ class HostileAddressTests(unittest.TestCase):
         self.assertIn("2 URLs", out.getvalue())
 
 
+class PoliteFetcherSettingsTests(unittest.TestCase):
+    """main() builds the fetcher itself unless a fetch function is given: check how."""
+
+    URL = "https://example.test/sitemap.xml"
+
+    def settings(self, *flags: str) -> dict:
+        with mock.patch.object(sitemap_report, "PoliteFetcher") as fetcher_class, mock.patch.object(sitemap_report, "default_opener"):
+            fetcher_class.return_value.fetch = fake_fetch({self.URL: fixture_bytes("sitemaps", "urlset.xml")})
+            with captured():
+                sitemap_report.main([self.URL, *flags])
+        return fetcher_class.call_args.kwargs
+
+    def test_redirects_to_private_addresses_are_refused_by_default(self) -> None:
+        self.assertFalse(self.settings()["allow_private_hosts"])
+
+    def test_the_flag_allows_them(self) -> None:
+        self.assertTrue(self.settings("--allow-private-hosts")["allow_private_hosts"])
+
+    def test_the_delay_and_the_sitemap_size_limit_are_passed_on(self) -> None:
+        settings = self.settings("--delay", "4")
+        self.assertEqual((settings["delay"], settings["max_bytes"]), (4.0, sitemap_report.MAX_SITEMAP_BYTES))
+
+
 class CalendarTests(unittest.TestCase):
     """A lastmod must start with a real calendar day; anything else is "undated", not a day of its own."""
 
