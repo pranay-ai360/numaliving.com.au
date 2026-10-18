@@ -118,6 +118,11 @@ def swap(text: str, old: str, new: str) -> str:
     return text.replace(old, new, 1)
 
 
+def edit_page(web: FakeWeb, url: str, old: str, new: str) -> FakeWeb:
+    """Change the HTML served at ``url``: ``old`` must be in it."""
+    return web.add(url, swap(web.body_of(url), old, new))
+
+
 def page_file(path: str) -> str:
     """The fixture file that holds the page at this site path."""
     return "home.html" if path == "/" else path.strip("/") + ".html"

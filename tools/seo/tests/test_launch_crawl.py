@@ -10,6 +10,7 @@ from launch_support import FakeWeb, ORIGIN
 import launch_crawl  # noqa: E402
 from fetch_pages import FetchResult  # noqa: E402
 from launch_crawl import Crawl, Fetched  # noqa: E402
+from launch_model import Site  # noqa: E402
 from seo_common import SeoToolError  # noqa: E402
 
 LOCAL = "http://127.0.0.1:4573"
@@ -20,8 +21,8 @@ def page(*hrefs: str, title: str = "T") -> str:
     return f"<html><head><title>{title}</title></head><body><h1>H</h1>{links}</body></html>"
 
 
-def run(web: FakeWeb, seeds: Sequence[str] = (ORIGIN + "/",), max_pages: int = 60) -> Crawl:
-    return launch_crawl.crawl_site(web, seeds, max_pages)
+def run(web: FakeWeb, seeds: Sequence[str] = (ORIGIN + "/",), max_pages: int = 60, base: str = ORIGIN + "/") -> Crawl:
+    return launch_crawl.crawl_site(Site.create(base, ORIGIN, "live"), web, seeds, max_pages)
 
 
 def requested(crawl: Crawl) -> List[str]:
@@ -125,7 +126,7 @@ class WhatIsNotFetchedTests(unittest.TestCase):
         web = FakeWeb()
         web.add(LOCAL + "/", page(ORIGIN + "/about/", "/a/"))
         web.add(LOCAL + "/a/", page())
-        crawl = run(web, seeds=[LOCAL + "/"])
+        crawl = run(web, seeds=[LOCAL + "/"], base=LOCAL + "/")
         self.assertEqual(requested(crawl), [LOCAL + "/", LOCAL + "/a/"])
 
 
@@ -178,7 +179,7 @@ class WhatIsRecordedTests(unittest.TestCase):
         original = web(ORIGIN + "/")
         cut = FetchResult(requested=original.requested, final_url=original.final_url, status=200,
                           headers=original.headers, body=original.body, truncated=True)
-        crawl = launch_crawl.crawl_site(lambda url: cut, [ORIGIN + "/"], 60)
+        crawl = launch_crawl.crawl_site(Site.create(ORIGIN, ORIGIN, "live"), lambda url: cut, [ORIGIN + "/"], 60)
         self.assertIsNone(crawl.fetched[0].facts)
 
     def test_bytes_that_are_not_utf8_do_not_stop_the_crawl(self) -> None:
@@ -188,6 +189,24 @@ class WhatIsRecordedTests(unittest.TestCase):
         assert crawl.fetched[0].facts is not None
         self.assertEqual(crawl.fetched[0].facts.title, "Caf�")
         self.assertEqual(len(crawl.fetched), 2)
+
+
+class OffSiteTests(unittest.TestCase):
+    def test_a_link_that_ends_on_another_site_is_fetched_but_never_read_or_followed(self) -> None:
+        web = FakeWeb().add(ORIGIN + "/", page("/out/")).redirect(ORIGIN + "/out/", "https://partner.example.test/")
+        web.add("https://partner.example.test/", '<title>Partner</title><a href="/secret/">s</a>')
+        web.add("https://partner.example.test/secret/", page())
+        crawl = run(web)
+        self.assertEqual(requested(crawl), [ORIGIN + "/", ORIGIN + "/out/"])
+        self.assertIsNone(crawl.fetched[1].facts)
+        self.assertEqual(crawl.fetched[1].final_url, "https://partner.example.test/")
+        self.assertEqual(web.requests, [ORIGIN + "/", ORIGIN + "/out/"])
+
+    def test_a_redirect_from_the_base_to_the_canonical_host_stays_on_the_site(self) -> None:
+        web = FakeWeb().add(LOCAL + "/", page("/a/")).redirect(LOCAL + "/a/", ORIGIN + "/a/").add(ORIGIN + "/a/", page(title="A"))
+        crawl = run(web, seeds=[LOCAL + "/"], base=LOCAL + "/")
+        assert crawl.fetched[1].facts is not None
+        self.assertEqual(crawl.fetched[1].facts.title, "A")
 
 
 class RedirectTests(unittest.TestCase):

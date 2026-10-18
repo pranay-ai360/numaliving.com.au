@@ -166,7 +166,7 @@ class ResultTests(unittest.TestCase):
 
 
 class JudgeTests(unittest.TestCase):
-    def judge(self, subjects: List[str], noun: str = "pages") -> CheckResult:
+    def judge(self, subjects: List[str], noun: str = "page") -> CheckResult:
         def test(subject: str) -> str:
             return "too short" if len(subject) < 3 else ""
 
@@ -182,8 +182,11 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(result.failures, (Failure("https://a.test/a", "too short"), Failure("https://a.test/bc", "too short")))
         self.assertEqual(result.summary, "2 of 3 pages")
 
-    def test_the_noun_comes_from_the_caller(self) -> None:
-        self.assertEqual(self.judge(["abc"], "inner pages").summary, "1 inner pages")
+    def test_the_noun_comes_from_the_caller_and_is_made_plural_unless_there_is_one(self) -> None:
+        self.assertEqual(self.judge(["abc"], "inner page").summary, "1 inner page")
+        self.assertEqual(self.judge(["abc", "abc"], "inner page").summary, "2 inner pages")
+        self.assertEqual(self.judge(["abc", "a"], "image").summary, "1 of 2 images")
+        self.assertEqual(self.judge(["a"], "image").summary, "1 of 1 image")
 
     def test_nothing_to_judge_is_a_skip_not_a_pass(self) -> None:
         result = self.judge([])
