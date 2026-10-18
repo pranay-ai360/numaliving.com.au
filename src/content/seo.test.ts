@@ -335,7 +335,7 @@ describe("page registry share images", () => {
 describe("projectSeo", () => {
   const NEW_PROJECT: ShowcaseProject = {
     slug: "new-office",
-    name: "New Office Fit-out",
+    name: "New Office Build-out",
     sector: "Office",
     city: "Austin",
     country: "USA",
@@ -358,7 +358,7 @@ describe("projectSeo", () => {
     // Assert
     expect(seo).toMatchObject({
       path: "/projects/new-office",
-      title: "New Office Fit-out",
+      title: "New Office Build-out",
       description: project.summary,
       indexable: true,
       ogImage: { src: "/og/new-office.jpg", alt: "A reception desk in oak veneer" },

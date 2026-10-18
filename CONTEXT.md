@@ -61,5 +61,5 @@ A sentence on a page that states something about Numa the repository does not ba
 _Avoid_: Assumption, TODO claim
 
 **US vocabulary guard**:
-The check (`findUkTerms` in `src/lib/vocabulary.ts`) that no page or message uses a word only British, Australian or Gulf readers use (joinery, wardrobe, programme, colour, enquiry, tender, BOQ and more), or a metric measure that does not follow a US unit. It runs over the copy modules and over every served page.
+The check (`findUkTerms` in `src/lib/vocabulary.ts`) that no page or message uses a word only British, Australian or Gulf readers use (joinery, wardrobe, programme, colour, enquiry, tender, BOQ, labelled, catalogue, litre, fit-out and more), or a metric measure, as a symbol or spelled out, that does not follow a US unit. It runs over the copy modules and over every served page.
 _Avoid_: spell check, style check

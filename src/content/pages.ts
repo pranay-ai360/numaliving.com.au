@@ -121,7 +121,7 @@ export const factory = {
     { name: "Veneer", text: "Veneer selection, bookmatching and pressing, with flitches reserved per project." },
     { name: "Finishing", text: "Dust-controlled spray booths for lacquer and oil finishes, color-matched to approved samples." },
     { name: "Assembly & QC", text: "Pre-assembly and dry-fitting, checked against drawings before anything is packed." },
-    { name: "Export Packing", text: "Crated, labelled by room and sequence, ready for container or air freight." },
+    { name: "Export Packing", text: "Crated, labeled by room and sequence, ready for container or air freight." },
   ],
 };
 
@@ -157,7 +157,7 @@ export const delivery = {
     { name: "Europe", countries: ["United Kingdom"] },
   ],
   points: [
-    { name: "Export packing", text: "Moisture-protected, crated and labelled by room and install sequence." },
+    { name: "Export packing", text: "Moisture-protected, crated and labeled by room and install sequence." },
     { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared with you." },
     { name: "Installation", text: "Our own installers, or supervision of your local team, wherever the site is." },
     { name: "After care", text: "Spare parts, touch-up kits and a warranty period on every project." },

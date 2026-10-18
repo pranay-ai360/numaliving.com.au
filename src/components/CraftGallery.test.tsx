@@ -18,7 +18,7 @@ describe("PhotoTile", () => {
 
   it("shows a wood-tone placeholder, not an image file, while the photo has no source", () => {
     // Arrange
-    const photo = { src: "", material: "oak", alt: "Fluted oak panelling detail", caption: "Fluted oak" };
+    const photo = { src: "", material: "oak", alt: "Fluted oak paneling detail", caption: "Fluted oak" };
 
     // Act
     render(<PhotoTile photo={photo} />);

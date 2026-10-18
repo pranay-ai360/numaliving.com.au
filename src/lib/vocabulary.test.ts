@@ -87,6 +87,22 @@ describe("findUkTerms: words and spellings", () => {
     ["labour", "Labour on site", "Labour"],
     ["licence", "A trade licence", "licence"],
     ["matt lacquer", "High-gloss and matt lacquer", "matt"],
+    ["labelled", "Crated, labelled by room and sequence", "labelled"],
+    ["labelling", "Room labelling on every crate", "labelling"],
+    ["travelled", "Samples travelled by air", "travelled"],
+    ["traveller", "A traveller's trunk", "traveller"],
+    ["cancelled", "A cancelled order", "cancelled"],
+    ["modelling", "3D modelling of the stair", "modelling"],
+    ["modeller", "A CNC modeller", "modeller"],
+    ["levelled", "A levelled floor", "levelled"],
+    ["catalogue", "Download the catalogue", "catalogue"],
+    ["catalogues", "Finish catalogues and samples", "catalogues"],
+    ["litre", "A litre of lacquer", "litre"],
+    ["litres", "20 litres of oil", "litres"],
+    ["millilitres", "Fifty millilitres of dye", "millilitres"],
+    ["fit-out", "A fit-out contractor", "fit-out"],
+    ["fitout", "The fitout schedule", "fitout"],
+    ["fit-outs", "Hotel fit-outs", "fit-outs"],
   ])("finds %s", (_label, text, expected) => {
     // Arrange
     // (the table supplies the text)
@@ -114,6 +130,13 @@ describe("findUkTerms: words and spellings", () => {
     "Moulding and mouldings are accepted US trade spelling",
     "Countertops and baseboards",
     "Matte lacquer, and Matt Damon is a name",
+    "Crated, labeled by room and sequence",
+    "Samples traveled by air, a canceled order, 3D modeling by a modeler",
+    "A leveled floor and a catalog of finishes",
+    "A liter of lacquer",
+    "A build-out and we fit out the villa",
+    "Our factory produces to millimeter tolerances",
+    "Sold by the meter, and a gas meter",
   ])("finds nothing in US copy: %s", (text) => {
     // Arrange
     // (the table supplies the text)
@@ -194,6 +217,12 @@ describe("findUkTerms: metric units", () => {
     ["centimeters as a symbol", "Panels 2 cm thick", "2 cm"],
     ["the metric twin first, the US unit in parentheses", "1,400 m² (15,000 sq ft)", "m²"],
     ["a metric twin that follows text, not a US unit", "Factory floor (18,000 m²)", "m²"],
+    ["square meters with no US unit", "1,400 square meters of factory", "1,400 square meters"],
+    ["meters spelled out", "A reception desk 9 meters long", "9 meters"],
+    ["a hyphenated length in meters", "A 10-meter run", "10-meter"],
+    ["millimeters spelled out", "Panels 19 millimeters thick", "19 millimeters"],
+    ["kilometers spelled out", "Ships 12 kilometers inland", "12 kilometers"],
+    ["a single meter", "Cut at 1 meter", "1 meter"],
   ])("flags %s", (_label, text, expected) => {
     // Arrange
     // (the table supplies the text)
@@ -214,6 +243,10 @@ describe("findUkTerms: metric units", () => {
     "A 20 square feet (1.9 m²) room",
     "A 1 1/2 inches (38 mm) door",
     "A 10 feet (about 3 m) run",
+    "About 15,000 sq ft (1,400 square meters)",
+    "A run of 30 ft (9 meters)",
+    "Panels 3/4 in (19 millimeters) thick",
+    "A 100 feet (30 meters) run",
   ])("accepts the metric twin in parentheses after a US unit: %s", (text) => {
     // Arrange
     // (the table supplies the text)
@@ -245,6 +278,40 @@ describe("findUkTerms: metric units", () => {
 
     // Assert
     expect(words).toEqual([]);
+  });
+});
+
+describe("findUkTerms: crafted input", () => {
+  /** The fastest of a few runs, so a busy machine does not make a fast function look slow. */
+  function fastestMilliseconds(text: string): number {
+    const runs = Array.from({ length: 3 }, () => {
+      const start = performance.now();
+      findUkTerms(text);
+      return performance.now() - start;
+    });
+    return Math.min(...runs);
+  }
+
+  const FORTY_KB = 40_000;
+
+  it.each([
+    ["a long run of numbers and commas", `1${",1".repeat(FORTY_KB / 2)} x`],
+    ["a metric twin that never closes", `5 ft (${"9,".repeat(FORTY_KB / 2)} m`],
+    ["numbers and periods", `${"1.".repeat(FORTY_KB / 2)}m`],
+    ["many measures with no unit", `${"5 ".repeat(FORTY_KB / 2)}ft `],
+    ["a US unit followed by endless spaces", `5 ft${" ".repeat(FORTY_KB)}x`],
+    ["open parentheses with spaces", `5 ft${"( ".repeat(FORTY_KB / 2)}`],
+    ["a number and endless spaces before a unit", `5${" ".repeat(FORTY_KB)}m`],
+  ])("finishes in under 100 ms on %s of about 40 KB", (_label, text) => {
+    // Arrange
+    // (the table supplies the crafted text)
+
+    // Act
+    const milliseconds = fastestMilliseconds(text);
+
+    // Assert
+    expect(text.length).toBeGreaterThanOrEqual(FORTY_KB);
+    expect(milliseconds).toBeLessThan(100);
   });
 });
 
