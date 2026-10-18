@@ -72,7 +72,10 @@ afterEach(async () => {
   await Promise.all(roots.map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe("buildImages", () => {
+/** Encoding AVIF is slow on a small CI runner, so these tests get far more than the default five seconds. */
+const SLOW_TEST_TIMEOUT_MS = 60_000;
+
+describe("buildImages", { timeout: SLOW_TEST_TIMEOUT_MS }, () => {
   it("writes an AVIF and a WebP at every width that fits each photo, and never enlarges one", async () => {
     // Arrange
     const root = await projectRoot();

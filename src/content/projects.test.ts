@@ -36,7 +36,10 @@ function wordCount(text: string): number {
   return text.trim().split(/\s+/).length;
 }
 
-describe("project photos", () => {
+/** These tests open every photo and copy (270 files), which a small CI runner does more slowly than a laptop. */
+const DISK_TEST_TIMEOUT_MS = 30_000;
+
+describe("project photos", { timeout: DISK_TEST_TIMEOUT_MS }, () => {
   it("has a gallery of real photos for the four projects that have them", () => {
     // Arrange
     const withPhotos = projects.filter((project) => project.photos.length > 0).map((project) => project.slug);
