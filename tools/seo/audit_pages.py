@@ -196,7 +196,7 @@ def format_summary(summary: Mapping[str, Any]) -> str:
         f" jsonld: {', '.join(r['jsonld_types']) or 'none'} ({r['jsonld_blocks']} blocks, {r['jsonld_errors']} errors) "
         f"| forms {len(r['forms'])} | platform: {', '.join(r['platform']) or '?'}",
     ]
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def _is_number(value: Any) -> bool:
@@ -230,7 +230,7 @@ def format_table(rows: Sequence[Mapping[str, Any]]) -> str:
             f"{r['images_alt_missing'] + r['images_alt_empty']:>4} {'y' if r['canonical'] else '-':>3} "
             f"{len(r['og']):>2} {','.join(r['jsonld_types'])[:TABLE_TYPES_WIDTH]}"
         )
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def table_for(directory: Path) -> str:

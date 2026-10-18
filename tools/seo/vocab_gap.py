@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import FrozenSet, Iterator, List, Mapping, Optional, Sequence, Tuple
 
-from seo_common import SeoToolError, emit, positive_int, read_text_file, run_cli
+from seo_common import SeoToolError, emit, positive_int, printable, read_text_file, run_cli
 
 STOP_WORDS = frozenset(
     """
@@ -221,7 +221,7 @@ def render_term_table(counts: Sequence[TermCount], ranking_total: int, own_total
                 f"{group.label:<{width}} {ranking_cell:>8} {own_cell:>7} {group.plan_ranking_pages:>8} "
                 f"{group.plan_own_pages:>9}  {action}".rstrip()
             )
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def is_boilerplate_page(name: str) -> bool:
@@ -274,7 +274,7 @@ def render_report(
     lines += ["", f"=== Numa vocabulary that ranking pages rarely use (on {OWN_ONLY_MIN_OWN_PAGES}+ own pages, "
                   f"at most {OWN_ONLY_MAX_RANKING_PAGES} ranking page) ==="]
     lines += _gap_lines(find_own_only_terms(ranking, own), len(ranking_texts), len(own_texts), own_first=True) or ["  (none)"]
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def _share(text: str) -> float:

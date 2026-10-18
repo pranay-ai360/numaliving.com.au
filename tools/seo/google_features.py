@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Sequence, Tuple
 
-from seo_common import SeoToolError, emit, read_text_file, run_cli
+from seo_common import SeoToolError, emit, printable, read_text_file, run_cli
 
 AI_OVERVIEW = "AI Overview"
 AI_OVERVIEW_END = "AI responses may include mistakes"
@@ -137,7 +137,7 @@ def render_features(features: GoogleFeatures) -> str:
         lines.append("  PAA: " + " | ".join(features.people_also_ask))
     if features.related_searches:
         lines.append("  related: " + " | ".join(features.related_searches))
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def render_summary(counts: Dict[str, int]) -> str:

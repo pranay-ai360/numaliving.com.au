@@ -42,6 +42,7 @@ from seo_common import (
     emit,
     log,
     non_negative_float,
+    printable,
     read_list_file,
     remove_file,
     require_http_url,
@@ -428,14 +429,15 @@ def save_result(out_dir: Path, result: FetchResult, stem: Optional[str] = None) 
 
 
 def result_line(index: int, total: int, result: FetchResult) -> str:
+    """One line per URL for the terminal; what servers and redirects said is shown in its safe form."""
     prefix = f"[{index}/{total}]"
     if result.skipped:
-        return f"{prefix} skipped ({result.skipped}) {result.requested}"
+        return printable(f"{prefix} skipped ({result.skipped}) {result.requested}")
     if result.error:
-        return f"{prefix} ERROR {result.error} {result.requested}"
+        return printable(f"{prefix} ERROR {result.error} {result.requested}")
     hops = ">".join(str(hop.status) for hop in result.redirects) or "-"
     size = f"{len(result.body) / 1024:.1f} KB"
-    return f"{prefix} {result.status} hops:{hops} {size} {result.requested} -> {result.final_url}"
+    return printable(f"{prefix} {result.status} hops:{hops} {size} {result.requested} -> {result.final_url}")
 
 
 def collect_urls(urls: Sequence[str], urls_file: Optional[Path]) -> Tuple[str, ...]:

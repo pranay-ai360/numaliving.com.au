@@ -32,6 +32,7 @@ from seo_common import (
     emit,
     non_negative_float,
     positive_int,
+    printable,
     read_bytes_file,
     require_http_url,
     run_cli,
@@ -300,7 +301,7 @@ def render_report(report: SitemapReport, max_days: int = DEFAULT_MAX_DAYS, top: 
         )
     if report.notes:
         lines += ["", *(f"note: {note}" for note in report.notes)]
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def _child_limit(text: str) -> int:

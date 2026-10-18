@@ -42,6 +42,7 @@ from seo_common import (
     log,
     non_negative_float,
     positive_int,
+    printable,
     read_query_file,
     require_http_url,
     run_cli,
@@ -230,7 +231,7 @@ def run_query(
 def status_line(prefix: str, query: str, record: Dict[str, Any]) -> str:
     throttled = ", ".join(f"{name}({reason})" for name, reason in record["unresponsive"]) or "none"
     status = "ok" if record["results"] else "EMPTY"
-    return (
+    return printable(
         f"{prefix} {status} {len(record['results'])} results, {len(record['suggestions'])} suggestions"
         f" | throttled: {throttled} | {query!r}"
     )

@@ -30,6 +30,7 @@ from seo_common import (
     emit,
     log,
     positive_int,
+    printable,
     read_text_file,
     require_http_url,
     run_cli,
@@ -180,7 +181,7 @@ def render_report(
         lines.append(
             f"{stat.queries:>3}  {stat.domain:<{DOMAIN_COLUMN_WIDTH}} avg first-rank {stat.average_first_rank:4.1f}{tag}"
         )
-    return "\n".join(lines)
+    return printable("\n".join(lines))
 
 
 def build_parser() -> argparse.ArgumentParser:
