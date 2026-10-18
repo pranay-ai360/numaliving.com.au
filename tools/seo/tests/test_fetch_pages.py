@@ -135,6 +135,52 @@ class RobotsPolicyTests(unittest.TestCase):
         policy = fetch_pages.policy_from_reply(self.reply(body=b"User-agent: *\nDisallow: /caf\xe9/\n"))
         self.assertEqual(policy.refusal(f"{SITE}/other"), "")
 
+    def test_a_byte_order_mark_does_not_hide_the_first_group(self) -> None:
+        policy = fetch_pages.policy_from_reply(self.reply(body=b"\xef\xbb\xbf" + ROBOTS_WITH_RULES))
+        self.assertEqual(policy.refusal(f"{SITE}/private/x"), "robots.txt disallows this URL")
+        self.assertEqual(policy.crawl_delay, 10.0)
+
+    def test_rule_order_and_wildcards_are_applied_the_same_way_on_every_python(self) -> None:
+        cases = (
+            ("allow-all first, then a disallow", b"User-agent: *\nAllow: /\nDisallow: /private/\n", "/private/secret", True),
+            ("end anchor", b"User-agent: *\nDisallow: /*.pdf$\n", "/files/brochure.pdf", True),
+            ("trailing star", b"User-agent: *\nDisallow: /private*\n", "/private-area/x", True),
+            ("query rule", b"User-agent: *\nDisallow: /*?session=\n", "/page?session=abc", True),
+            ("longer allow wins", b"User-agent: *\nDisallow: /a\nAllow: /a/b/\n", "/a/b/c", False),
+            ("plain rule", b"User-agent: *\nDisallow: /private/\n", "/private/secret", True),
+            ("other path is fine", b"User-agent: *\nDisallow: /private/\n", "/public", False),
+        )
+        for label, body, path, refused in cases:
+            with self.subTest(label=label):
+                policy = fetch_pages.policy_from_reply(self.reply(body=body))
+                self.assertEqual(bool(policy.refusal(f"{SITE}{path}")), refused)
+
+    def test_a_decimal_crawl_delay_is_read_as_a_number(self) -> None:
+        policy = fetch_pages.policy_from_reply(self.reply(body=b"User-agent: *\nCrawl-delay: 2.5\n"))
+        self.assertEqual(policy.crawl_delay, 2.5)
+
+    def test_hostile_crawl_delay_values_cannot_crash_the_policy(self) -> None:
+        for value in ("9" * 400, "9" * 5000, "²", "٥", "1e999", "soon"):
+            with self.subTest(value=value[:12]):
+                policy = fetch_pages.policy_from_reply(self.reply(body=f"User-agent: *\nCrawl-delay: {value}\n".encode()))
+                self.assertIsInstance(policy, fetch_pages.RobotsPolicy)
+        huge = fetch_pages.policy_from_reply(self.reply(body=("User-agent: *\nCrawl-delay: " + "9" * 400 + "\n").encode()))
+        self.assertIn("Crawl-delay", huge.refusal(PAGE))
+
+    def test_a_utf16_robots_txt_skips_the_site_because_its_rules_cannot_be_trusted(self) -> None:
+        policy = fetch_pages.policy_from_reply(self.reply(body="User-agent: *\nDisallow: /\n".encode("utf-16")))
+        self.assertIn("UTF-8", policy.refusal(PAGE))
+
+    def test_the_query_string_is_part_of_what_a_rule_is_matched_against(self) -> None:
+        policy = fetch_pages.policy_from_reply(self.reply(body=b"User-agent: *\nDisallow: /*?session=\n"))
+        self.assertTrue(policy.refusal(f"{SITE}/page?session=1"))
+        self.assertEqual(policy.refusal(f"{SITE}/page?x=1"), "")
+        self.assertEqual(policy.refusal(f"{SITE}/page#session=1"), "")
+
+    def test_the_decimal_delay_is_shown_in_the_refusal_when_it_is_too_long(self) -> None:
+        policy = fetch_pages.policy_from_reply(self.reply(body=b"User-agent: *\nCrawl-delay: 61.5\n"))
+        self.assertIn("61.5", policy.refusal(PAGE))
+
 
 class FetchTests(unittest.TestCase):
     def test_returns_status_body_selected_headers_and_size(self) -> None:
@@ -180,6 +226,22 @@ class FetchTests(unittest.TestCase):
         self.assertIsNone(result.status)
         self.assertEqual(result.body, b"")
         self.assertNotIn(private, opener.urls)
+
+    def test_wildcard_and_ordering_rules_stop_the_request_itself(self) -> None:
+        """The reviewer's inputs: a disallowed page was requested on Python 3.9, 3.11 and 3.14 alike."""
+        cases = (
+            (b"User-agent: *\nAllow: /\nDisallow: /private/\n", f"{SITE}/private/secret"),
+            (b"User-agent: *\nDisallow: /*.pdf$\n", f"{SITE}/files/brochure.pdf"),
+            (b"User-agent: *\nDisallow: /private*\n", f"{SITE}/private-area/x"),
+            (b"User-agent: *\nDisallow: /*?session=\n", f"{SITE}/page?session=abc"),
+            (b"\xef\xbb\xbfUser-agent: *\nDisallow: /secret/\n", f"{SITE}/secret/a"),
+        )
+        for robots, url in cases:
+            with self.subTest(url=url):
+                fetcher, opener, _ = make_fetcher({ROBOTS: Reply(200, robots), url: Reply(200, HTML)})
+                result = fetcher.fetch(url)
+                self.assertIn("robots.txt", result.skipped)
+                self.assertNotIn(url, opener.urls)
 
     def test_allowed_urls_next_to_disallowed_ones_are_still_fetched(self) -> None:
         fetcher, _, _ = make_fetcher({ROBOTS: Reply(200, ROBOTS_WITH_RULES), PAGE: Reply(200, HTML)})
