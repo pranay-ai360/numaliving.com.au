@@ -196,11 +196,11 @@ def redirect_target(current: str, reply: RawReply) -> Tuple[str, str]:
         return "", f"redirect from {current} refused: {error}"
 
 
-def _read_reply(response: Any, status: int) -> RawReply:
+def _read_reply(response: Any, status: int, max_bytes: int = MAX_BYTES) -> RawReply:
     headers = tuple((name, value) for name in KEPT_HEADERS for value in [response.headers.get(name)] if value)
     try:
-        raw = response.read(MAX_BYTES + 1)
-        body, truncated = decode_body(raw, response.headers.get("Content-Encoding") or "", MAX_BYTES)
+        raw = response.read(max_bytes + 1)
+        body, truncated = decode_body(raw, response.headers.get("Content-Encoding") or "", max_bytes)
     except (OSError, http.client.HTTPException, ValueError) as error:
         return RawReply(status, headers, error=f"{type(error).__name__}: {error}")
     return RawReply(status, headers, body=body, truncated=truncated)
@@ -239,9 +239,11 @@ class PoliteFetcher:
         delay: float = DEFAULT_DELAY_SECONDS,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        max_bytes: Optional[int] = None,
     ) -> None:
         self._opener = opener
         self._delay = delay
+        self._max_bytes = max_bytes  # None: the page limit, MAX_BYTES, read when a request is made
         self._clock = clock
         self._sleep = sleep
         self._policies: Dict[str, RobotsPolicy] = {}  # origin -> what its robots.txt allows
@@ -307,12 +309,13 @@ class PoliteFetcher:
 
     def _open(self, url: str) -> RawReply:
         request = urllib.request.Request(url, headers=REQUEST_HEADERS)
+        limit = MAX_BYTES if self._max_bytes is None else self._max_bytes
         try:
             with self._opener.open(request, timeout=TIMEOUT_SECONDS) as response:
-                return _read_reply(response, response.status)
+                return _read_reply(response, response.status, limit)
         except urllib.error.HTTPError as error:
             with error:  # an HTTP error is also the response: it carries the status, headers and body
-                return _read_reply(error, error.code)
+                return _read_reply(error, error.code, limit)
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as error:
             return RawReply(None, (), error=f"{type(error).__name__}: {error}")
 

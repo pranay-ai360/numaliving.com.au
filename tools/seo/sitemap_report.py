@@ -47,7 +47,8 @@ HOME_SEGMENT = "(home)"
 GZIP_MAGIC = b"\x1f\x8b"
 GZIP_WBITS = zlib.MAX_WBITS | 16
 DAY_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
-DOCTYPE_PATTERN = re.compile(rb"<!(?:DOCTYPE|ENTITY)", re.IGNORECASE)
+DOCTYPE_PATTERN = re.compile(r"<!\s*(?:DOCTYPE|ENTITY)", re.IGNORECASE)
+UTF16_MARKS = (b"\xff\xfe", b"\xfe\xff")  # a UTF-32 little-endian mark starts like the first one
 CHILD_LISTING_LIMIT = 10
 FetchFunction = Callable[[str], FetchResult]
 
@@ -104,6 +105,16 @@ def _inflate(data: bytes, source: str) -> bytes:
     return xml
 
 
+def _decode_utf8(xml: bytes, source: str) -> str:
+    """The sitemap as text. The protocol requires UTF-8, and the DOCTYPE guard has to read what the parser will read."""
+    if xml.startswith(UTF16_MARKS) or b"\x00" in xml:
+        raise SeoToolError(f"{source} is not UTF-8 text (sitemaps must be UTF-8; UTF-16 and UTF-32 files are refused)")
+    try:
+        return xml.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise SeoToolError(f"{source} is not valid UTF-8 ({error.reason} at byte {error.start})") from error
+
+
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
@@ -116,12 +127,12 @@ def _child_text(item: ElementTree.Element, name: str) -> str:
 
 
 def parse_sitemap(data: bytes, source: str) -> Sitemap:
-    """Parse a sitemap or sitemap index (plain or gzip). A DOCTYPE or entity declaration is refused."""
-    xml = _inflate(data, source)
-    if DOCTYPE_PATTERN.search(xml):
+    """Parse a sitemap or sitemap index (plain or gzip, UTF-8 only). A DOCTYPE or entity declaration is refused."""
+    text = _decode_utf8(_inflate(data, source), source)
+    if DOCTYPE_PATTERN.search(text):
         raise SeoToolError(f"{source} has a DOCTYPE or entity declaration, which sitemaps do not need; not parsing it")
     try:
-        root = ElementTree.fromstring(xml)
+        root = ElementTree.fromstring(text)
     except ElementTree.ParseError as error:
         raise SeoToolError(f"{source} is not valid XML: {error}") from error
     kind = _local_name(root.tag)
@@ -181,7 +192,11 @@ def fetch_problem(result: FetchResult) -> str:
         return result.skipped
     if result.error:
         return result.error
-    return "" if result.status == 200 else f"HTTP {result.status}"
+    if result.status != 200:
+        return f"HTTP {result.status}"
+    if result.truncated:
+        return f"the download was truncated at {len(result.body) / 1e6:.1f} MB, so the sitemap is incomplete"
+    return ""
 
 
 def _child_urls(index: Sitemap, origin: str, limit: int) -> Tuple[Tuple[str, ...], List[str]]:
@@ -321,7 +336,7 @@ def load_source(source: str, fetch: FetchFunction) -> Tuple[bytes, str]:
 
 def main(argv: Optional[Sequence[str]] = None, fetch: Optional[FetchFunction] = None) -> int:
     args = build_parser().parse_args(argv)
-    fetcher = fetch or PoliteFetcher(default_opener(), delay=args.delay).fetch
+    fetcher = fetch or PoliteFetcher(default_opener(), delay=args.delay, max_bytes=MAX_SITEMAP_BYTES).fetch
     data, origin = load_source(args.source, fetcher)
     sitemap = parse_sitemap(data, args.source)
     report = build_report(sitemap, origin, fetcher, args.max_children, args.samples)
