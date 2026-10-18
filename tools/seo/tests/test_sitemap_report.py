@@ -515,6 +515,18 @@ class MainTests(unittest.TestCase):
             with captured():
                 self.assertEqual(run_cli(sitemap_report.main, [str(page)]), 2)
 
+    def test_more_children_than_the_limit_is_refused_instead_of_clamped_silently(self) -> None:
+        with captured() as (_, err), self.assertRaises(SystemExit) as caught:
+            sitemap_report.main(["x.xml", "--max-children", "11"])
+        self.assertEqual(caught.exception.code, 2)
+        self.assertIn("10", err.getvalue())
+        args = sitemap_report.build_parser().parse_args(["x.xml", "--max-children", "10"])
+        self.assertEqual(args.max_children, 10)
+        self.assertEqual(sitemap_report.build_parser().parse_args(["x.xml", "--max-children", "0"]).max_children, 0)
+
+    def test_the_default_pause_is_the_fetchers_default(self) -> None:
+        self.assertEqual(sitemap_report.build_parser().get_default("delay"), fetch_pages.DEFAULT_DELAY_SECONDS)
+
     def test_options_are_validated(self) -> None:
         for argv in (["x.xml", "--max-children", "-1"], ["x.xml", "--top", "0"], ["x.xml", "--max-days", "0"]):
             with self.subTest(argv=argv), captured(), self.assertRaises(SystemExit) as caught:

@@ -321,6 +321,37 @@ class ConnectTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {serp_search.URL_ENV: "file:///tmp/x"}), self.assertRaises(SeoToolError):
             serp_search.searxng_url()
 
+    def test_a_bad_instance_url_names_the_variable_and_what_is_accepted(self) -> None:
+        for value in ("localhost:8080", "ftp://localhost/x", "file:///tmp/x"):
+            with self.subTest(value=value), mock.patch.dict(os.environ, {serp_search.URL_ENV: value}):
+                with self.assertRaises(SeoToolError) as caught:
+                    serp_search.searxng_url()
+                message = str(caught.exception)
+                self.assertIn(serp_search.URL_ENV, message)
+                self.assertIn("http://", message)
+                self.assertNotIn("start it with https://", message)
+
+    def test_an_instance_on_the_internet_is_announced_before_any_query_is_sent(self) -> None:
+        public = lambda host: ("93.184.216.34",)  # noqa: E731
+        private = lambda host: ("10.0.0.5",)  # noqa: E731
+        warning = serp_search.remote_instance_warning("https://search.example.org:8443", public)
+        self.assertIn("search.example.org", warning)
+        self.assertIn("queries", warning)
+        self.assertEqual(serp_search.remote_instance_warning("http://localhost:8080", private), "")
+        self.assertEqual(serp_search.remote_instance_warning("http://127.0.0.1:8080", public), "")
+        self.assertEqual(serp_search.remote_instance_warning("http://searx.internal:8080", private), "")
+
+    def test_the_client_file_that_is_run_is_named_in_the_log(self) -> None:
+        with captured() as (_, err):
+            serp_search.connect_searxng("http://localhost:8080", self.client_dir)
+        self.assertIn(str(self.client_dir / "searxng_client.py"), err.getvalue())
+
+    def test_a_client_that_exits_while_loading_is_reported_not_raised(self) -> None:
+        (self.client_dir / "searxng_client.py").write_text("raise SystemExit('stop')\n", encoding="utf-8")
+        with self.assertRaises(SeoToolError) as caught:
+            serp_search.load_client_module(self.client_dir)
+        self.assertIn("cannot load", str(caught.exception))
+
 
 class MainTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -370,6 +401,21 @@ class MainTests(unittest.TestCase):
         self.assertIn("HTTP 403", out)
         self.assertFalse((self.out_dir / f"{hashed_slug('first query')}.json").exists())
         self.assertTrue((self.out_dir / f"{hashed_slug('second query')}.json").exists())
+
+    def test_the_number_of_pages_is_capped(self) -> None:
+        self.assertEqual(serp_search.MAX_PAGES, 5)
+        code, _, _, _ = self.run_main(FakeClient([hits("https://a.test/")]), extra=["--pages", "5"])
+        self.assertEqual(code, 0)
+        with captured(), self.assertRaises(SystemExit) as caught:
+            serp_search.main([str(self.queries), "--pages", "6"], connect=lambda url, folder: None)
+        self.assertEqual(caught.exception.code, 2)
+
+    def test_the_pause_between_queries_has_a_floor(self) -> None:
+        self.assertGreaterEqual(serp_search.MIN_DELAY_SECONDS, 1.0)
+        for value in ("0", "0.5"):
+            with self.subTest(value=value), captured(), self.assertRaises(SystemExit) as caught:
+                serp_search.main([str(self.queries), "--delay", value], connect=lambda url, folder: None)
+            self.assertEqual(caught.exception.code, 2)
 
     def test_default_engines_pages_and_language_reach_the_client(self) -> None:
         client = FakeClient([hits("https://a.test/")])
