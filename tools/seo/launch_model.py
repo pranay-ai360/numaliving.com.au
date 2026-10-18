@@ -180,9 +180,7 @@ class Site:
         """The site path of an address: no host, query or fragment, and without the base path."""
         parts = safe_urlsplit(url)
         path = (parts.path if parts is not None else "") or "/"
-        if self.base_path != "/" and path.startswith(self.base_path):
-            return "/" + path[len(self.base_path):]
-        return path
+        return "/" + path[len(self.base_path):] if path.startswith(self.base_path) else path
 
     def canonical_of(self, url: str) -> str:
         """The address the page at ``url`` must name as its canonical."""
