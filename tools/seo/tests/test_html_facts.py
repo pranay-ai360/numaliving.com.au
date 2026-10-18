@@ -295,6 +295,15 @@ class PlatformSignatureTests(unittest.TestCase):
         )
         self.assertNotIn("ga4", self.platforms(html))
 
+    def test_code_shown_as_page_text_is_not_a_signature(self) -> None:
+        """Only markup is searched: a tutorial that prints the GA4 snippet, or names paths, does not run them."""
+        html = (
+            "<body><pre>&lt;script async src=\"https://www.googletagmanager.com/gtag/js?id=G-ABC1234567\"&gt;"
+            "&lt;/script&gt;\ngtag('config', 'G-ABC1234567');</pre>"
+            "<p>Next.js serves /_next/static and WordPress serves /wp-content/ paths.</p></body>"
+        )
+        self.assertEqual(self.platforms(html), ())
+
     def test_a_measurement_id_must_be_upper_case_and_quoted(self) -> None:
         self.assertNotIn("ga4", self.platforms("<script>var id = 'g-abc1234567';</script>"))
         self.assertNotIn("ga4", self.platforms("<script>var id = G-ABC1234567;</script>"))
