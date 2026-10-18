@@ -18,7 +18,6 @@ from fetch_pages import FetchResult
 from html_facts import PageFacts, extract_facts
 from launch_model import Site
 from seo_common import SeoToolError, safe_urlsplit, without_fragment
-from sitemap_report import fetch_problem
 
 FetchFunction = Callable[[str], FetchResult]
 HTML_TYPES = ("html", "xhtml")
@@ -71,9 +70,24 @@ class Crawl:
         return self.index.get(url_key(url))
 
 
+def fetch_problem(site: Site, result: FetchResult) -> str:
+    """Why an answer is not a good page of the site: kept out by robots.txt, failed, not 200, cut off or elsewhere."""
+    if result.skipped:
+        return result.skipped
+    if result.error:
+        return result.error
+    if result.status != 200:
+        return f"HTTP {result.status}"
+    if result.truncated:
+        return "the page is larger than the download limit"
+    if not site.is_own(result.final_url):
+        return f"ends on another site: {result.final_url}"
+    return ""
+
+
 def _facts_of(site: Site, result: FetchResult) -> Optional[PageFacts]:
     """The facts of an HTML page that answered 200 on the site itself; a link that ends elsewhere is never read."""
-    if fetch_problem(result) or not is_html(result) or not site.is_own(result.final_url):
+    if fetch_problem(site, result) or not is_html(result):
         return None
     return extract_facts(result.body.decode("utf-8", errors="replace"), result.final_url)
 

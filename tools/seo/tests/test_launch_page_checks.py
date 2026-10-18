@@ -171,7 +171,7 @@ class StatusTests(unittest.TestCase):
         edit_page(web, HOME, '<a href="/about/">About</a>', '<a href="/gone/">G</a><a href="/about/">About</a>')
         results = run_checks(web)
         self.assertEqual(results["status-200"].status, "PASS")
-        self.assertEqual(results["status-200"].summary, "1 pages")
+        self.assertEqual(results["status-200"].summary, "1 page")
 
 
 class TitleTests(unittest.TestCase):
