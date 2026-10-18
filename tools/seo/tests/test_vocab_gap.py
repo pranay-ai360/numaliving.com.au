@@ -76,6 +76,101 @@ def pages(*texts: str):
     return [grams(text) for text in texts]
 
 
+class PhraseQualityTests(unittest.TestCase):
+    """A phrase must be words that sit next to each other on the page, not words that merely survive filtering."""
+
+    def test_short_words_and_us_break_a_phrase_instead_of_being_skipped(self) -> None:
+        found = grams("Custom millwork in Dubai for US projects")
+        self.assertEqual(found, frozenset({"custom", "millwork", "custom millwork", "dubai", "projects"}))
+        for phantom in ("millwork dubai", "custom millwork dubai", "dubai for projects"):
+            self.assertNotIn(phantom, found)
+
+    def test_numbers_and_words_that_start_with_a_digit_break_a_phrase(self) -> None:
+        self.assertEqual(grams("4x8 sheets and 3D models, 2026 bids"), frozenset({"sheets", "models", "bids"}))
+
+    def test_punctuation_and_separators_break_a_phrase(self) -> None:
+        for text in ("millwork. dubai", "millwork, dubai", "millwork (dubai)", "millwork | dubai", "millwork - dubai",
+                     "millwork & dubai", "millwork: dubai", "millwork / dubai", "millwork\ndubai", "millwork \u2014 dubai",
+                     "millwork \u2022 dubai", "millwork; dubai", "millwork \"dubai\""):
+            with self.subTest(text=text):
+                found = grams(text)
+                self.assertNotIn("millwork dubai", found)
+                self.assertEqual(found, frozenset({"millwork", "dubai"}))
+
+    def test_hyphens_ampersands_and_apostrophes_inside_a_word_stay_in_it(self) -> None:
+        self.assertEqual(grams("fire-rated doors"), frozenset({"fire-rated", "doors", "fire-rated doors"}))
+        self.assertIn("r&d", grams("our r&d team"))
+
+    def test_curly_and_straight_apostrophes_give_the_same_phrases(self) -> None:
+        straight = grams("Don't worry, it's fine. We won't mind, isn't it?")
+        curly = grams("Don\u2019t worry, it\u2019s fine. We won\u2019t mind, isn\u2019t it?")
+        self.assertEqual(straight, curly)
+        for fragment in ("don", "isn", "won", "it", "worry it"):
+            self.assertNotIn(fragment, curly)
+
+    def test_contractions_and_possessives_never_start_or_end_a_phrase(self) -> None:
+        found = grams("Don't build the client's casework; it's cabinetry we're proud of")
+        self.assertNotIn("don't", found)
+        self.assertNotIn("client's", found)
+        self.assertNotIn("it's", found)
+        self.assertIn("casework", found)
+        self.assertIn("cabinetry", found)
+
+    def test_accents_are_folded(self) -> None:
+        self.assertEqual(grams("D\u00e9cor and caf\u00e9"), frozenset({"decor", "cafe", "decor and cafe"}))
+        self.assertEqual(grams("D\u00e9cor"), grams("Decor"))
+
+    def test_letters_outside_the_latin_alphabet_break_a_phrase_and_are_not_words(self) -> None:
+        self.assertEqual(grams("millwork \u6728\u5de5 dubai"), frozenset({"millwork", "dubai"}))
+
+    def test_the_stop_words_are_all_long_enough_to_matter(self) -> None:
+        self.assertEqual([word for word in vocab_gap.STOP_WORDS if len(word) < vocab_gap.MIN_WORD_CHARS], [])
+        self.assertIn("the", vocab_gap.STOP_WORDS)
+
+
+class HeadingTextTests(unittest.TestCase):
+    def test_a_heading_that_is_only_in_the_header_still_counts(self) -> None:
+        """A hero H1 inside <header> is boilerplate text, so it is not under # TEXT: the heading block carries it."""
+        text = "# HEADINGS\nH1: Overseas millwork\nH2: Paneling\n\n# TEXT\nBody words.\n\n# BOILERPLATE\nOverseas millwork\nmenu\n"
+        content = vocab_gap.page_text(text)
+        self.assertIn("Overseas millwork", content)
+        self.assertIn("Paneling", content)
+        self.assertIn("Body words.", content)
+        self.assertNotIn("menu", content)
+        self.assertNotIn("H1:", content)
+        self.assertIn("overseas millwork", grams(content))
+
+    def test_audit_pages_output_round_trips_a_header_heading_into_the_analysis(self) -> None:
+        import audit_pages
+        from html_facts import extract_facts
+
+        facts = extract_facts("<header><h1>Overseas millwork</h1></header><main><p>Body words here</p></main>", "https://a.test/")
+        content = vocab_gap.page_text(audit_pages.render_text_file(facts))
+        self.assertIn("overseas millwork", grams(content))
+        self.assertNotIn("body words here overseas", grams(content))
+
+    def test_a_file_in_the_old_format_is_still_read_whole(self) -> None:
+        self.assertEqual(vocab_gap.page_text("# TEXT\nonly text\n").strip(), "only text")
+
+
+class ThresholdTests(unittest.TestCase):
+    def test_thirty_percent_of_thirty_three_pages_is_ten_pages(self) -> None:
+        rows = vocab_gap.find_core_gaps({"nine pages": 9, "ten pages": 10}, {}, ranking_total=33, min_pages=1, min_share=0.3)
+        self.assertEqual([row.term for row in rows], ["ten pages"])
+        self.assertEqual(vocab_gap.core_threshold(33, 1, 0.3), 10)
+
+    def test_floating_point_noise_does_not_raise_the_bar(self) -> None:
+        self.assertEqual(vocab_gap.core_threshold(10, 1, 0.3), 3)  # 10 * 0.3 is 3.0000000000000004
+        self.assertEqual(vocab_gap.core_threshold(100, 1, 0.07), 7)
+        self.assertEqual(vocab_gap.core_threshold(7, 1, 1.0), 7)
+        self.assertEqual(vocab_gap.core_threshold(7, 1, 0.0), 1)
+
+    def test_the_report_names_the_same_threshold_the_gaps_use(self) -> None:
+        texts = [f"millwork word{n}" for n in range(33)]
+        report = vocab_gap.render_report(texts, ["unrelated"], with_terms=False)
+        self.assertIn("on at least 10 ranking pages", report)
+
+
 class GapTests(unittest.TestCase):
     RANKING = [
         "custom millwork casework architects zzcommon",
