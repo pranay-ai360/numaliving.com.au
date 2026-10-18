@@ -20,6 +20,7 @@ from urllib.parse import SplitResult, urlsplit
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
 DATA_DIR_ENV = "SEO_DATA_DIR"
+DEBUG_ENV = "SEO_DEBUG"
 DEFAULT_DATA_DIR = TOOLS_DIR / "data"
 ALLOWED_URL_SCHEMES = ("http", "https")
 EXIT_FAILURE = 1
@@ -28,6 +29,7 @@ EXIT_INTERRUPTED = 130
 SLUG_MAX_LENGTH = 60
 URL_SLUG_MAX_LENGTH = 120
 HASH_LENGTH = 6
+ERROR_LINE_MAX_CHARS = 300
 
 
 class SeoToolError(Exception):
@@ -93,10 +95,12 @@ def read_bytes_file(path: Path) -> bytes:
 
 
 def read_json_file(path: Path) -> Any:
+    """The JSON in a file. Anything json.loads refuses (bad syntax, nesting too deep, a number with thousands of digits)
+    becomes a SeoToolError that names the file."""
     try:
         return json.loads(read_text_file(path))
-    except json.JSONDecodeError as error:
-        raise SeoToolError(f"{path} is not valid JSON: {error}") from error
+    except (ValueError, RecursionError) as error:  # JSONDecodeError is a ValueError
+        raise SeoToolError(f"{path} is not usable JSON: {_one_line(f'{type(error).__name__}: {error}')}") from error
 
 
 def _write(path: Path, writer: Callable[[], Any]) -> None:
@@ -188,8 +192,17 @@ def positive_int(text: str) -> int:
     return value
 
 
+def _one_line(text: str, limit: int = ERROR_LINE_MAX_CHARS) -> str:
+    flat = " ".join(text.split())
+    return flat if len(flat) <= limit else flat[: limit - 3] + "..."
+
+
 def run_cli(entry: Callable[[Sequence[str]], int], argv: Optional[Sequence[str]] = None) -> int:
-    """Run a tool's main(): a SeoToolError becomes one line on stderr and its exit code, never a traceback."""
+    """Run a tool's main(): an error becomes one line on stderr and an exit code, never a traceback.
+
+    A SeoToolError carries its own exit code. Any other exception is a bug or hostile input nobody planned for:
+    it is reported as ``error: Type: message`` with exit code 1, unless SEO_DEBUG is set (then it propagates).
+    """
     try:
         return entry(sys.argv[1:] if argv is None else argv)
     except SeoToolError as error:
@@ -198,3 +211,8 @@ def run_cli(entry: Callable[[Sequence[str]], int], argv: Optional[Sequence[str]]
     except KeyboardInterrupt:
         log("interrupted")
         return EXIT_INTERRUPTED
+    except Exception as error:  # last resort, see the docstring
+        if os.environ.get(DEBUG_ENV, "").strip():
+            raise
+        log(f"error: {_one_line(f'{type(error).__name__}: {error}')}")
+        return EXIT_FAILURE

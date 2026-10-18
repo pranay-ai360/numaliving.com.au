@@ -30,6 +30,7 @@ BLOCK_TAGS = frozenset(
 HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
 JSON_LD_TYPE = "application/ld+json"
+MAX_TYPE_CHARS = 100
 
 
 @dataclass(frozen=True)
@@ -161,17 +162,15 @@ def json_ld_types(blobs: Tuple[str, ...]) -> Tuple[Tuple[str, ...], int]:
     for blob in blobs:
         try:
             pending: List[Any] = [json.loads(blob)]
-        except (json.JSONDecodeError, RecursionError):
+        except (ValueError, RecursionError):  # bad syntax, nesting too deep, or a number with thousands of digits
             errors += 1
             continue
         while pending:  # a loop, not recursion: JSON-LD from the web can be nested very deep
             node = pending.pop()
             if isinstance(node, dict):
                 kind = node.get("@type")
-                if isinstance(kind, str):
-                    found.append(kind)
-                elif isinstance(kind, list):
-                    found.extend(str(item) for item in kind)
+                declared = [kind] if isinstance(kind, str) else kind if isinstance(kind, list) else []
+                found.extend(item[:MAX_TYPE_CHARS] for item in declared if isinstance(item, str))
                 pending.extend(node.values())
             elif isinstance(node, list):
                 pending.extend(node)

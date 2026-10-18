@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
-from urllib.parse import urlsplit
 
 from fetch_pages import FetchResult, PoliteFetcher, default_opener
 from html_facts import host_of
@@ -35,6 +34,7 @@ from seo_common import (
     read_bytes_file,
     require_http_url,
     run_cli,
+    safe_urlsplit,
 )
 
 MAX_CHILD_SITEMAPS = 10
@@ -150,10 +150,15 @@ def parse_sitemap(data: bytes, source: str) -> Sitemap:
 
 
 def group_entries(entries: Sequence[SitemapEntry], samples: int = DEFAULT_SAMPLES) -> Tuple[UrlGroup, ...]:
-    """Group by first path segment and depth; biggest first, then shallower, then by name."""
+    """Group by first path segment and depth; biggest first, then shallower, then by name.
+
+    An address that urlsplit refuses (http://[::1/) belongs to no group; build_report counts and mentions those."""
     buckets: Dict[Tuple[str, int], List[str]] = {}
     for entry in entries:
-        path = urlsplit(entry.loc).path
+        parts = safe_urlsplit(entry.loc)
+        if parts is None:
+            continue
+        path = parts.path
         segments = [part for part in path.split("/") if part]
         key = (segments[0] if segments else HOME_SEGMENT, len(segments))
         buckets.setdefault(key, []).append(path or "/")
@@ -251,6 +256,9 @@ def build_report(
         documents = [child for child, _ in children if child is not None]
         notes = notes + [note for _, note in children if note]
     entries = tuple(entry for document in documents for entry in document.entries)
+    unreadable = len([entry for entry in entries if safe_urlsplit(entry.loc) is None])
+    if unreadable:
+        notes.append(f"{unreadable} of {len(entries)} listed URLs are not valid web addresses and are not in the groups")
     days, undated = daily_counts(entries)
     sources = (origin, *(document.source for document in documents)) if sitemap.is_index else (sitemap.source,)
     return SitemapReport(

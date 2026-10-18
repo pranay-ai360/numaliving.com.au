@@ -23,9 +23,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlunsplit
 
-from seo_common import SeoToolError, log, positive_int, read_text_file, run_cli
+from seo_common import SeoToolError, log, positive_int, read_text_file, require_http_url, run_cli, safe_urlsplit
 
 NOISE_DOMAINS = (
     "yelp.com", "instagram.com", "linkedin.com", "youtube.com", "facebook.com", "wikipedia.org", "reddit.com",
@@ -57,16 +57,25 @@ def load_records(directory: Path) -> Tuple[Record, ...]:
     for path in sorted(directory.glob("*.json")):
         try:
             data = json.loads(read_text_file(path))
-        except (json.JSONDecodeError, SeoToolError) as error:
-            log(f"skipping {path.name}: {error}")
+        except (ValueError, RecursionError, SeoToolError) as error:  # bad syntax, too deep, a huge integer
+            log(f"skipping {path.name}: {type(error).__name__}: {str(error)[:120]}")
             continue
         if not isinstance(data, dict) or "query" not in data or not isinstance(data.get("results"), list):
             log(f"skipping {path.name}: not a SERP record (needs a query and a results list)")
             continue
-        records.append(data)
+        records.append(_with_object_results(data, path.name))
     if not records:
         raise SeoToolError(f"no SERP records in {directory} (run serp_search.py first)")
     return tuple(records)
+
+
+def _with_object_results(data: Record, name: str) -> Record:
+    """The record with only its object-shaped results; says so when it had to drop any."""
+    results = [item for item in data["results"] if isinstance(item, dict)]
+    if len(results) != len(data["results"]):
+        log(f"{name}: ignored {len(data['results']) - len(results)} result(s) that are not objects")
+        return {**data, "results": results}
+    return data
 
 
 def normalise_domain(domain: str) -> str:
@@ -79,8 +88,15 @@ def is_noise_domain(domain: str) -> bool:
     return any(name == noise or name.endswith("." + noise) for noise in NOISE_DOMAINS)
 
 
-def _result_domain(result: Mapping[str, Any]) -> str:
-    return normalise_domain(str(result.get("domain") or urlsplit(str(result.get("url") or "")).netloc))
+def _result_domain(result: Any) -> str:
+    """The result's site, from its domain field or its URL; "" for anything unreadable."""
+    if not isinstance(result, Mapping):
+        return ""
+    explicit = result.get("domain")
+    if isinstance(explicit, str) and explicit.strip():
+        return normalise_domain(explicit)
+    parts = safe_urlsplit(result.get("url"))
+    return normalise_domain(parts.netloc) if parts is not None else ""
 
 
 def top_domains(record: Record, top: int) -> Tuple[str, ...]:
@@ -114,16 +130,29 @@ def _is_tracking(parameter: str) -> bool:
 
 def clean_url(url: str) -> str:
     """The URL without tracking parameters (srsltid, utm_*, gclid, fbclid) and without a fragment."""
-    parts = urlsplit(url)
+    parts = safe_urlsplit(url)
+    if parts is None:
+        return url
     kept = [piece for piece in parts.query.split("&") if piece and not _is_tracking(piece)]
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "&".join(kept), ""))
+
+
+def _web_url(result: Any) -> str:
+    """The result's URL when fetch_pages would accept it (http or https, readable), else ""."""
+    url = result.get("url") if isinstance(result, Mapping) else None
+    if not isinstance(url, str):
+        return ""
+    try:
+        return require_http_url(url)
+    except SeoToolError:
+        return ""
 
 
 def top_result_urls(records: Sequence[Record], count: int, skip_noise: bool = True) -> Tuple[str, ...]:
     urls: List[str] = []
     for record in records:
         for result in record["results"][:count]:
-            url = str(result.get("url") or "")
+            url = _web_url(result)
             if url and not (skip_noise and is_noise_domain(_result_domain(result))):
                 urls.append(clean_url(url))
     return tuple(dict.fromkeys(urls))

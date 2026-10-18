@@ -18,15 +18,16 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
-from urllib.parse import urlsplit
 
 from html_facts import PageFacts, extract_facts, host_of
 from seo_common import (
     SeoToolError,
+    log,
     read_json_file,
     read_text_file,
     require_http_url,
     run_cli,
+    safe_urlsplit,
     write_json_file,
     write_text_file,
 )
@@ -41,6 +42,8 @@ TABLE_KEYS = (
     "final_url", "status", "title_len", "description_len", "h1", "h2", "words_main", "images",
     "images_alt_missing", "images_alt_empty", "canonical", "og", "jsonld_types",
 )
+TABLE_LIST_KEYS = ("h1", "h2", "og", "jsonld_types")
+TABLE_NUMBER_KEYS = ("title_len", "description_len", "words_main", "images", "images_alt_missing", "images_alt_empty")
 TABLE_PAGE_WIDTH = 46
 TABLE_TYPES_WIDTH = 60
 
@@ -92,6 +95,11 @@ def _link_summary(facts: PageFacts) -> Dict[str, Any]:
     }
 
 
+def _image_extensions(facts: PageFacts) -> List[str]:
+    parts = (safe_urlsplit(image.src) for image in facts.images if image.src)
+    return sorted({Path(part.path).suffix.lower() for part in parts if part is not None})
+
+
 def _image_summary(facts: PageFacts) -> Dict[str, Any]:
     images = facts.images
     return {
@@ -100,7 +108,7 @@ def _image_summary(facts: PageFacts) -> Dict[str, Any]:
         "images_alt_empty": len([image for image in images if image.alt == ""]),
         "images_with_size": len([image for image in images if image.has_size]),
         "images_lazy": len([image for image in images if image.loading == "lazy"]),
-        "image_exts": sorted({Path(urlsplit(image.src).path).suffix.lower() for image in images if image.src}),
+        "image_exts": _image_extensions(facts),
         "modern_image_sources": sorted({kind for kind in facts.image_source_types if kind in MODERN_IMAGE_TYPES}),
         "alt_samples": [image.alt for image in images if image.alt][:ALT_SAMPLE_LIMIT],
     }
@@ -182,11 +190,19 @@ def format_summary(summary: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def read_analysis(path: Path) -> Dict[str, Any]:
     data = read_json_file(path)
     missing = [key for key in TABLE_KEYS if not isinstance(data, dict) or key not in data]
     if missing:
         raise SeoToolError(f"{path} is not an analysis file (missing {', '.join(missing)})")
+    odd = [key for key in TABLE_LIST_KEYS if not isinstance(data[key], (list, dict))]
+    odd += [key for key in TABLE_NUMBER_KEYS if not _is_number(data[key])]
+    if odd:
+        raise SeoToolError(f"{path} is not an analysis file (unexpected values for {', '.join(odd)})")
     return data
 
 
@@ -197,8 +213,8 @@ def format_table(rows: Sequence[Mapping[str, Any]]) -> str:
     )
     lines: List[str] = [header, "-" * len(header)]
     for r in rows:
-        parts = urlsplit(str(r["final_url"] or ""))
-        page = (parts.netloc + parts.path)[:TABLE_PAGE_WIDTH]
+        parts = safe_urlsplit(str(r["final_url"] or ""))
+        page = (parts.netloc + parts.path if parts else str(r["final_url"] or ""))[:TABLE_PAGE_WIDTH]
         lines.append(
             f"{page:<{TABLE_PAGE_WIDTH}} {str(r['status']):>3} {r['title_len']:>5} {r['description_len']:>4} "
             f"{len(r['h1']):>2} {len(r['h2']):>3} {r['words_main']:>5} {r['images']:>3} "
@@ -212,7 +228,15 @@ def table_for(directory: Path) -> str:
     paths = sorted(directory.glob("*.analysis.json"))
     if not paths:
         raise SeoToolError(f"no *.analysis.json files in {directory} (run audit_pages.py on the saved pages first)")
-    return format_table([read_analysis(path) for path in paths])
+    rows: List[Dict[str, Any]] = []
+    for path in paths:
+        try:
+            rows.append(read_analysis(path))
+        except SeoToolError as error:  # one unreadable file must not hide the others
+            log(f"skipping {path.name}: {error}")
+    if not rows:
+        raise SeoToolError(f"none of the *.analysis.json files in {directory} could be read")
+    return format_table(rows)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -226,6 +250,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def audit_all(html_paths: Sequence[Path], base_url: str) -> int:
+    """Audit and print each page; a page that fails is reported and skipped. Returns 1 when any page failed."""
+    failed = 0
+    for html_path in html_paths:
+        try:
+            print(format_summary(audit_file(html_path, base_url)))
+        except SeoToolError as error:
+            failed += 1
+            log(f"error: {error}")
+        except (OSError, ValueError, RecursionError, MemoryError) as error:  # odd content: keep going
+            failed += 1
+            log(f"error: {html_path}: {type(error).__name__}: {error}")
+    return 1 if failed else 0
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -236,10 +275,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
     if not args.files:
         parser.error("give one or more HTML files, or --table DIR")
-    base_url = require_http_url(args.base_url)
-    for html_path in args.files:
-        print(format_summary(audit_file(html_path, base_url)))
-    return 0
+    return audit_all(args.files, require_http_url(args.base_url))
 
 
 if __name__ == "__main__":

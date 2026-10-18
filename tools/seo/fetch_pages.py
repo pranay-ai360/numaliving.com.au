@@ -192,7 +192,7 @@ def redirect_target(current: str, reply: RawReply) -> Tuple[str, str]:
         return "", ""
     try:
         return require_http_url(urljoin(current, location)), ""
-    except SeoToolError as error:
+    except (SeoToolError, ValueError) as error:  # urljoin raises ValueError for addresses such as http://[::1/
         return "", f"redirect from {current} refused: {error}"
 
 
