@@ -536,6 +536,62 @@ class PrivateRedirectTests(unittest.TestCase):
         self.assertIs(fetcher._resolve, url_guard.resolve_addresses)
 
 
+class BackOffTests(unittest.TestCase):
+    """A 429 or 503 means the server is struggling or limiting us: slow down, or stop asking that host."""
+
+    def starts(self, opener, prefix=SITE):
+        return opener.times_for(prefix)
+
+    def test_a_429_with_retry_after_makes_the_next_request_to_that_host_wait(self) -> None:
+        routes = {ROBOTS: Reply(404), f"{SITE}/a": Reply(429, b"slow", {"Retry-After": "7"}), f"{SITE}/b": Reply(200, HTML)}
+        fetcher, opener, _ = make_fetcher(routes, delay=0, seconds_per_request=0.25)
+        first = fetcher.fetch(f"{SITE}/a")
+        fetcher.fetch(f"{SITE}/b")
+        starts = self.starts(opener)
+        self.assertEqual((first.status, first.error), (429, ""))  # the 429 page itself is kept and not an error
+        self.assertGreaterEqual(starts[-1] - starts[-2], 7.0 + 0.25)
+
+    def test_a_503_without_retry_after_waits_the_default(self) -> None:
+        routes = {ROBOTS: Reply(404), f"{SITE}/a": Reply(503), f"{SITE}/b": Reply(200, HTML)}
+        fetcher, opener, _ = make_fetcher(routes, delay=0, seconds_per_request=0.0)
+        fetcher.fetch(f"{SITE}/a")
+        fetcher.fetch(f"{SITE}/b")
+        starts = self.starts(opener)
+        self.assertGreaterEqual(starts[-1] - starts[-2], fetch_pages.DEFAULT_BACKOFF_SECONDS)
+
+    def test_the_wait_is_never_shorter_than_the_normal_delay(self) -> None:
+        routes = {ROBOTS: Reply(404), f"{SITE}/a": Reply(429, b"", {"Retry-After": "2"}), f"{SITE}/b": Reply(200, HTML)}
+        fetcher, opener, _ = make_fetcher(routes, delay=5, seconds_per_request=0.0)
+        fetcher.fetch(f"{SITE}/a")
+        fetcher.fetch(f"{SITE}/b")
+        starts = self.starts(opener)
+        self.assertGreaterEqual(starts[-1] - starts[-2], 5.0)
+
+    def test_a_request_for_a_very_long_wait_ends_the_visit_to_that_host(self) -> None:
+        other = "https://other.test"
+        routes = {ROBOTS: Reply(404), f"{SITE}/a": Reply(429, b"", {"Retry-After": "120"}), f"{SITE}/b": Reply(200, HTML),
+                  f"{other}/robots.txt": Reply(404), f"{other}/p": Reply(200, HTML)}
+        fetcher, opener, _ = make_fetcher(routes, delay=0)
+        fetcher.fetch(f"{SITE}/a")
+        skipped = fetcher.fetch(f"{SITE}/b")
+        self.assertIn("Retry-After", skipped.skipped)
+        self.assertIn("120", skipped.skipped)
+        self.assertNotIn(f"{SITE}/b", opener.urls)
+        self.assertEqual(fetcher.fetch(f"{other}/p").status, 200)  # other hosts are unaffected
+
+    def test_other_statuses_do_not_slow_the_run(self) -> None:
+        routes = {ROBOTS: Reply(404), f"{SITE}/a": Reply(500), f"{SITE}/b": Reply(404), f"{SITE}/c": Reply(200, HTML)}
+        fetcher, _, clock = make_fetcher(routes, delay=0)
+        for name in ("a", "b", "c"):
+            fetcher.fetch(f"{SITE}/{name}")
+        self.assertEqual(clock.sleeps, [])
+
+    def test_a_rate_limited_robots_txt_still_skips_the_site(self) -> None:
+        fetcher, opener, _ = make_fetcher({ROBOTS: Reply(429, b"", {"Retry-After": "3"}), PAGE: Reply(200, HTML)})
+        self.assertIn("429", fetcher.fetch(PAGE).skipped)
+        self.assertNotIn(PAGE, opener.urls)
+
+
 class CollectUrlsTests(unittest.TestCase):
     def test_fragments_are_dropped_because_they_are_never_sent(self) -> None:
         urls = fetch_pages.collect_urls([f"{SITE}/x#one", f"{SITE}/x#two", f"{SITE}/y#top"], None)
