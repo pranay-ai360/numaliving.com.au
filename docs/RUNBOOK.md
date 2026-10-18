@@ -109,7 +109,7 @@ dig @1.1.1.1 www.numaliving.us CNAME +short        # pranay-ai360.github.io.
 python3 -I tools/cloudflare/cf_dns.py check        # records in the Cloudflare zone, and what would change
 ```
 
-If the certificate does not start about 30 minutes after the DNS is right, GitHub's DNS check has kept an old "no records" answer. Clear the domain and set it again, then switch on HTTPS once the certificate says `approved`. While the domain is cleared another GitHub account could claim it, so verify the domain with GitHub first (profile Settings > Pages > Add a domain, then the `_github-pages-challenge-pranay-ai360` TXT record in Cloudflare) and run the two commands back to back:
+If the certificate does not start about 30 minutes after the DNS is right, GitHub's DNS check has kept an old "no records" answer. Clear the domain and set it again, then switch on HTTPS once the certificate says `approved`. While the domain is cleared another GitHub account could claim it, so verify the domain with GitHub first (profile Settings > Pages > Add a domain, then `python3 -I tools/cloudflare/cf_dns.py github-challenge <the-code> --yes` to add the `_github-pages-challenge-pranay-ai360` TXT record, then Verify; see `tools/cloudflare/README.md`) and run the two commands back to back:
 
 ```bash
 echo '{"cname":null}' | gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages --input - \
@@ -121,8 +121,8 @@ Roll back the domain with the first command alone (`cname: null`), then redeploy
 
 ## 8. Secrets
 
-- Cloudflare credentials live in a keys file: `api-keys.json` at the repository root, or better a file outside the repository (set `NUMA_KEYS_FILE`; see `tools/cloudflare/README.md`). Start from `tools/cloudflare/api-keys.example.json` and run `chmod 600` on it. Use a scoped token (Zone > DNS > Edit and Zone > Zone > Read on `numaliving.us` only, with an expiry) in `zone-api-key`. The helper does not use a Global API Key: delete any from the file and roll it in the dashboard.
-- Never commit, paste, print or send the file. `.gitignore` covers `api-keys*` at any depth, and `.claude/settings.json` blocks the obvious ways for Claude Code to read it (the Read and Edit tools, and any shell command that names it). That is a speed bump, not a boundary: a shell command that does not name the file can still open it, so the safest home for the file is outside the repository. The helper reads it locally and prints no values.
+- Cloudflare credentials live in a keys file named `api-keys.json`, kept outside the repository at `~/.config/numaliving/api-keys.json`: the helper looks there by itself, or at the path in `NUMA_KEYS_FILE`, and uses a copy in the repository root first when one exists (see `tools/cloudflare/README.md`). Start from `tools/cloudflare/api-keys.example.json` and run `chmod 600` on it. Use a scoped token (Zone > DNS > Edit and Zone > Zone > Read on `numaliving.us` only, with an expiry) in `zone-api-key`. The helper does not use a Global API Key: delete any from the file and roll it in the dashboard.
+- Never commit, paste, print or send the file. `.gitignore` covers `api-keys*` at any depth, and `.claude/settings.json` blocks the obvious ways for Claude Code to read it (the Read and Edit tools, in the repository and under `~/.config/numaliving/`, and any shell command that names it). That is a speed bump, not a boundary: a shell command that does not name the file can still open it, which is why the file lives outside the repository. The helper reads it locally and prints no values.
 - If a key leaks, delete or roll it in the Cloudflare dashboard (My Profile > API Tokens) and make a new one.
 - Every `NEXT_PUBLIC_` value, the FormSubmit alias included, is public by design.
 

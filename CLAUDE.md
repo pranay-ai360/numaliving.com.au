@@ -30,7 +30,7 @@ numaliving.us is registered at GoDaddy, its DNS is on Cloudflare (every site rec
 
 ## Secrets: hard rules
 
-- `api-keys.json` (repository root, git-ignored) holds Cloudflare credentials. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` blocks the obvious ways to read it (a speed bump, not a boundary, so the rule is yours to keep). Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values; it supports a file outside the repository through `NUMA_KEYS_FILE`.
+- `api-keys.json` holds Cloudflare credentials. It lives outside the repository, at `~/.config/numaliving/api-keys.json` (mode 600), where the helper finds it by itself; `NUMA_KEYS_FILE` points it elsewhere, and a copy in the repository root (git-ignored) is used first when one exists. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` blocks the obvious ways to read it (a speed bump, not a boundary, so the rule is yours to keep). Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values.
 - No secret in any committed file, log, commit message or pull request. Every `NEXT_PUBLIC_` value is public.
 
 ## Conventions
