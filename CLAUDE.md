@@ -42,7 +42,7 @@ numaliving.us is registered at GoDaddy, its DNS is on Cloudflare (every site rec
 
 ## Gotchas
 
-- CloakBrowser (used by `tools/site-qa/` and `tools/seo/browse.py`) allows one browser session at a time. A launch that exits with code 76 means another process holds the seat; find out whose before closing it. The crawl needs a Python that has the package (`python3.14` on the owner's Mac).
+- CloakBrowser (used by `tools/site-qa/` and `tools/seo/browse.py`) allows one browser session at a time. A browser launch that fails exits with code 76, most often because another process holds the seat; find out whose before closing it. The crawl needs a Python that has the package (`python3.14` on the owner's Mac).
 - `tools/seo/` holds the SEO research scripts (findings and decisions in `docs/seo/` and ADR 0003). `serp_search.py` needs the separate local SearXNG running (Docker Desktop, then `docker compose up -d` in its checkout; `SEARXNG_CLIENT_DIR` points at the checkout). Output goes to the git-ignored `tools/seo/data/`.
 - Tower auto-stashes uncommitted work when branches change: check `git stash list`.
 - `npm run lint` right after the coverage run warns about the generated `coverage/block-navigation.js`; CI is not affected.
