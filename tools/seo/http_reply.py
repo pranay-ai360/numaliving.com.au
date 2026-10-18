@@ -6,16 +6,19 @@ from __future__ import annotations
 
 import http.client
 import re
+import time
 import zlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 from urllib.parse import urljoin
 
-from seo_common import SeoToolError, require_http_url
+from seo_common import SeoToolError, format_seconds, require_http_url
 
 MAX_BYTES = 6_000_000
+READ_CHUNK_BYTES = 65_536
+READ_DEADLINE_SECONDS = 300.0  # for one whole download; the socket timeout only covers each wait for more data
 REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 KEPT_HEADERS = (
     "content-type", "server", "cache-control", "x-robots-tag", "link", "content-language", "x-powered-by",
@@ -97,11 +100,41 @@ def kept_headers(response: Any) -> Headers:
     return tuple(kept)
 
 
-def read_reply(response: Any, status: int, max_bytes: int = MAX_BYTES) -> RawReply:
+def _read_up_to(response: Any, limit: int, deadline_seconds: float, clock: Callable[[], float]) -> bytes:
+    """Up to ``limit`` bytes, a chunk at a time, giving up when the whole download takes too long.
+
+    A server that sends one byte every 29 seconds never trips the 30-second socket timeout, so the clock is
+    checked between chunks. read1 returns as soon as some data has arrived; read would wait for a full chunk.
+    A body that ends before the promised Content-Length is an error (read(n) alone would not notice).
+    """
+    read = getattr(response, "read1", None) or response.read
+    started, chunks, total = clock(), [], 0
+    while total < limit:
+        if clock() - started > deadline_seconds:
+            raise TimeoutError(f"the download took longer than {format_seconds(deadline_seconds)} s")
+        chunk = read(min(READ_CHUNK_BYTES, limit - total))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    raw = b"".join(chunks)
+    promised = getattr(response, "length", None)
+    if total < limit and promised:
+        raise http.client.IncompleteRead(raw, promised)
+    return raw
+
+
+def read_reply(
+    response: Any,
+    status: int,
+    max_bytes: int = MAX_BYTES,
+    deadline_seconds: float = READ_DEADLINE_SECONDS,
+    clock: Callable[[], float] = time.monotonic,
+) -> RawReply:
     """Read an open response (or an HTTPError, which is one too) into a RawReply; read problems become ``error``."""
     headers = kept_headers(response)
     try:
-        raw = response.read(max_bytes + 1)
+        raw = _read_up_to(response, max_bytes + 1, deadline_seconds, clock)
         body, truncated = decode_body(raw, response.headers.get("Content-Encoding") or "", max_bytes)
     except (OSError, http.client.HTTPException, ValueError) as error:
         return RawReply(status, headers, error=f"{type(error).__name__}: {error}")

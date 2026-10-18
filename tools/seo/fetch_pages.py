@@ -223,10 +223,10 @@ class PoliteFetcher:
         limit = MAX_BYTES if self._max_bytes is None else self._max_bytes
         try:
             with self._opener.open(request, timeout=TIMEOUT_SECONDS) as response:
-                return read_reply(response, response.status, limit)
+                return read_reply(response, response.status, limit, clock=self._clock)
         except urllib.error.HTTPError as error:
             with error:  # an HTTP error is also the response: it carries the status, headers and body
-                return read_reply(error, error.code, limit)
+                return read_reply(error, error.code, limit, clock=self._clock)
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as error:
             return RawReply(None, (), error=f"{type(error).__name__}: {error}")
 
