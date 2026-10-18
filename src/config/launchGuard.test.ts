@@ -1,12 +1,20 @@
 /**
  * Launch guard: fails `npm test` (and so the deploy workflow) if the site is made indexable while it
- * still carries placeholder or sample content: the placeholder contact details in src/config/site.ts,
+ * still carries placeholder or sample content: contact details that are not real in src/config/site.ts
+ * (judged by their shape, src/lib/realContact.ts, so a stub with one digit changed still blocks),
  * the "Preview" ribbon (`showSampleNotice`), a project in src/content/projects.ts marked `sample: true`,
  * or anything the content modules still list as not ready. That last part comes from one place,
- * `contentBlockers()` in src/content/readiness.ts: invented figures named in `sampleContent`, company
- * facts not yet supplied (src/content/company.ts) and legal drafts waiting for a lawyer
- * (src/content/legal.ts). A module with blockers of its own registers them there, not here.
+ * `contentBlockers()` in src/content/readiness.ts: invented figures and placeholder photos named in
+ * `sampleContent`, company facts not yet supplied (src/content/company.ts), legal drafts waiting for a
+ * lawyer (src/content/legal.ts) and claims the owner has not confirmed (src/content/claims.ts). A module
+ * with blockers of its own registers them there, not here.
+ *
+ * The guard reads `isIndexable` and `showSampleNotice` as imported values, so a last describe block
+ * requires both to be plain `true` or `false` literals in src/config/site.ts: a value computed from an
+ * environment variable would be false here and could be true in the build.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { isIndexable, showSampleNotice, site } from "@/config/site";
 import { EMPTY_COMPANY_FACTS, LISTED_CLAIMS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
@@ -15,6 +23,7 @@ import { companyFactsBlockers } from "@/content/company";
 import { legalDraftBlockers } from "@/content/legal";
 import { projects } from "@/content/projects";
 import { contentBlockers, sampleContentBlockers } from "@/content/readiness";
+import { isRealAddress, isRealPhoneNumber, isRealWhatsappNumber } from "@/lib/realContact";
 import type { ShowcaseProject } from "@/lib/types";
 
 type ContactField = "email" | "phone" | "whatsapp" | "address";
@@ -74,9 +83,19 @@ const OPEN_CONTENT_BLOCKERS = contentBlockers([
 /** The words of the ribbon that showSampleNotice switches on (src/components/Chrome.tsx). */
 const SAMPLE_RIBBON_TEXT = "Preview: projects, figures and photos on this site are sample content.";
 
+const LOOKS_LIKE_AN_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** How the guard judges each contact detail, and what it tells the owner a real one looks like. */
+const CONTACT_CHECKS: Readonly<Record<ContactField, { isReal: (value: string) => boolean; rule: string }>> = {
+  email: { isReal: (value) => value !== PLACEHOLDER_CONTACT.email && LOOKS_LIKE_AN_EMAIL.test(value), rule: "a real email address, not the old placeholder" },
+  phone: { isReal: isRealPhoneNumber, rule: "a real phone number has at least 7 digits and no run of four zeros" },
+  whatsapp: { isReal: isRealWhatsappNumber, rule: "a real WhatsApp number is digits only, at least 7 of them, with no run of four zeros" },
+  address: { isReal: isRealAddress, rule: "a real address is a street address with a number in it, not the stub" },
+};
+
 function contactBlockers(contact: ContactDetails): readonly string[] {
-  return CONTACT_FIELDS.filter((field) => contact[field] === PLACEHOLDER_CONTACT[field]).map(
-    (field) => `site.contact.${field} is still ${JSON.stringify(contact[field])}`,
+  return CONTACT_FIELDS.filter((field) => !CONTACT_CHECKS[field].isReal(contact[field])).map(
+    (field) => `site.contact.${field} is still ${JSON.stringify(contact[field])}, which is not real: ${CONTACT_CHECKS[field].rule}`,
   );
 }
 
@@ -127,11 +146,46 @@ describe("launchBlockers", () => {
 
     // Assert
     expect(blockers).toEqual([
-      'site.contact.email is still "projects@numaliving.com"',
-      'site.contact.phone is still "+971 4 000 0000"',
-      'site.contact.whatsapp is still "971400000000"',
-      'site.contact.address is still "Factory address, Dubai, UAE"',
+      'site.contact.email is still "projects@numaliving.com", which is not real: a real email address, not the old placeholder',
+      'site.contact.phone is still "+971 4 000 0000", which is not real: a real phone number has at least 7 digits and no run of four zeros',
+      'site.contact.whatsapp is still "971400000000", which is not real: a real WhatsApp number is digits only, at least 7 of them, with no run of four zeros',
+      'site.contact.address is still "Factory address, Dubai, UAE", which is not real: a real address is a street address with a number in it, not the stub',
     ]);
+  });
+
+  it.each([
+    ["the stub phone with its last digit changed", { phone: "+971 4 000 0001" }, "phone"],
+    ["the stub WhatsApp number with its last digit changed", { whatsapp: "971400000001" }, "whatsapp"],
+    ["the stub address with a full stop added", { address: "Factory address, Dubai, UAE." }, "address"],
+    ["an empty phone number", { phone: "" }, "phone"],
+    ["an empty WhatsApp number", { whatsapp: "" }, "whatsapp"],
+    ["an empty address", { address: "" }, "address"],
+    ["an empty email address", { email: "" }, "email"],
+    ["a phone number of six digits", { phone: "555 014" }, "phone"],
+    ["a WhatsApp number with a plus sign, which the wa.me link cannot take", { whatsapp: "+61255500100" }, "whatsapp"],
+    ["an address with no number", { address: "Al Quoz Industrial Area, Dubai, UAE" }, "address"],
+    ["an email address without a domain", { email: "projects" }, "email"],
+  ] as const)("still blocks %s", (_label, override, field) => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, contact: { ...REAL_CONTACT, ...override } };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(1);
+    expect(blockers[0]).toContain(`site.contact.${field} is still`);
+  });
+
+  it("lets real details through, written the way people write them", () => {
+    // Arrange
+    const contact: ContactDetails = { email: "projects@numaliving.us", phone: "+1 (512) 555-0147", whatsapp: "15125550147", address: "Plot 12, Al Quoz Industrial Area 3, Dubai, UAE" };
+
+    // Act
+    const blockers = launchBlockers({ ...READY_STATE, contact });
+
+    // Assert
+    expect(blockers).toEqual([]);
   });
 
   it("names only the details that are still placeholders", () => {
@@ -142,7 +196,7 @@ describe("launchBlockers", () => {
     const blockers = launchBlockers(state);
 
     // Assert
-    expect(blockers).toEqual(['site.contact.phone is still "+971 4 000 0000"']);
+    expect(blockers).toEqual(['site.contact.phone is still "+971 4 000 0000", which is not real: a real phone number has at least 7 digits and no run of four zeros']);
   });
 
   it("names the sample-content ribbon when the site is indexable while it is still on", () => {
@@ -260,6 +314,7 @@ describe("launchBlockers", () => {
 
     // Assert
     expect(message).toContain('site.contact.email is still "projects@numaliving.com"');
+    expect(message).toContain('site.contact.address is still "Factory address, Dubai, UAE"');
     expect(message).toContain('project "marina-villa" in src/content/projects.ts is still marked sample: true');
     expect(message).toContain("set showSampleNotice to false in src/config/site.ts");
     expect(message).toContain("src/content/projects.ts");
@@ -328,5 +383,68 @@ describe("launchBlockers", () => {
     // Assert
     expect(message).toContain('"home.stats" is still listed in sampleContent in src/content/pages.ts');
     expect(message).toContain("replace each invented figure or placeholder photo listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry");
+  });
+});
+
+const SITE_FILE = "src/config/site.ts";
+
+/** The value of `export const <name> = true;` or `= false;` as written in a file's text, or null when it is spelled any other way (an expression, an environment variable, a cast). */
+function literalSwitch(source: string, name: string): boolean | null {
+  const match = new RegExp(`^export const ${name} = (true|false);[ \\t]*$`, "m").exec(source);
+  return match === null ? null : match[1] === "true";
+}
+
+describe("literalSwitch", () => {
+  it.each([
+    ["false", "export const isIndexable = false;", false],
+    ["true", "export const isIndexable = true;", true],
+    ["a literal with a trailing space", "export const isIndexable = true; ", true],
+    ["a literal among other lines", 'export const a = 1;\nexport const isIndexable = false;\nexport const b = 2;', false],
+  ])("reads %s", (_label, source, expected) => {
+    // Arrange
+    // (the table supplies the source text)
+
+    // Act
+    const value = literalSwitch(source, "isIndexable");
+
+    // Assert
+    expect(value).toBe(expected);
+  });
+
+  it.each([
+    ["an environment variable", 'export const isIndexable = process.env.NEXT_PUBLIC_INDEXABLE === "true";'],
+    ["a cast", "export const isIndexable = false as boolean;"],
+    ["a type annotation", "export const isIndexable: boolean = false;"],
+    ["a function call", "export const isIndexable = readFlag();"],
+    ["a line that is commented out", "// export const isIndexable = true;"],
+    ["a different name", "export const isIndexableSoon = false;"],
+    ["no definition at all", "export const other = 1;"],
+  ])("does not read %s as a literal", (_label, source) => {
+    // Arrange
+    // (the table supplies the source text)
+
+    // Act
+    const value = literalSwitch(source, "isIndexable");
+
+    // Assert
+    expect(value).toBeNull();
+  });
+});
+
+describe("the switches the guard reads", () => {
+  const source = readFileSync(path.join(process.cwd(), SITE_FILE), "utf8");
+
+  it.each([
+    ["isIndexable", isIndexable],
+    ["showSampleNotice", showSampleNotice],
+  ])("%s is a plain true or false in src/config/site.ts, the value the build uses", (name, value) => {
+    // Arrange
+    // (the table supplies the imported value)
+
+    // Act
+    const written = literalSwitch(source, name);
+
+    // Assert
+    expect(written, `${SITE_FILE} must say \`export const ${name} = true;\` or \`= false;\`, not an expression: the guard cannot see a value that depends on the build's environment`).toBe(value);
   });
 });

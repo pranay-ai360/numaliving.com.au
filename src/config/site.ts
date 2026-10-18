@@ -35,6 +35,8 @@ export const site = {
 
   // The email is real. TODO(Ramya): replace the placeholder phone, WhatsApp number and address. Until
   // then, src/config/launchGuard.test.ts fails the tests (and the deploy) if isIndexable below is true.
+  // The guard judges the shape (src/lib/realContact.ts), not the exact stubs: a phone or WhatsApp number
+  // needs 7 or more digits and no run of four zeros (the WhatsApp number digits only), the address a number.
   contact: {
     email: "projects@numaliving.us",
     phone: "+971 4 000 0000",
@@ -67,5 +69,7 @@ export const showSampleNotice = true;
  * crawlers in either way so they can read that tag, see src/lib/robots.ts).
  * Keep false while the site is a preview; flip to true when the real domain is live and the
  * contact details above are real (src/config/launchGuard.test.ts checks the second part).
+ * Keep it a plain `true` or `false`: the guard reads the value the tests see, so a test requires the
+ * literal in this file (a value computed from an environment variable could differ in the build).
  */
 export const isIndexable = false;
