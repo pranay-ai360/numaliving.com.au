@@ -1,6 +1,6 @@
 # SEO research tools
 
-The scripts behind the US SEO study of 18 October 2026, kept so the study can be repeated: fetch pages politely, audit them, compare vocabulary, read sitemaps, run SERP queries on a local SearXNG, and capture screenshots and Google result pages with the single CloakBrowser seat. They never change the site. Everything is standard library only (Python 3.9 or newer), except `browse.py`, which needs `python3.14` with CloakBrowser. The tests need no network, browser or Docker.
+The scripts behind the US SEO study of 18 October 2026, kept so the study can be repeated: fetch pages politely, audit them, compare vocabulary, read sitemaps, run SERP queries on a local SearXNG, and capture screenshots and Google result pages with the single CloakBrowser seat. `launch_check.py` turns the study's findings into a gate: it checks whether the site itself is ready to be opened to search engines. None of them changes the site. Everything is standard library only (Python 3.9 or newer), except `browse.py`, which needs `python3.14` with CloakBrowser. The tests need no network, browser or Docker.
 
 "Politely" describes `fetch_pages.py` and `sitemap_report.py`, which read `robots.txt`, pause between requests and refuse risky redirects. `browse.py` drives a real browser and is different: read its section before you use it.
 
@@ -17,6 +17,11 @@ Output goes to the git-ignored `tools/seo/data/` folder, or to the folder in `SE
 | `google_features.py` | Read Google result-page text: AI Overview and its sources, People also ask, related searches, local pack, ads |
 | `vocab_gap.py` | Compare ranking pages with the site's own pages: phrase gaps and the plan's US-versus-UK term table |
 | `browse.py` | CloakBrowser: page screenshots and text (`shots`), Google result pages (`serp`). Run with `python3.14` |
+| `launch_check.py` | Is the site ready to open to search engines? A PASS, FAIL or SKIP for every check, for a closed site (`--mode preview`) or an open one (`--mode live`) |
+| `launch_model.py`, `launch_crawl.py` | The site under test (base URL, canonical host, mode) and the internal-link crawl |
+| `launch_page_checks.py`, `launch_structured_data.py` | The per-page checks, and the JSON-LD checks |
+| `launch_documents.py`, `launch_site_checks.py` | The robots.txt and sitemap checks; the checks of `/index.html`, the 404 and login pages, share images, redirects and the crawl limit |
+| `launch_report.py` | The table, the verdict and the JSON report |
 | `seo_common.py` | Shared helpers (errors, data folder, file names, list files, URL checks, safe printing) |
 | `robots_rules.py`, `robots_policy.py` | robots.txt as RFC 9309 describes it, and what a site's answer means for the fetcher |
 | `http_reply.py`, `fetch_result.py` | One HTTP answer (headers, bounded body, Retry-After) and the saved result of one fetch |
@@ -51,6 +56,14 @@ python3.14 $SEO/browse.py serp --queries-file $DATA/tracked.txt                 
 python3 $SEO/google_features.py $DATA/browse/serp
 ```
 
+## Check the site before and after the launch
+
+```bash
+python3 tools/seo/launch_check.py --base-url https://numaliving.us/ --mode preview                   # closed: must keep passing until the launch
+python3 tools/seo/launch_check.py --base-url http://127.0.0.1:4573/ --mode live --delay 0            # a local build of the open site; canonicals still name numaliving.us
+python3 tools/seo/launch_check.py --base-url https://numaliving.us/ --mode live --json tools/seo/data/launch-check.json   # after the launch
+```
+
 ## What each tool does and promises
 
 **`fetch_pages.py OUT_DIR URL... [--delay S] [--urls-file F] [--allow-private-hosts]`**
@@ -62,6 +75,49 @@ python3 $SEO/google_features.py $DATA/browse/serp
 - **Downloads.** It sends a browser-like `User-Agent` (the constant `USER_AGENT`; update it when it gets old). It records status, headers, size and time; a header sent more than once (two `Link` lines, `X-Robots-Tag: all` plus a per-robot one) is kept whole, joined with `, `. It handles gzip and deflate, keeps 4xx and 5xx bodies, and stops a body at 6 MB (`truncated` in the `.meta.json`). A download that takes longer than 5 minutes in total, or whose body ends before its `Content-Length`, is recorded as an error.
 - **File names.** `<host>_<path>` for the address, for example `numaliving.us_about.html`. When two different addresses of one run would get the same name (`/x` and `/x/`, `http` and `https`, `/a/b` and `/a_b`, `/About` and `/about`), the later one gets a short hash of its full address added, and the `requested` field of each `.meta.json` says which address it belongs to. When an address is skipped or fails, a page saved by an earlier run under that name is removed, so it cannot sit next to a record that says nothing arrived. A re-run into the same folder replaces earlier files.
 - Exit status 1 only when a fetch failed. A skipped URL or a 404 page is not a failure.
+
+**`launch_check.py --base-url URL [--mode preview|live] [--canonical-host URL] [--max-pages N] [--delay S] [--json FILE]`** answers "is this site ready to be opened to search engines?" with a PASS, FAIL or SKIP for every check, the failing addresses under each failure, and an exit status. It reads the site and changes nothing.
+
+- **Two modes.** `preview` (the default) is the closed state the site keeps until the launch: every page must be `noindex`, `sitemap.xml` must be an empty `urlset`, and `robots.txt` must have no `Sitemap:` line. `live` is the open state: every page must be indexable except `/login/` and the 404 page, the sitemap must list every indexable page the crawl found, and `robots.txt` must have one `Sitemap:` line naming `<canonical host>/sitemap.xml` and no site-wide `Disallow`. `/login/` must be `noindex` in both.
+- **Addresses.** `--base-url` is where the pages are fetched from: `https://numaliving.us/`, or a local build such as `http://127.0.0.1:4573/`. `--canonical-host` (default `https://numaliving.us`) is what the pages must name in their canonical links, `og:url` and sitemap. With a local build the canonical links still name production, and an address on the canonical host (a sitemap `<loc>`, an `og:image`) is read from the base URL. A base path such as `https://user.github.io/repo/` works too.
+- **Discovery.** The crawl starts at the home page (live: and at every sitemap URL on the site) and follows internal links breadth first. Every internal link is fetched once, a page or a file, so "does this link resolve?" has an answer; only an HTML page that answered 200 on the site is read for more links. The crawl stops at `--max-pages` (default 60), and a site with more addresses than that **fails** `crawl-complete`: raise the limit.
+- **Politeness and scope.** Requests go through the same `PoliteFetcher` as `fetch_pages.py`: `robots.txt` is applied (a page it disallows is reported and never requested), at least `--delay` seconds pass between requests (default 1.5; `0` is fine for localhost), and redirect hops are checked. Only the site's own addresses are requested: the base URL, the canonical host and its `http://` and `www.` forms. Links to other sites are never followed, a share image on another host is reported and not fetched, and a link that redirects to another site is reported and its page is not read (the fetcher takes the redirect itself, one checked hop at a time). A run makes one request per page, one per share image and about a dozen more.
+- **Exit status.** 0 when no check failed (a SKIP is shown but is not a failure, and the closing line says how many), 1 when a check failed, 2 for a usage error. `--json FILE` saves the whole report (settings, one record per page, every check with all its failing addresses; the table shows at most 8 per check), as ASCII so that any text a page held can be saved.
+
+| Check | What has to be true |
+| --- | --- |
+| `status-200` | the home page and every sitemap URL answer 200 with an HTML page on the site, and `robots.txt` does not keep them out |
+| `title-single`, `title-unique`, `title-length` | exactly one non-empty `<title>` (an SVG title does not count), no two pages share one, at most 60 characters as shown (entities decoded) |
+| `description-present`, `description-unique`, `description-length` | a meta description on every page, none shared; **live only:** 120 to 160 characters |
+| `canonical` | exactly one absolute canonical link, equal to the canonical host plus the page's path |
+| `robots-meta` | the `robots`, `googlebot` and `bingbot` tags and the `X-Robots-Tag` header say noindex exactly where the mode expects it (preview: everywhere; live: only `/login/`); an indexable page must not say nofollow or none |
+| `html-lang` | `<html lang="en-US">`, compared as written |
+| `h1-single`, `heading-order` | exactly one non-empty H1; heading levels never skip (H1, then H2, then H3; going back up is fine) |
+| `open-graph`, `twitter-card` | `og:title`, `og:description`, `og:url`, `og:image`, `og:type` and `og:locale` present, `og:url` equal to the canonical; `twitter:card` present |
+| `images-alt-size` | every `<img>` has an `alt` attribute (empty is right for a decorative image), a `width` and a `height` |
+| `links-resolve` | every internal link ends on a page that answers 200 |
+| `no-http-resources` | no script, style sheet, image, frame or media address starts with `http://` |
+| `json-ld-valid` | every JSON-LD block parses and names schema.org as its `@context` |
+| `json-ld-organization` | an `Organization` is declared at the top of a block or in its `@graph` (one nested inside another entity does not count) |
+| `json-ld-breadcrumbs` | every inner page (not `/`, not `/login/`) declares a BreadcrumbList with positions 1, 2, 3 and a name for each crumb |
+| `json-ld-placeholders` | no text in the markup contains `+971`, `Factory address` or `000 0000`, and every `telephone` and address in the markup is shown as text on the same page |
+| `robots-txt` | served; live: one `Sitemap:` line naming `<canonical host>/sitemap.xml` and no `Disallow: /` for `*`, Googlebot or Bingbot; preview: no `Sitemap:` line |
+| `sitemap-valid` | `sitemap.xml` is a UTF-8 `urlset` (no DOCTYPE, not an index), read with the `sitemap_report.py` parser |
+| `sitemap-empty` | (preview) it lists no URL |
+| `sitemap-locations`, `sitemap-duplicates`, `sitemap-lastmod`, `sitemap-no-noindex`, `sitemap-complete` | (live) every `<loc>` starts with the canonical host and a slash, none is listed twice, every `<lastmod>` is a real ISO 8601 date (`2026-10-18`, or a date-time with a time zone), no listed page is noindex or the login page, and every indexable page the crawl found is listed |
+| `index-html-canonical` | `/index.html` names `/` as its canonical (or redirects there, or answers 404) |
+| `missing-page-404` | a path that cannot exist answers 404 with `noindex` and a title that no real page has |
+| `login-noindex` | `/login/` is noindex in both modes (skipped when it answers 404) |
+| `share-images` | every `og:image` and `twitter:image` address is absolute, on the site, and answers 200 with an `image/*` content type and a body |
+| `redirect-https`, `redirect-www` | `http://` and `www.` each reach the canonical home page in one 301 or 308 hop; skipped unless `--base-url` is the https canonical host itself |
+| `crawl-complete` | the crawl fetched every internal address it found |
+
+Choices worth knowing before you read a FAIL:
+
+- The placeholder markers are plain text. A real phone number that starts with `+971` would also trip `json-ld-placeholders`; if that is ever intended, change `PLACEHOLDER_MARKERS` in `launch_structured_data.py`.
+- Contact details are compared page by page, as Google asks of structured data: a `telephone` or address in a page's JSON-LD must be readable text on that same page (a `tel:` link alone is not). A phone may be shown without its country code, or with spaces, dots or brackets.
+- `lastmod` must be present and real, because Google stops trusting a sitemap whose dates it finds unreliable. Whether the date is true is for a person to check against the page's history.
+- It reads HTML the way `audit_pages.py` does, not like a browser: text added by JavaScript is invisible to it. It does not validate JSON-LD against the schema.org types (use the Rich Results Test), measure speed, or know anything about Search Console.
 
 **`audit_pages.py FILE.html... [--base-url URL]`** writes `<name>.analysis.json` and `<name>.txt` beside each page and prints a summary. It reads `<name>.meta.json` when present (the final URL decides what counts as an internal link); without it, `--base-url` plays that part. It accepts `.html` and `.htm` files only, because the output names replace that suffix (a file called `notes.txt` would be overwritten by its own text output). A page that cannot be audited is reported on one line and skipped; the others are still done and the exit status is 1. `--table DIR` compares the `*.analysis.json` files of a folder, including those the first prototype wrote, and skips (aloud) any file it cannot read.
 
@@ -94,7 +150,7 @@ python3 $SEO/google_features.py $DATA/browse/serp
 | Code | Meaning |
 | --- | --- |
 | 0 | done |
-| 1 | a fetch or query failed, a page could not be audited, `browse.py` had a failed capture or `serp` stopped at a block page or after repeated failures, or an unexpected error (one line, see above) |
+| 1 | a fetch or query failed, a page could not be audited, a `launch_check.py` check failed, `browse.py` had a failed capture or `serp` stopped at a block page or after repeated failures, or an unexpected error (one line, see above) |
 | 2 | a usage error, or a problem you can fix (printed on one line without a traceback): bad URL or option, missing file, SearXNG not running, `cloakbrowser` not installed for this Python, `serp` refused because of a recent block page |
 | 76 | `browse.py` could not launch the browser, most often because the single seat is taken. A problem inside a session that is already running is an ordinary failure (1), not 76 |
 | 130 | interrupted with Ctrl-C |
