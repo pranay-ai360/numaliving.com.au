@@ -222,7 +222,7 @@ class CrawlDelayTests(unittest.TestCase):
 
 class DecodingTests(unittest.TestCase):
     def test_a_utf8_byte_order_mark_does_not_hide_the_first_group(self) -> None:
-        for text in (b"\xef\xbb\xbfUser-agent: *\nDisallow: /secret/\n", "﻿User-agent: *\nDisallow: /secret/\n"):
+        for text in (b"\xef\xbb\xbfUser-agent: *\nDisallow: /secret/\n", "\ufeffUser-agent: *\nDisallow: /secret/\n"):
             with self.subTest(kind=type(text).__name__):
                 self.assertFalse(rules_of(text).allows("/secret/a"))
 

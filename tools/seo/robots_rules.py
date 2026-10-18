@@ -125,7 +125,7 @@ def _decode(body: bytes) -> str:
     sample = body[:MAX_ROBOTS_BYTES]
     if sample.startswith(UTF16_MARKS) or b"\x00" in sample:
         raise UnusableRobots("robots.txt is not UTF-8 text (UTF-16, UTF-32 or binary), so its rules cannot be trusted")
-    return sample.decode("utf-8-sig", errors="replace").lstrip("﻿")
+    return sample.decode("utf-8-sig", errors="replace").lstrip("\ufeff")
 
 
 def _lines(text: str) -> List[Tuple[str, str]]:

@@ -336,7 +336,7 @@ def _canonical(link_tags: List[Dict[str, str]]) -> Optional[str]:
 def extract_facts(html: str, base_url: str) -> PageFacts:
     """Parse the page. base_url (the final URL after redirects) decides what is internal and resolves links."""
     parser = _FactsParser()
-    parser.feed(html[1:] if html.startswith("﻿") else html)  # a byte order mark is not text
+    parser.feed(html[1:] if html.startswith("\ufeff") else html)  # a byte order mark is not text
     parser.close()
     meta = parser.meta
     types, errors = json_ld_types(tuple(parser.jsonld_blobs))

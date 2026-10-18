@@ -138,6 +138,7 @@ class AssignStemsTests(unittest.TestCase):
             ("http://a.test/", "https://a.test/"),
             ("https://a.test/x/y", "https://a.test/x_y"),
             ("https://a.test/About", "https://a.test/about"),
+            ("https://a.test/about", "https://a.test/About"),
             ("https://a.test/", "https://a.test/index"),
         )
         for first, second in pairs:
