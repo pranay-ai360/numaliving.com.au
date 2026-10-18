@@ -83,7 +83,7 @@ def has_nofollow(tokens: FrozenSet[str]) -> bool:
     return bool(tokens & NOFOLLOW_TOKENS)
 
 
-def _normal(text: str) -> str:
+def normal(text: str) -> str:
     return " ".join(text.split()).casefold()
 
 
@@ -91,7 +91,7 @@ def _shared(views: Sequence[PageView], value_of: Callable[[PageView], str], labe
     """For every page whose title or description another page has too: which other page it is."""
     groups: Dict[str, List[str]] = {}
     for view in views:
-        text = _normal(value_of(view))
+        text = normal(value_of(view))
         if text:
             groups.setdefault(text, []).append(view.url)
     return {
