@@ -1,0 +1,30 @@
+# The 15 queries the 90-day loop tracks (which page answers which: docs/seo/keyword-map.md).
+# One query per line; blank lines and lines starting with # are skipped.
+# Weekly: python3 tools/seo/serp_search.py tools/seo/tracked_queries.txt            (SearXNG, all 15)
+#         python3.14 tools/seo/browse.py serp --queries-file tools/seo/tracked_queries.txt   (Google, 15 at most per run)
+#         python3 tools/seo/rank_log.py append --serp-dir <serp folder> --google-dir <browse serp folder>
+
+# --- import and overseas millwork (the first target: /overseas-millwork-manufacturer/)
+overseas millwork manufacturer for US projects
+international millwork supplier for US architects
+import custom millwork from overseas
+
+# --- head and sector terms (/architectural-millwork/ and /sectors/*)
+architectural millwork manufacturer
+custom millwork manufacturer
+multifamily millwork manufacturer
+hospitality millwork manufacturer
+luxury custom millwork
+
+# --- questions buyers ask (/resources/*)
+how much does custom millwork cost
+AWI premium vs custom grade
+millwork submittals shop drawings process
+
+# --- wall paneling (/architectural-millwork/wall-paneling/, Wave B)
+custom wood wall paneling
+fluted wood wall panels manufacturer
+
+# --- brand
+numa living millwork
+numa living

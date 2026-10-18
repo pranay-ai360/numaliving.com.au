@@ -243,6 +243,12 @@ class SafetyTests(LogTestCase):
         self.assertEqual(code, 0, err)
         self.assertEqual(len(rank_log.read_log(self.log)), 6)
 
+    def test_a_cell_too_big_for_the_csv_reader_is_a_tool_error_not_a_crash(self) -> None:
+        self.log.write_text(HEADER + "\n2026-10-11," + "q" * 200_000 + ",,,,,,,,,\n", encoding="utf-8")
+        with self.assertRaises(SeoToolError) as caught:
+            rank_log.read_log(self.log)
+        self.assertIn("line 2", str(caught.exception))
+
     def test_a_blank_line_in_the_log_is_ignored(self) -> None:
         self.append(WEEK1)
         self.log.write_text(self.log.read_text(encoding="utf-8") + "\n\n", encoding="utf-8")
@@ -478,20 +484,20 @@ class DiffCommandTests(LogTestCase):
 
 
 class UsageTests(LogTestCase):
+    def assert_usage_error(self, argv: List[str]) -> None:
+        with captured() as (out, err), self.assertRaises(SystemExit) as caught:
+            rank_log.main(argv)
+        self.assertEqual(caught.exception.code, 2)
+        self.assertIn("usage:", err.getvalue())
+
     def test_a_command_is_required(self) -> None:
-        with captured():
-            code = run_cli(rank_log.main, [])
-        self.assertEqual(code, 2)
+        self.assert_usage_error([])
 
     def test_append_needs_a_serp_folder(self) -> None:
-        with captured():
-            code = run_cli(rank_log.main, ["append", "--log", str(self.log)])
-        self.assertEqual(code, 2)
+        self.assert_usage_error(["append", "--log", str(self.log)])
 
     def test_options_cannot_be_abbreviated(self) -> None:
-        with captured():
-            code = run_cli(rank_log.main, ["append", "--serp", str(RANK_FIXTURES / WEEK1 / "serp")])
-        self.assertEqual(code, 2)
+        self.assert_usage_error(["append", "--serp", str(RANK_FIXTURES / WEEK1 / "serp")])
 
     def test_the_default_clock_is_the_local_date(self) -> None:
         with mock.patch.object(rank_log, "date") as fake_date:

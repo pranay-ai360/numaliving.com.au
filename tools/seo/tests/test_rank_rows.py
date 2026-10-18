@@ -167,11 +167,11 @@ class BuildRowsTests(unittest.TestCase):
         self.assertEqual((brand.own_rank, brand.google_aio, brand.google_aio_cites_own), (1, False, False))
         self.assertEqual((cost.own_rank, cost.google_aio, cost.paa_count), (None, True, 4))
 
-    def test_the_domains_are_distinct_normalised_and_cut_at_three_and_ten(self) -> None:
+    def test_the_domains_are_those_of_the_first_three_and_ten_results_distinct_and_normalised(self) -> None:
         item = record("q", "www.a.test", "a.test", "b.test", "WWW.C.TEST", "d.test", *[f"s{n}.test" for n in range(12)])
         row = rank_rows.build_rows([item], {}, "2026-10-18", OWN)[0]
-        self.assertEqual(row.top3_domains, ("a.test", "b.test", "c.test"))
-        self.assertEqual(row.top10_domains, ("a.test", "b.test", "c.test", "d.test", *[f"s{n}.test" for n in range(6)]))
+        self.assertEqual(row.top3_domains, ("a.test", "b.test"))  # two of the three results are one site
+        self.assertEqual(row.top10_domains, ("a.test", "b.test", "c.test", "d.test", *[f"s{n}.test" for n in range(5)]))
 
     def test_a_capture_for_another_query_makes_no_row(self) -> None:
         rows = rank_rows.build_rows([record("q", "a.test")], {"other": capture("x")}, "2026-10-18", OWN)
@@ -221,13 +221,29 @@ class CellTests(unittest.TestCase):
         self.assertEqual(rank_rows.row_cells(row)[10], "is a / b?")
 
     def test_text_that_a_spreadsheet_would_run_as_a_formula_is_defused_and_restored(self) -> None:
-        for text in ("=1+1", "+1 234", "-5", "@SUM(A1)", "\tindent", "\rreturn"):
+        for text in ("=1+1", "+1 234", "-5", "@SUM(A1)"):
             with self.subTest(text=text):
                 row = RankRow("2026-10-18", text, None, None, None, None, None, None, (), (), (text + "?",))
                 cells = rank_rows.row_cells(row)
                 self.assertEqual(cells[1], "'" + text)
-                self.assertTrue(cells[10].startswith("'"))
-                self.assertEqual(rank_rows.row_from_cells(cells, 2), RankRow("2026-10-18", text, None, None, None, None, None, None, (), (), (text + "?",)))
+                self.assertEqual(cells[10], "'" + text + "?")
+                self.assertEqual(rank_rows.row_from_cells(cells, 2), row)
+
+    def test_a_query_that_starts_with_a_tab_or_a_return_is_defused_too(self) -> None:
+        for text in ("\tindent", "\rreturn"):
+            with self.subTest(text=text):
+                row = RankRow("2026-10-18", text, None, None, None, None, None, None, (), (), ())
+                cells = rank_rows.row_cells(row)
+                self.assertEqual(cells[1], "'" + text)
+                self.assertEqual(rank_rows.row_from_cells(cells, 2), row)
+
+    def test_the_items_of_a_list_lose_their_line_breaks_and_extra_spaces(self) -> None:
+        row = RankRow("2026-10-18", "q", None, None, None, None, None, None, (), ("a.test",), ("is  a\nb?",))
+        self.assertEqual(rank_rows.row_cells(row)[10], "is a b?")
+
+    def test_a_null_character_is_dropped_from_the_cells(self) -> None:
+        row = RankRow("2026-10-18", "q\x00r", None, None, None, None, None, None, (), (), ())
+        self.assertEqual(rank_rows.row_cells(row)[1], "qr")
 
     def test_a_quote_in_front_of_such_text_is_kept_apart_from_the_guard(self) -> None:
         for text in ("'=x", "''+y", "'-1", "'" * 3 + "@z"):

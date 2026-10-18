@@ -232,32 +232,42 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(lines[1], "3 queries in both snapshots: 3 changed, 0 unchanged")
 
     def test_each_changed_query_gets_a_block_with_only_what_changed(self) -> None:
-        text = self.text()
-        self.assertIn("\ncustom millwork manufacturer\n", text)
-        self.assertIn("  own rank: 14 -> 4 (up 10)\n", text)
-        self.assertIn("  top 10 domains: entered numaliving.us, woodworkingnetwork.com; left buildersfirstsource.com, downtobid.com\n", text)
-        self.assertIn("  Google: numaliving.us appeared on the page; AI Overview appeared; local pack appeared\n", text)
-        self.assertIn('  People also ask: added "What does custom millwork mean?", "Are custom cabinets millwork?"; removed "How much does custom millwork cost?"', text)
+        lines = self.text().splitlines()
+        self.assertIn("custom millwork manufacturer", lines)
+        self.assertIn("  own rank: 14 -> 4 (up 10)", lines)
+        self.assertIn("  top 10 domains: entered numaliving.us, woodworkingnetwork.com; left buildersfirstsource.com, downtobid.com", lines)
+        self.assertIn("  Google: numaliving.us appeared on the page; AI Overview appeared; local pack appeared", lines)
+        self.assertIn('  People also ask: added "What does custom millwork mean?", "Are custom cabinets millwork?"; removed "How much does custom millwork cost?"', lines)
+
+    def test_a_block_is_set_apart_by_a_blank_line_and_only_lists_what_changed(self) -> None:
+        lines = self.text().splitlines()
+        start = lines.index("numa living")
+        self.assertEqual(lines[start - 1], "")
+        self.assertEqual(lines[start + 1:start + 4], [
+            "  own rank: 2 -> 1 (up 1)",
+            "  top 10 domains: entered numaliving.co.uk; left numaliving.com.ar",
+            "  Google: AI Overview disappeared (it had cited numaliving.us)",
+        ])
 
     def test_the_overview_that_went_away_says_it_had_cited_the_site(self) -> None:
-        self.assertIn("  Google: AI Overview disappeared (it had cited numaliving.us)\n", self.text())
+        self.assertIn("  Google: AI Overview disappeared (it had cited numaliving.us)", self.text().splitlines())
 
     def test_the_site_gaining_or_losing_a_citation_in_a_standing_overview(self) -> None:
         gained = rank_diff.compare([google("2026-10-11", "q", google_aio=True), google("2026-10-18", "q", google_aio=True, google_aio_cites_own=True)])
         lost = rank_diff.compare([google("2026-10-11", "q", google_aio=True, google_aio_cites_own=True), google("2026-10-18", "q", google_aio=True)])
         appeared = rank_diff.compare([google("2026-10-11", "q"), google("2026-10-18", "q", google_aio=True, google_aio_cites_own=True)])
         assert gained is not None and lost is not None and appeared is not None
-        self.assertIn("  Google: AI Overview now cites numaliving.us\n", rank_diff.render_comparison(gained))
-        self.assertIn("  Google: AI Overview no longer cites numaliving.us\n", rank_diff.render_comparison(lost))
-        self.assertIn("  Google: AI Overview appeared (and cites numaliving.us)\n", rank_diff.render_comparison(appeared))
+        self.assertIn("  Google: AI Overview now cites numaliving.us", rank_diff.render_comparison(gained).splitlines())
+        self.assertIn("  Google: AI Overview no longer cites numaliving.us", rank_diff.render_comparison(lost).splitlines())
+        self.assertIn("  Google: AI Overview appeared (and cites numaliving.us)", rank_diff.render_comparison(appeared).splitlines())
 
     def test_the_site_leaving_the_page_and_the_local_pack_going_are_worded(self) -> None:
         comparison = rank_diff.compare([google("2026-10-11", "q", own_in_google_top10=True, local_pack=True), google("2026-10-18", "q")])
         assert comparison is not None
-        self.assertIn("  Google: numaliving.us disappeared from the page; local pack disappeared\n", rank_diff.render_comparison(comparison))
+        self.assertIn("  Google: numaliving.us disappeared from the page; local pack disappeared", rank_diff.render_comparison(comparison).splitlines())
 
     def test_a_missing_capture_is_said_once(self) -> None:
-        self.assertIn("  Google: no Google capture on 2026-10-11, so nothing to compare\n", self.text())
+        self.assertIn("  Google: no Google capture on 2026-10-11, so nothing to compare", self.text().splitlines())
 
     def test_nothing_changed_is_said_plainly(self) -> None:
         comparison = rank_diff.compare([bare("2026-10-11", "q", own_rank=1), bare("2026-10-18", "q", own_rank=1)])
