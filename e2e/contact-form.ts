@@ -30,9 +30,11 @@ export const QUOTE = {
   email: "ada@example.com",
   role: "Architect / designer",
   projectType: "Residences",
-  location: "Dubai, UAE",
+  location: "Austin, Texas",
+  projectSize: "45,000 sq ft",
+  bidDate: "2026-11-12",
   timeline: "Start within 3 months",
-  message: "Walnut wardrobes and vanities for twelve villas.",
+  message: "Walnut closets and vanities for twelve units.",
 } as const;
 
 export type FilePayload = { name: string; mimeType: string; buffer: Buffer };
@@ -104,7 +106,7 @@ export function thankYouPanel(page: Page): Locator {
   return page.getByRole("main").getByRole("status").filter({ hasText: "Thank You" });
 }
 
-/** Fills every required field, plus Company to show an optional field reaching the email. */
+/** Fills every required field, plus Company, Project size and Bid date to show optional fields reaching the email. */
 export async function fillQuoteRequest(page: Page): Promise<void> {
   await page.getByLabel("Full name").fill(QUOTE.name);
   await page.getByLabel("Company").fill(QUOTE.company);
@@ -112,6 +114,8 @@ export async function fillQuoteRequest(page: Page): Promise<void> {
   await page.getByLabel("Your role").selectOption(QUOTE.role);
   await page.getByLabel("Project type").selectOption(QUOTE.projectType);
   await page.getByLabel("Site location").fill(QUOTE.location);
+  await page.getByLabel("Project size").fill(QUOTE.projectSize);
+  await page.getByLabel("Bid date").fill(QUOTE.bidDate);
   await page.getByLabel("Timeline").selectOption(QUOTE.timeline);
   await page.getByLabel("Scope and notes").fill(QUOTE.message);
 }

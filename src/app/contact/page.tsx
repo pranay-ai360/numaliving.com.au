@@ -3,6 +3,7 @@ import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { site } from "@/config/site";
 import { Container, PageHero } from "@/components/ui";
+import { ContactDetails } from "@/components/ContactDetails";
 import { QuoteForm } from "@/components/QuoteForm";
 
 export const metadata: Metadata = pageMetadata("/contact");
@@ -20,17 +21,8 @@ export default function ContactPage() {
         <Container className="grid gap-14 lg:grid-cols-[1.6fr_1fr]">
           <QuoteForm />
           <aside className="h-fit space-y-8 bg-linen p-8">
-            <div>
-              <p className="eyebrow">Talk to us</p>
-              <ul className="mt-4 space-y-2">
-                <li>
-                  <a href={`mailto:${site.contact.email}`} className="hover:text-gold">
-                    {site.contact.email}
-                  </a>
-                </li>
-              </ul>
-            </div>
-            
+            <ContactDetails contact={site.contact} />
+
             <div>
               <p className="eyebrow">What happens next</p>
               <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink-muted">

@@ -83,7 +83,7 @@ describe("QuoteForm failures", () => {
       expect(alert).toHaveTextContent(sendFailureMessage("network"));
       expect(within(alert).getByRole("link", { name: "Email us instead" })).toHaveAttribute("href", fallbackHref("network"));
       expect(screen.getByLabelText("Full name *")).toHaveValue("Ada Lovelace");
-      expect(screen.getByLabelText("Scope and notes *")).toHaveValue("Walnut wardrobes for twelve villas.");
+      expect(screen.getByLabelText("Scope and notes *")).toHaveValue("Walnut closets for twelve units.");
       expect(getSendButton()).toBeEnabled();
       expect(screen.queryByText("Thank You")).not.toBeInTheDocument();
     });

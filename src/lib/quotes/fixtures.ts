@@ -14,9 +14,9 @@ export const MINIMAL_REQUEST: QuoteRequest = {
   email: "ada@example.com",
   role: "Architect / designer",
   projectType: "Residences",
-  location: "Dubai, UAE",
+  location: "Austin, Texas",
   timeline: "Start within 3 months",
-  message: "Walnut wardrobes and vanities for twelve villas.",
+  message: "Walnut closets and vanities for twelve units.",
 };
 
 export function makeRequest(overrides: Partial<QuoteRequest> = {}): QuoteRequest {

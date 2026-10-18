@@ -66,9 +66,9 @@ export async function fillRequiredFields(user: UserEvent): Promise<void> {
   await user.type(screen.getByLabelText("Email *"), "ada@example.com");
   await user.selectOptions(screen.getByLabelText("Your role *"), "Architect / designer");
   await user.selectOptions(screen.getByLabelText("Project type *"), "Residences");
-  await user.type(screen.getByLabelText("Site location (city, country) *"), "Dubai, UAE");
+  await user.type(screen.getByLabelText("Site location (city, state or country) *"), "Austin, Texas");
   await user.selectOptions(screen.getByLabelText("Timeline *"), "Start within 3 months");
-  await user.type(screen.getByLabelText("Scope and notes *"), "Walnut wardrobes for twelve villas.");
+  await user.type(screen.getByLabelText("Scope and notes *"), "Walnut closets for twelve units.");
 }
 
 export function getSendButton(): HTMLElement {

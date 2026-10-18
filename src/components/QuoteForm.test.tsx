@@ -34,7 +34,7 @@ const REQUIRED_LABELS = [
   "Email *",
   "Your role *",
   "Project type *",
-  "Site location (city, country) *",
+  "Site location (city, state or country) *",
   "Timeline *",
   "Scope and notes *",
 ];
@@ -76,9 +76,50 @@ describe("QuoteForm", () => {
 
       // Assert
       for (const label of REQUIRED_LABELS) expect(screen.getByLabelText(label)).toBeRequired();
-      for (const label of ["Company", "Phone / WhatsApp", "Link to larger drawings"]) {
+      for (const label of ["Company", "Phone / WhatsApp", "Project size", "Bid date", "Link to larger drawings"]) {
         expect(screen.getByLabelText(label)).not.toBeRequired();
       }
+    });
+
+    it("asks for the site location the way a US buyer gives it, with an example", () => {
+      // Arrange / Act
+      renderQuoteForm();
+
+      // Assert
+      const location = screen.getByLabelText("Site location (city, state or country) *");
+      expect(location).toHaveAttribute("name", "location");
+      expect(location).toHaveAttribute("placeholder", "e.g. Austin, Texas");
+    });
+
+    it("offers an optional project size, with an example in US units", () => {
+      // Arrange / Act
+      renderQuoteForm();
+
+      // Assert
+      const size = screen.getByLabelText("Project size");
+      expect(size).toHaveAttribute("type", "text");
+      expect(size).toHaveAttribute("name", "projectSize");
+      expect(size).toHaveAttribute("placeholder", "e.g. 45,000 sq ft or 120 units");
+    });
+
+    it("offers an optional bid date in a date field", () => {
+      // Arrange / Act
+      renderQuoteForm();
+
+      // Assert
+      const date = screen.getByLabelText("Bid date");
+      expect(date).toHaveAttribute("type", "date");
+      expect(date).toHaveAttribute("name", "bidDate");
+    });
+
+    it("shows the project fields in the order a bid is read: type, location, size, bid date, timeline, scope", () => {
+      // Arrange / Act
+      renderQuoteForm();
+
+      // Assert
+      const project = screen.getByRole("group", { name: "The project" });
+      const names = Array.from(project.querySelectorAll("input, select, textarea"), (field) => field.getAttribute("name"));
+      expect(names).toEqual(["projectType", "location", "projectSize", "bidDate", "timeline", "message"]);
     });
 
     it("invites the visitor to attach PDF drawings and states the limits", () => {
@@ -192,7 +233,9 @@ describe("QuoteForm", () => {
       const user = renderQuoteForm();
       await fillRequiredFields(user);
       await user.type(screen.getByLabelText("Company"), "Lovelace Interiors");
-      await user.type(screen.getByLabelText("Phone / WhatsApp"), "+971 50 000 0000");
+      await user.type(screen.getByLabelText("Phone / WhatsApp"), "+1 512 555 0100");
+      await user.type(screen.getByLabelText("Project size"), "45,000 sq ft");
+      fireEvent.change(screen.getByLabelText("Bid date"), { target: { value: "2026-11-12" } });
       await user.type(screen.getByLabelText("Link to larger drawings"), "https://drive.google.com/drive/folders/abc123");
       await user.upload(getDrawingsInput(), [makePdf("plan.pdf", 2048), makePdf("boq.pdf", 4096)]);
       await screen.findByRole("button", { name: "Remove boq.pdf" });
@@ -208,12 +251,14 @@ describe("QuoteForm", () => {
       expect(body.get("Full name")).toBe("Ada Lovelace");
       expect(body.get("Company")).toBe("Lovelace Interiors");
       expect(body.get("Email")).toBe("ada@example.com");
-      expect(body.get("Phone")).toBe("+971 50 000 0000");
+      expect(body.get("Phone")).toBe("+1 512 555 0100");
       expect(body.get("Role")).toBe("Architect / designer");
       expect(body.get("Project type")).toBe("Residences");
-      expect(body.get("Site location")).toBe("Dubai, UAE");
+      expect(body.get("Site location")).toBe("Austin, Texas");
+      expect(body.get("Project size")).toBe("45,000 sq ft");
+      expect(body.get("Bid date")).toBe("2026-11-12");
       expect(body.get("Timeline")).toBe("Start within 3 months");
-      expect(body.get("Scope and notes")).toBe("Walnut wardrobes for twelve villas.");
+      expect(body.get("Scope and notes")).toBe("Walnut closets for twelve units.");
       expect(body.get("Drawings link")).toBe("https://drive.google.com/drive/folders/abc123");
       expect(body.get("Attached drawings")).toBe("Expect 2 PDFs attached: plan.pdf (2 KB); boq.pdf (4 KB)");
       expect(String(body.get("_subject")).endsWith("[2 PDFs]")).toBe(true);

@@ -12,6 +12,17 @@ describe("site contact details", () => {
   });
 });
 
+describe("site office hours", () => {
+  it("has no office hours or time zone until the owner supplies them", () => {
+    // Arrange / Act
+    const { hours, timezone } = site.contact;
+
+    // Assert
+    expect(hours).toBeNull();
+    expect(timezone).toBeNull();
+  });
+});
+
 describe("site address and language", () => {
   it("serves the site at https://numaliving.us, written without a trailing slash", () => {
     // Arrange / Act

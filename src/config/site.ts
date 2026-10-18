@@ -38,6 +38,10 @@ export const site = {
     phone: "+971 4 000 0000",
     whatsapp: "971400000000", // digits only, used for the wa.me link
     address: "Factory address, Dubai, UAE",
+    // Optional: the Contact page shows them only when set, for example "Monday to Friday, 9 am to 5 pm"
+    // and "Central Time". Null until the owner supplies them; the launch guard does not require them.
+    hours: null as string | null,
+    timezone: null as string | null,
   },
 
   nav: [

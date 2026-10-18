@@ -17,6 +17,8 @@ export const QUOTE_REQUEST_FIELDS = [
   "role",
   "projectType",
   "location",
+  "projectSize",
+  "bidDate",
   "timeline",
   "message",
   "drawingsLink",
@@ -42,6 +44,7 @@ export const TEXT_LIMITS = {
   email: 254,
   phone: 40,
   location: 160,
+  projectSize: 60,
   message: 5000,
   drawingsLink: 500,
 } as const satisfies Partial<Record<QuoteRequestField, number>>;

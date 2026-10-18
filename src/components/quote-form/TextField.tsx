@@ -6,7 +6,7 @@ type Props = {
   name: QuoteRequestField;
   label: string;
   isRequired?: boolean;
-  type?: "text" | "email" | "tel";
+  type?: "text" | "email" | "tel" | "date";
   autoComplete?: string;
   placeholder?: string;
 };

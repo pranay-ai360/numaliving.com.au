@@ -39,8 +39,9 @@ Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password o
 | To change… | Where |
 | --- | --- |
 | Colours (Condor gold, backgrounds, text) | `src/app/globals.css` (top block) |
-| Name, contact details, menu | `src/config/site.ts` |
-| Site address (`url`), language, legal name, founding year, social profiles, search-engine verification tokens | `src/config/site.ts` (the last three stay empty until they are real) |
+| Name, contact details, menu, and the optional office hours and time zone (the Contact page shows them only once they are set) | `src/config/site.ts` |
+| Site address (`url`), language, social profiles, search-engine verification tokens | `src/config/site.ts` (the last two stay empty until they are real) |
+| Company facts: legal name, founding year, factory area, headcount, certifications with their documents, leadership, parent group link | `src/content/company.ts` (the About page shows each one once it is set; each one still missing blocks indexing, see [Search engines and the preview](#search-engines-and-the-preview)) |
 | The "Preview: … sample content" ribbon | `showSampleNotice` in `src/config/site.ts` |
 | Whether search engines may index the site | `isIndexable` in `src/config/site.ts` (see [Search engines and the preview](#search-engines-and-the-preview)) |
 | Page text, stats, capabilities, factory, process steps, delivery | `src/content/pages.ts` |
@@ -48,7 +49,7 @@ Every `NEXT_PUBLIC_` value ends up in the public site, so never put a password o
 | Page titles, descriptions, share images and "last changed" dates (what search engines and link previews show) | `src/content/seo.ts`, the page registry (see [Search engines and the preview](#search-engines-and-the-preview)) |
 | The factory and destinations on the About page map | `src/content/locations.ts` |
 | Fonts | `src/app/layout.tsx` and `src/fonts/` |
-| Quote Request choices (role, project type, timeline) and field length limits | `src/lib/quotes/schema.ts` |
+| Quote Request fields, choices (role, project type, timeline) and field length limits | `src/lib/quotes/fields.ts` (the checks are in `src/lib/quotes/schema.ts`) |
 | Drawings limits (number of files, total size; keep the total under FormSubmit's 10 MB cap) | `src/lib/quotes/drawings.ts` |
 | Messages shown when a Quote Request cannot be sent | `src/lib/quotes/messages.ts` |
 | The mailbox that receives Quote Requests | The repository variable `FORMSUBMIT_ID`, set to the mailbox's FormSubmit alias, never the address itself (see [Going live](#going-live), steps 2 and 3) |
@@ -63,8 +64,8 @@ The form is on the Contact page (`/contact/`). The site has no server, so the vi
 
 **What Numa receives.** One email per Quote Request:
 
-- The subject carries the reference, project type and site location, and the number of attached PDFs when there are any, for example `Quote Request NL-7K3QX9: Residences, Dubai, UAE [2 PDFs]`.
-- A table with full name, company, email, phone, role, project type, site location, timeline, scope and notes, drawings link, the attached Drawings ("Expect 2 PDFs attached:" followed by their names and sizes, so a missing attachment is noticed), and the reference.
+- The subject carries the reference, project type and site location, and the number of attached PDFs when there are any, for example `Quote Request NL-7K3QX9: Residences, Austin, Texas [2 PDFs]`.
+- A table with full name, company, email, phone, role, project type, site location, project size and bid date (both optional, left out when blank), timeline, scope and notes, drawings link, the attached Drawings ("Expect 2 PDFs attached:" followed by their names and sizes, so a missing attachment is noticed), and the reference.
 - The Drawings, attached as PDFs.
 - Reply-To is set to the visitor's email address, so pressing Reply answers the visitor.
 
