@@ -46,6 +46,7 @@ def decode_body(raw: bytes, encoding: str, limit: int = MAX_BYTES) -> Tuple[byte
     name = encoding.strip().lower()
     if name in ("", "identity"):
         return raw[:limit], len(raw) > limit
+    window_sizes: Tuple[int, ...]
     if name in ("gzip", "x-gzip"):
         window_sizes = (GZIP_WBITS,)
     elif name == "deflate":

@@ -31,7 +31,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple, Type
 
 from seo_common import (
     REPO_ROOT,
@@ -46,9 +46,11 @@ from seo_common import (
     read_query_file,
     require_http_url,
     run_cli,
+    safe_urlsplit,
     utc_now,
     write_json_file,
 )
+from url_guard import Resolver, non_public_reason, resolve_addresses
 
 URL_ENV = "SEARXNG_URL"
 CLIENT_DIR_ENV = "SEARXNG_CLIENT_DIR"
@@ -60,7 +62,9 @@ CLIENT_RETRIES = 2
 DEFAULT_ENGINES = "google cse,duckduckgo"
 DEFAULT_LANGUAGE = "en-US"
 DEFAULT_PAGES = 1
+MAX_PAGES = 5
 DEFAULT_DELAY_SECONDS = 5.0
+MIN_DELAY_SECONDS = 1.0
 PAGE_PAUSE_SECONDS = 2.0
 RETRY_WAIT_SECONDS = 25.0
 MAX_ATTEMPTS = 3
@@ -73,7 +77,65 @@ RECORD_FIELDS = (
     "query", "language", "fetched_at", "attempts", "results", "suggestions", "answers", "corrections",
     "infoboxes", "unresponsive",
 )
-RESULT_FIELDS = ("rank", "url", "domain", "title", "snippet", "engines", "score", "published")
+
+
+class SearchResult(Protocol):
+    """One hit, as the SearXNG client returns it (the fields this tool saves)."""
+
+    @property
+    def url(self) -> str: ...
+    @property
+    def title(self) -> str: ...
+    @property
+    def content(self) -> str: ...
+    @property
+    def engines(self) -> Sequence[str]: ...
+    @property
+    def score(self) -> float: ...
+    @property
+    def published_date(self) -> Optional[str]: ...
+    @property
+    def domain(self) -> str: ...
+
+
+class EngineProblem(Protocol):
+    @property
+    def name(self) -> str: ...
+    @property
+    def reason(self) -> str: ...
+
+
+class Infobox(Protocol):
+    @property
+    def title(self) -> str: ...
+    @property
+    def content(self) -> str: ...
+    @property
+    def urls(self) -> Sequence[Mapping[str, Any]]: ...
+
+
+class SearchResponse(Protocol):
+    """One page of an answer from the SearXNG client."""
+
+    @property
+    def results(self) -> Sequence[SearchResult]: ...
+    @property
+    def unresponsive_engines(self) -> Sequence[EngineProblem]: ...
+    @property
+    def suggestions(self) -> Sequence[Any]: ...
+    @property
+    def answers(self) -> Sequence[Any]: ...
+    @property
+    def corrections(self) -> Sequence[Any]: ...
+    @property
+    def infoboxes(self) -> Sequence[Infobox]: ...
+
+
+class SearxngClientLike(Protocol):
+    """The two methods of searxng_client.SearxngClient that this tool calls."""
+
+    def search(self, query: str, **options: Any) -> SearchResponse: ...
+    def healthcheck(self) -> bool: ...
 
 
 @dataclass(frozen=True)
@@ -85,13 +147,13 @@ class SearchSettings:
 
 @dataclass(frozen=True)
 class SearxngConnection:
-    client: Any  # a SearxngClient (or a test double): search() and healthcheck()
-    error_type: type  # the client's own SearxngError, so a failed query can be told from a bug
+    client: SearxngClientLike  # the client's search() and healthcheck()
+    error_type: Type[BaseException]  # the client's own SearxngError, so a failed query can be told from a bug
 
 
 @dataclass(frozen=True)
 class PageOutcome:
-    response: Any
+    response: SearchResponse
     attempts: int
     unresponsive: Tuple[Tuple[str, str], ...]
 
@@ -102,7 +164,20 @@ def client_dir() -> Path:
 
 
 def searxng_url() -> str:
-    return require_http_url(os.environ.get(URL_ENV, "").strip() or DEFAULT_URL)
+    raw = os.environ.get(URL_ENV, "").strip() or DEFAULT_URL
+    try:
+        return require_http_url(raw, hint=f"for example {DEFAULT_URL}")
+    except SeoToolError as error:
+        raise SeoToolError(f"{URL_ENV} is not usable: {error}") from error
+
+
+def remote_instance_warning(url: str, resolve: Resolver = resolve_addresses) -> str:
+    """A sentence when the SearXNG instance is on the internet, "" when it is local or on a private network."""
+    parts = safe_urlsplit(url)
+    host = (parts.hostname or "") if parts is not None else ""
+    if not host or non_public_reason(host, resolve):
+        return ""
+    return f"SearXNG is at {host}, on the internet: the queries in this run are sent to that server"
 
 
 def parse_engines(text: str) -> Tuple[str, ...]:
@@ -124,7 +199,7 @@ def load_client_module(folder: Path) -> ModuleType:
     sys.modules[CLIENT_MODULE] = module  # the client defines dataclasses, which look their module up here
     try:
         spec.loader.exec_module(module)
-    except Exception as error:  # someone else's file: report whatever it raises while loading
+    except (Exception, SystemExit) as error:  # someone else's file: report whatever it raises while loading
         sys.modules.pop(CLIENT_MODULE, None)
         raise SeoToolError(f"cannot load {source}: {type(error).__name__}: {error}") from error
     return module
@@ -133,6 +208,7 @@ def load_client_module(folder: Path) -> ModuleType:
 def connect_searxng(base_url: str, folder: Path) -> SearxngConnection:
     """A client for the instance, or a SeoToolError that says how to start it."""
     module = load_client_module(folder)
+    log(f"using the SearXNG client {folder / CLIENT_FILE} (it is run, not just read)")
     try:
         client = module.SearxngClient(base_url, timeout=CLIENT_TIMEOUT_SECONDS, max_retries=CLIENT_RETRIES)
         error_type = module.SearxngError
@@ -147,14 +223,14 @@ def connect_searxng(base_url: str, folder: Path) -> SearxngConnection:
     return SearxngConnection(client, error_type)
 
 
-def _search(client: Any, query: str, page: int, settings: SearchSettings) -> Any:
+def _search(client: SearxngClientLike, query: str, page: int, settings: SearchSettings) -> SearchResponse:
     if settings.engines:
         return client.search(query, engines=list(settings.engines), language=settings.language, pageno=page)
     return client.search(query, categories="general", language=settings.language, pageno=page)
 
 
 def search_page(
-    client: Any, query: str, page: int, settings: SearchSettings, sleep: Callable[[float], None]
+    client: SearxngClientLike, query: str, page: int, settings: SearchSettings, sleep: Callable[[float], None]
 ) -> PageOutcome:
     """One result page. Empty with throttled engines is transient and retried; empty alone is a real answer."""
     attempt = 1
@@ -168,7 +244,7 @@ def search_page(
         attempt += 1
 
 
-def collect_results(responses: Sequence[Any]) -> List[Dict[str, Any]]:
+def collect_results(responses: Sequence[SearchResponse]) -> List[Dict[str, Any]]:
     seen: set = set()
     results: List[Dict[str, Any]] = []
     for response in responses:
@@ -191,7 +267,7 @@ def collect_results(responses: Sequence[Any]) -> List[Dict[str, Any]]:
     return results
 
 
-def _infobox(box: Any) -> Dict[str, Any]:
+def _infobox(box: Infobox) -> Dict[str, Any]:
     return {
         "title": box.title,
         "content": box.content[:INFOBOX_CHARS],
@@ -200,7 +276,7 @@ def _infobox(box: Any) -> Dict[str, Any]:
 
 
 def run_query(
-    client: Any,
+    client: SearxngClientLike,
     query: str,
     settings: SearchSettings,
     sleep: Callable[[float], None] = time.sleep,
@@ -261,6 +337,20 @@ def run_queries(
     return 1 if failures else 0
 
 
+def _pages(text: str) -> int:
+    value = positive_int(text)
+    if value > MAX_PAGES:
+        raise argparse.ArgumentTypeError(f"{text!r} must be {MAX_PAGES} or less")
+    return value
+
+
+def _delay(text: str) -> float:
+    value = non_negative_float(text)
+    if value < MIN_DELAY_SECONDS:
+        raise argparse.ArgumentTypeError(f"{text!r} is too short: queries must be at least {MIN_DELAY_SECONDS:g} second apart")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter, allow_abbrev=False
@@ -270,10 +360,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="where to save the JSON files (default: <data folder>/serp/<queries file name>)")
     parser.add_argument("--engines", default=DEFAULT_ENGINES, metavar="NAMES",
                         help=f'comma-separated full engine names (default "{DEFAULT_ENGINES}"; "" = instance defaults)')
-    parser.add_argument("--pages", type=positive_int, default=DEFAULT_PAGES, metavar="N",
-                        help=f"result pages per query (default {DEFAULT_PAGES})")
-    parser.add_argument("--delay", type=non_negative_float, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
-                        help=f"pause between queries (default {DEFAULT_DELAY_SECONDS:g})")
+    parser.add_argument("--pages", type=_pages, default=DEFAULT_PAGES, metavar="N",
+                        help=f"result pages per query, 1 to {MAX_PAGES} (default {DEFAULT_PAGES})")
+    parser.add_argument("--delay", type=_delay, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
+                        help=f"pause between queries, at least {MIN_DELAY_SECONDS:g} (default {DEFAULT_DELAY_SECONDS:g})")
     parser.add_argument("--language", default=DEFAULT_LANGUAGE, metavar="LOCALE",
                         help=f"search locale (default {DEFAULT_LANGUAGE})")
     return parser
@@ -288,7 +378,11 @@ def main(
     queries = read_query_file(args.queries_file)
     settings = SearchSettings(parse_engines(args.engines), args.pages, args.language)
     out_dir = args.out_dir or data_dir() / "serp" / args.queries_file.stem
-    connection = connect(searxng_url(), client_dir())
+    url = searxng_url()
+    warning = remote_instance_warning(url)
+    if warning:
+        log(f"warning: {warning}")
+    connection = connect(url, client_dir())
     code = run_queries(connection, queries, settings, args.delay, out_dir, sleep)
     log(f"results are in {out_dir}")
     return code

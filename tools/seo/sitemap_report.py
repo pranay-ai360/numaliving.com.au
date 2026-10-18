@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
-from fetch_pages import FetchResult, PoliteFetcher, default_opener
+from fetch_pages import DEFAULT_DELAY_SECONDS, FetchResult, PoliteFetcher, default_opener
 from html_facts import host_of
 from seo_common import (
     SeoToolError,
@@ -309,8 +309,8 @@ def _child_limit(text: str) -> int:
         value = int(text)
     except ValueError:
         raise argparse.ArgumentTypeError(f"{text!r} is not a whole number") from None
-    if value < 0:
-        raise argparse.ArgumentTypeError(f"{text!r} must be 0 or more")
+    if not 0 <= value <= MAX_CHILD_SITEMAPS:
+        raise argparse.ArgumentTypeError(f"{text!r} must be between 0 and {MAX_CHILD_SITEMAPS}")
     return value
 
 
@@ -327,8 +327,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help=f"latest days to show in the per-day view (default {DEFAULT_MAX_DAYS})")
     parser.add_argument("--samples", type=positive_int, default=DEFAULT_SAMPLES, metavar="N",
                         help=f"sample paths per group (default {DEFAULT_SAMPLES})")
-    parser.add_argument("--delay", type=non_negative_float, default=1.5, metavar="SECONDS",
-                        help="least pause between requests to one host when fetching (default 1.5)")
+    parser.add_argument("--delay", type=non_negative_float, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
+                        help=f"least pause between requests to one host when fetching (default {DEFAULT_DELAY_SECONDS:g})")
     parser.add_argument("--allow-private-hosts", action="store_true",
                         help="also follow redirects to local and private addresses, for your own local preview server")
     return parser
