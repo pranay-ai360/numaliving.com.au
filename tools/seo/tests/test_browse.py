@@ -129,6 +129,19 @@ class RunValidationTests(unittest.TestCase):
         with captured(), mock.patch.object(browse, "load_launcher", side_effect=AssertionError("browser touched")):
             self.assertEqual(run_cli(browse.main, ["shots", "file:///etc/passwd"]), 2)
 
+    def test_a_google_address_in_shots_exits_2_without_touching_the_browser(self) -> None:
+        with captured() as (_, err), mock.patch.object(browse, "load_launcher", side_effect=AssertionError("browser touched")):
+            code = run_cli(browse.main, ["shots", "https://numaliving.us/", "https://www.google.com/search?q=custom+millwork"])
+        self.assertEqual(code, 2)
+        self.assertIn("serp", err.getvalue())
+
+    def test_google_addresses_in_a_urls_file_are_refused_too(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            listing = Path(folder) / "urls.txt"
+            listing.write_text("https://numaliving.us/\nhttps://www.google.co.uk/search?q=x\n", encoding="utf-8")
+            with captured(), mock.patch.object(browse, "load_launcher", side_effect=AssertionError("browser touched")):
+                self.assertEqual(run_cli(browse.main, ["shots", "--urls-file", str(listing)]), 2)
+
     def test_shots_without_urls_is_a_usage_error(self) -> None:
         with captured(), self.assertRaises(SystemExit) as caught:
             browse.main(["shots"])
