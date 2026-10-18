@@ -13,10 +13,11 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from fetch_result import FetchResult
 from launch_crawl import Crawl, FetchFunction, Fetched, fetch_item, fetch_problem, is_html, read_facts, url_key
 from launch_model import (
-    INDEX_FILE_PATH, LOGIN_PATH, MISSING_PAGE_PATH, SITE_SCOPE, CheckResult, Failure, Site, counted, failing, judge,
-    listed, origin_of, passing, skipped,
+    INDEX_FILE_PATH, LOGIN_PATH, MISSING_PAGE_PATH, SITE_SCOPE, CheckResult, Failure, Site, failing, judge, listed,
+    origin_of, passing, skipped,
 )
 from launch_page_checks import PageView, canonical_problem, has_noindex, normal, robots_tokens
+from seo_common import counted
 
 IMAGE_TYPE_PREFIX = "image/"
 PERMANENT_REDIRECTS = (301, 308)

@@ -74,6 +74,11 @@ def format_seconds(value: float) -> str:
     return f"{value:,.1f}".rstrip("0").rstrip(".")
 
 
+def counted(number: int, noun: str, plural: str = "") -> str:
+    """"1 page", "2 pages": the noun is singular and gets an s unless there is exactly one (or ``plural`` is given)."""
+    return f"{number} {noun}" if number == 1 else f"{number} {plural or noun + 's'}"
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 

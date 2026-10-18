@@ -12,10 +12,10 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
-from launch_model import FAIL, PAGE_SCOPE, PASS, SITE_SCOPE, SKIP, CheckResult, counted
+from launch_model import FAIL, PAGE_SCOPE, PASS, SITE_SCOPE, SKIP, CheckResult
 from launch_page_checks import PageView
 from launch_structured_data import parse_structured_data
-from seo_common import printable
+from seo_common import counted, printable
 
 FAILURES_SHOWN = 8
 TEXT_LIMIT = 300  # page text in a message or a record (a title, a heading, an address) is cut after this much

@@ -14,7 +14,7 @@ from typing import Callable, Sequence, Tuple, TypeVar
 from urllib.parse import SplitResult, urlsplit
 
 from robots_policy import ROBOTS_PATH  # noqa: F401  (re-exported: the path the launch check reads)
-from seo_common import SeoToolError, require_http_url, safe_urlsplit
+from seo_common import SeoToolError, counted, require_http_url, safe_urlsplit
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
 PAGE_SCOPE, SITE_SCOPE = "page", "site"
@@ -93,11 +93,6 @@ def listed(items: Sequence[str], separator: str) -> str:
     extra = len(items) - PROBLEMS_SHOWN
     shown = separator.join(items[:PROBLEMS_SHOWN])
     return f"{shown} (+{extra} more)" if extra > 0 else shown
-
-
-def counted(number: int, noun: str, plural: str = "") -> str:
-    """"1 page", "2 pages": the noun is singular and gets an s unless there is exactly one (or ``plural`` is given)."""
-    return f"{number} {noun}" if number == 1 else f"{number} {plural or noun + 's'}"
 
 
 def origin_of(url: str) -> str:

@@ -17,11 +17,11 @@ from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 from fetch_result import FetchResult
 from launch_crawl import FetchFunction, fetch_item, fetch_problem
 from launch_model import (
-    MODE_LIVE, ROBOTS_PATH, SITEMAP_PATH, SITE_SCOPE, CheckResult, Failure, Site, counted, failing, judge, listed,
-    passing, skipped,
+    MODE_LIVE, ROBOTS_PATH, SITEMAP_PATH, SITE_SCOPE, CheckResult, Failure, Site, failing, judge, listed, passing,
+    skipped,
 )
 from launch_page_checks import PageView, has_noindex, robots_tokens
-from seo_common import SeoToolError
+from seo_common import SeoToolError, counted
 from sitemap_report import SitemapEntry, parse_sitemap
 
 WATCHED_AGENTS = ("*", "googlebot", "bingbot")  # a blanket Disallow for these keeps the site out of search

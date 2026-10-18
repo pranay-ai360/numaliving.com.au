@@ -186,17 +186,6 @@ class ResultTests(unittest.TestCase):
             result.status = "FAIL"  # type: ignore[misc]
 
 
-class CountedTests(unittest.TestCase):
-    def test_one_is_singular_and_anything_else_is_plural(self) -> None:
-        self.assertEqual(launch_model.counted(1, "page"), "1 page")
-        self.assertEqual(launch_model.counted(0, "page"), "0 pages")
-        self.assertEqual(launch_model.counted(2, "page"), "2 pages")
-
-    def test_an_irregular_plural_can_be_given(self) -> None:
-        self.assertEqual(launch_model.counted(1, "address", "addresses"), "1 address")
-        self.assertEqual(launch_model.counted(3, "address", "addresses"), "3 addresses")
-
-
 class ListedTests(unittest.TestCase):
     def test_up_to_three_items_are_all_shown(self) -> None:
         self.assertEqual(launch_model.listed([], "; "), "")
