@@ -191,6 +191,16 @@ class WhatIsRecordedTests(unittest.TestCase):
         self.assertEqual(len(crawl.fetched), 2)
 
 
+class SourceTests(unittest.TestCase):
+    def test_the_source_of_a_link_is_the_address_its_page_ended_at(self) -> None:
+        web = FakeWeb().add(ORIGIN + "/", page("/old/")).redirect(ORIGIN + "/old/", ORIGIN + "/new/")
+        web.add(ORIGIN + "/new/", page("/deep/")).add(ORIGIN + "/deep/", page())
+        crawl = run(web)
+        deep = crawl.lookup(ORIGIN + "/deep/")
+        assert deep is not None
+        self.assertEqual(deep.source, ORIGIN + "/new/")
+
+
 class OffSiteTests(unittest.TestCase):
     def test_a_link_that_ends_on_another_site_is_fetched_but_never_read_or_followed(self) -> None:
         web = FakeWeb().add(ORIGIN + "/", page("/out/")).redirect(ORIGIN + "/out/", "https://partner.example.test/")

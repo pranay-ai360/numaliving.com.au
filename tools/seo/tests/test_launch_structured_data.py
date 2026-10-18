@@ -89,6 +89,13 @@ class ParseTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(parse_structured_data([text]).errors, ("block 1 has no schema.org @context",))
 
+    def test_a_context_that_only_looks_like_schema_org_is_refused(self) -> None:
+        for context in ("https://evilschema.org/", "https://example.test/schema.org.json", "https://schema.org.example.test/",
+                        "schema.org", "not a url"):
+            with self.subTest(context=context):
+                text = '{"@context":"' + context + '","@type":"Thing"}'
+                self.assertEqual(parse_structured_data([text]).errors, ("block 1 has no schema.org @context",))
+
     def test_every_usual_way_to_name_schema_org_is_accepted(self) -> None:
         for context in ('"https://schema.org"', '"http://schema.org"', '"https://schema.org/"', '["https://schema.org", {"x": "y"}]',
                         '{"@vocab": "https://schema.org/"}', '[{"@vocab": "http://schema.org/"}]'):
@@ -256,6 +263,21 @@ class BreadcrumbTests(unittest.TestCase):
             {"@type": "ListItem", "position": 1, "item": {"@id": "https://numaliving.us/", "name": "Home"}}]})
         self.assertEqual(self.about_with(named_in_item), {})
 
+    def test_a_position_of_true_is_not_the_number_one(self) -> None:
+        crumbs = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":true,"name":"Home"}]}'
+        failures = self.about_with(f'<script type="application/ld+json">{crumbs}</script>')
+        self.assertEqual(failures, {ABOUT: "breadcrumb 1 has position True, expected 1"})
+
+    def test_a_name_made_of_spaces_is_no_name(self) -> None:
+        crumbs = block({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "   "}]})
+        self.assertEqual(self.about_with(crumbs), {ABOUT: "breadcrumb 1 has no name"})
+
+    def test_a_name_on_the_crumb_is_kept_when_the_item_object_has_none(self) -> None:
+        crumbs = block({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": {"@id": "https://numaliving.us/"}}]})
+        self.assertEqual(self.about_with(crumbs), {})
+
     def test_a_crumb_that_is_not_an_object_fails(self) -> None:
         crumbs = block({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": ["Home"]})
         self.assertEqual(self.about_with(crumbs), {ABOUT: "breadcrumb 1 is not an object"})
@@ -342,6 +364,10 @@ class PlaceholderTests(unittest.TestCase):
         web = edit_page(build_web(), HOME, '"logo":"https://numaliving.us/og/home.jpg"', phone)
         self.assertEqual(sorted(failures_of(run_checks(web)["json-ld-placeholders"])), [HOME])
 
+    def test_a_blank_address_is_no_address(self) -> None:
+        old = '"address":{"@type":"PostalAddress","streetAddress":"100 Example Street","addressLocality":"Testville","addressRegion":"TX","postalCode":"75000","addressCountry":"US"}'
+        self.assertEqual(self.contact_with(old, '"address":"  "'), {})
+
     def test_nothing_is_flagged_when_no_contact_details_are_marked_up(self) -> None:
         web = edit_page(build_web(), CONTACT, CONTACT_ORGANIZATION_START, '"logo":"https://numaliving.us/og/home.jpg",')
         self.assertTrue(web.body_of(CONTACT))
@@ -377,6 +403,17 @@ class HelperTests(unittest.TestCase):
         self.assertTrue(launch_structured_data.phone_is_shown("+1 512 555 0147", ("512 555 0147",)))
         self.assertFalse(launch_structured_data.phone_is_shown("+1 512 555 0147", ("555 0147",)))
         self.assertFalse(launch_structured_data.phone_is_shown("512 555 0147", ("555 0147",)))
+
+    def test_a_nine_digit_end_of_a_ten_digit_number_is_not_the_number(self) -> None:
+        self.assertFalse(launch_structured_data.phone_is_shown("512 555 0147", ("Call 12 555 0147",)))
+        self.assertFalse(launch_structured_data.phone_is_shown("512 555 0147", ("Call 2 555 0147",)))
+
+    def test_a_national_number_matches_the_same_number_written_with_its_country_code(self) -> None:
+        self.assertTrue(launch_structured_data.phone_is_shown("04 123 4567", ("Call +971 4 123 4567",)))
+        self.assertTrue(launch_structured_data.phone_is_shown("0 4 123 4567", ("971 4 123 4567",)))
+
+    def test_a_number_that_is_nothing_but_zeros_is_never_shown(self) -> None:
+        self.assertFalse(launch_structured_data.phone_is_shown("000 0000", ("000 0000",)))
 
     def test_the_markers_are_the_ones_the_stub_contact_details_use(self) -> None:
         self.assertEqual(launch_structured_data.PLACEHOLDER_MARKERS, ("+971", "Factory address", "000 0000"))

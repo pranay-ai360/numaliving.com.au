@@ -110,6 +110,10 @@ class SeedTests(unittest.TestCase):
     def test_a_preview_sitemap_gives_no_seeds(self) -> None:
         self.assertEqual(self.seeds(build_web(mode="preview"), "preview"), [])
 
+    def test_a_preview_whose_sitemap_lists_pages_still_gives_no_seeds(self) -> None:
+        web = build_web(mode="preview").add(SITEMAP_URL, launch_text("sitemap-live.xml"), content_type="application/xml")
+        self.assertEqual(self.seeds(web, "preview"), [])
+
     def test_an_unusable_sitemap_gives_no_seeds(self) -> None:
         self.assertEqual(self.seeds(FakeWeb()), [])
 
@@ -143,6 +147,14 @@ class RobotsTests(unittest.TestCase):
                 failures = failures_of(with_robots(f"User-agent: *\nAllow: /\nSitemap: {wrong}\n")["robots-txt"])
                 self.assertEqual(failures, {ROBOTS_URL: f"Sitemap line is {wrong}, expected https://numaliving.us/sitemap.xml"})
 
+    def test_a_trailing_slash_on_the_sitemap_address_is_a_different_address(self) -> None:
+        failures = failures_of(with_robots("User-agent: *\nAllow: /\nSitemap: https://numaliving.us/sitemap.xml/\n")["robots-txt"])
+        self.assertIn("Sitemap line is https://numaliving.us/sitemap.xml/", failures[ROBOTS_URL])
+
+    def test_only_a_field_called_sitemap_is_a_sitemap_line(self) -> None:
+        text = "User-agent: *\nAllow: /\nSitemap-index: https://example.test/a.xml\nSitemapper: x\nSitemap: https://numaliving.us/sitemap.xml\n"
+        self.assertEqual(with_robots(text)["robots-txt"].status, "PASS")
+
     def test_two_sitemap_lines_fail_even_when_one_is_right(self) -> None:
         failures = failures_of(with_robots(f"User-agent: *\nAllow: /\n{self.EXPECTED}\nSitemap: https://numaliving.us/other.xml\n")["robots-txt"])
         self.assertIn("2 Sitemap lines", failures[ROBOTS_URL])
@@ -150,6 +162,11 @@ class RobotsTests(unittest.TestCase):
     def test_the_sitemap_line_is_found_whatever_its_case_spacing_or_comments(self) -> None:
         text = "# robots\nUSER-AGENT: *\nallow : /\n\nSITEMAP :   https://numaliving.us/sitemap.xml   # the sitemap\n"
         self.assertEqual(with_robots(text)["robots-txt"].status, "PASS")
+
+    def test_a_byte_order_mark_does_not_hide_a_blanket_disallow_on_the_first_line(self) -> None:
+        text = b"\xef\xbb\xbfUser-agent: *\nDisallow: /\nSitemap: https://numaliving.us/sitemap.xml\n"
+        failures = failures_of(run_checks(build_web().add(ROBOTS_URL, text, content_type="text/plain"))["robots-txt"])
+        self.assertEqual(failures, {ROBOTS_URL: "disallows the whole site for *"})
 
     def test_a_byte_order_mark_does_not_hide_the_first_line(self) -> None:
         web = build_web().add(ROBOTS_URL, b"\xef\xbb\xbf" + launch_text("robots-live.txt").encode(), content_type="text/plain")
@@ -164,6 +181,10 @@ class RobotsTests(unittest.TestCase):
     def test_a_blanket_disallow_for_googlebot_or_bingbot_fails_too(self) -> None:
         text = f"User-agent: Googlebot\nUser-agent: Bingbot\nDisallow: /\n\nUser-agent: *\nAllow: /\n{self.EXPECTED}\n"
         self.assertEqual(failures_of(with_robots(text)["robots-txt"]), {ROBOTS_URL: "disallows the whole site for googlebot, bingbot"})
+
+    def test_a_crawl_delay_ends_the_list_of_agents_of_a_group(self) -> None:
+        text = f"User-agent: *\nCrawl-delay: 5\nUser-agent: Googlebot\nDisallow: /\n{self.EXPECTED}\n"
+        self.assertEqual(failures_of(with_robots(text)["robots-txt"]), {ROBOTS_URL: "disallows the whole site for googlebot"})
 
     def test_other_crawlers_may_be_shut_out_and_paths_may_be_disallowed(self) -> None:
         text = f"User-agent: SemrushBot\nDisallow: /\n\nUser-agent: *\nDisallow: /private/\nDisallow:\n{self.EXPECTED}\n"
@@ -253,6 +274,10 @@ class LocationTests(unittest.TestCase):
     def location_failures(self, *rows: str) -> Dict[str, str]:
         return failures_of(with_sitemap(live_sitemap(*rows))["sitemap-locations"])
 
+    def test_a_host_that_only_starts_like_the_canonical_host_fails(self) -> None:
+        wrong = ("https://numaliving.us.example.test/about/", "https://numaliving.usx/about/", "https://numaliving.us:8443/about/")
+        self.assertEqual(sorted(self.location_failures(*(row(loc) for loc in wrong))), sorted(wrong))
+
     def test_a_location_on_another_host_fails(self) -> None:
         failures = self.location_failures(*all_rows(), row("https://example.test/about/"))
         self.assertEqual(failures, {"https://example.test/about/": "must start with https://numaliving.us/"})
@@ -295,6 +320,12 @@ class LastmodTests(unittest.TestCase):
         for value in ("18/10/2026", "2026-10-18 10:30", "2026", "2026-10", "yesterday", "2026-10-18T10:30:00", "2026-1-8"):
             with self.subTest(value=value):
                 self.assertEqual(self.lastmod_failures(value), {ABOUT: f"lastmod {value!r} is not an ISO 8601 date (YYYY-MM-DD)"})
+
+    def test_a_time_or_offset_that_does_not_exist_fails(self) -> None:
+        for value in ("2026-10-18T24:00:00Z", "2026-10-18T10:60:00Z", "2026-10-18T10:30:61Z", "2026-10-18T10:30:00+25:00",
+                      "2026-10-18T10:30:00+10:60", "2026-10-18T10:30:00+1000"):
+            with self.subTest(value=value):
+                self.assertEqual(sorted(self.lastmod_failures(value)), [ABOUT])
 
     def test_a_date_that_does_not_exist_fails(self) -> None:
         for value in ("2026-02-30", "2026-13-01", "2026-00-10", "2026-10-32"):

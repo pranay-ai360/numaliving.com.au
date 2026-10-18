@@ -109,6 +109,11 @@ class SiteMappingTests(unittest.TestCase):
         site = Site.create("http://127.0.0.1:4573/repo/", ORIGIN, "live")
         self.assertEqual(site.fetch_url(ORIGIN + "/about/"), LOCAL + "/repo/about/")
 
+    def test_with_one_origin_a_base_path_does_not_move_the_canonical_addresses(self) -> None:
+        site = Site.create("https://user.github.io/repo/", "https://user.github.io", "live")
+        self.assertEqual(site.fetch_url("https://user.github.io/repo/about/"), "https://user.github.io/repo/about/")
+        self.assertEqual(site.fetch_url("https://user.github.io/about/"), "https://user.github.io/about/")
+
     def test_the_host_comparison_ignores_case(self) -> None:
         site = Site.create(LOCAL + "/", ORIGIN, "live")
         self.assertEqual(site.fetch_url("HTTPS://NUMALIVING.US/x/"), LOCAL + "/x/")

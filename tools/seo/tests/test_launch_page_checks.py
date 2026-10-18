@@ -179,6 +179,17 @@ class TitleTests(unittest.TestCase):
         web = edit_page(build_web(), ABOUT, "<title>About the Millwork Factory | Numa Living</title>", "")
         self.assertEqual(failures_of(run_checks(web)["title-single"]), {ABOUT: "no <title> element"})
 
+    def test_pages_that_both_lack_a_title_or_description_are_not_duplicates_of_each_other(self) -> None:
+        web = build_web()
+        edit_page(web, ABOUT, "<title>About the Millwork Factory | Numa Living</title>", "")
+        edit_page(web, PROJECTS, "<title>Millwork Projects and Case Studies | Numa Living</title>", "")
+        edit_page(web, ABOUT, '<meta name="description" content="How the Numa Living team plans, builds and finishes architectural millwork for US projects, from shop drawings through factory finishing to delivery."/>', "")
+        edit_page(web, PROJECTS, 'name="description" content="Browse architectural millwork projects built by Numa Living: wall paneling, casework, doors and built-ins for residential and hospitality interiors."', 'name="description" content=" "')
+        results = run_checks(web)
+        self.assertEqual(sorted(failures_of(results["title-single"])), [ABOUT, PROJECTS])
+        self.assertEqual(results["title-unique"].status, "PASS")
+        self.assertEqual(results["description-unique"].status, "PASS")
+
     def test_two_title_elements_fail(self) -> None:
         web = edit_page(build_web(), ABOUT, "</head>", "<title>Second</title></head>")
         self.assertEqual(failures_of(run_checks(web)["title-single"]), {ABOUT: "2 <title> elements"})
@@ -239,8 +250,10 @@ class DescriptionTests(unittest.TestCase):
         web = edit_page(build_web(), ABOUT, f'<meta name="description" content="{self.ABOUT_DESCRIPTION}"/>', "")
         self.assertEqual(failures_of(run_checks(web)["description-present"]), {ABOUT: "no meta description"})
 
-    def test_an_empty_description_fails(self) -> None:
-        self.assertEqual(failures_of(self.with_description("  ")["description-present"]), {ABOUT: "no meta description"})
+    def test_an_empty_description_fails_once_not_also_as_too_short(self) -> None:
+        results = self.with_description("  ")
+        self.assertEqual(failures_of(results["description-present"]), {ABOUT: "no meta description"})
+        self.assertEqual(results["description-length"].status, "PASS")
 
     def test_two_pages_sharing_a_description_both_fail(self) -> None:
         web = build_web()
@@ -291,6 +304,12 @@ class CanonicalTests(unittest.TestCase):
 
     def test_a_canonical_without_the_trailing_slash_fails(self) -> None:
         self.assertIn("expected", self.with_canonical('<link rel="canonical" href="https://numaliving.us/about"/>')[ABOUT])
+
+    def test_a_canonical_that_is_not_an_http_address_fails(self) -> None:
+        for href in ("ftp://numaliving.us/about/", "//numaliving.us/about/", "javascript:alert(1)", "https:///about/"):
+            with self.subTest(href=href):
+                message = self.with_canonical(f'<link rel="canonical" href="{href}"/>')[ABOUT]
+                self.assertIn("not an absolute URL", message)
 
     def test_a_canonical_on_http_fails(self) -> None:
         self.assertIn("expected", self.with_canonical('<link rel="canonical" href="http://numaliving.us/about/"/>')[ABOUT])
@@ -363,6 +382,9 @@ class LanguageTests(unittest.TestCase):
     def test_another_language_tag_fails(self) -> None:
         self.assertEqual(self.lang_failures('<html lang="en">'), {ABOUT: 'lang is "en", expected "en-US"'})
         self.assertEqual(self.lang_failures('<html lang="en-AU">'), {ABOUT: 'lang is "en-AU", expected "en-US"'})
+
+    def test_the_tag_is_compared_as_written(self) -> None:
+        self.assertEqual(self.lang_failures('<html lang="en-us">'), {ABOUT: 'lang is "en-us", expected "en-US"'})
 
     def test_a_missing_lang_fails(self) -> None:
         self.assertEqual(self.lang_failures("<html>"), {ABOUT: 'no lang attribute on <html>, expected "en-US"'})
