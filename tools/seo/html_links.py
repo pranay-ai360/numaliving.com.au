@@ -1,15 +1,32 @@
-"""Links found in a page: which kind each one is (same site, another site, tel:, mailto: or other) and where it goes."""
+"""Links found in a page: which kind each one is (same site, another site, tel:, mailto: or other) and where it goes.
+
+Also the addresses of the resources a page loads (scripts, styles, images, frames, media), which are not links.
+"""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Mapping, Optional
 from urllib.parse import urljoin
 
 from seo_common import ALLOWED_URL_SCHEMES, safe_urlsplit
 
 BROWSER_IGNORED = re.compile(r"[\t\r\n]")  # a browser drops these from inside an address
+RESOURCE_ATTRIBUTES = {  # tag -> the attributes that hold an address the browser loads
+    "script": ("src",),
+    "img": ("src", "srcset", "data-src", "data-srcset"),
+    "source": ("src", "srcset"),
+    "iframe": ("src",),
+    "video": ("src", "poster"),
+    "audio": ("src",),
+    "track": ("src",),
+    "embed": ("src",),
+    "object": ("data",),
+}
+LOADED_LINK_RELS = frozenset(  # a <link> loads something only with one of these; canonical, alternate and next do not
+    "stylesheet icon apple-touch-icon mask-icon preload modulepreload prefetch manifest".split()
+)
 
 
 @dataclass(frozen=True)
@@ -28,6 +45,24 @@ class Anchor:
     text: str
     in_boilerplate: bool
 
+
+
+def _srcset_urls(value: str) -> List[str]:
+    """The addresses in a srcset value ("a.jpg 480w, b.jpg 800w"), without their width or density descriptors."""
+    return [candidate.split()[0] for candidate in value.split(",") if candidate.split()]
+
+
+def resource_urls(tag: str, values: Mapping[str, str]) -> List[str]:
+    """The addresses, as written, that a start tag asks the browser to load; [] for any other tag."""
+    if tag == "link":
+        loads = bool(set(values.get("rel", "").lower().split()) & LOADED_LINK_RELS)
+        return [values["href"]] if loads and values.get("href", "").strip() else []
+    urls: List[str] = []
+    for name in RESOURCE_ATTRIBUTES.get(tag, ()):
+        value = values.get(name, "").strip()
+        if value:
+            urls.extend(_srcset_urls(value) if name.endswith("srcset") else [value])
+    return urls
 
 
 def host_of(url: str) -> str:

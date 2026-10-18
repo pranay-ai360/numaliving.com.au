@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
-from html_links import Anchor, Link, classify_link, host_of
+from html_links import Anchor, Link, classify_link, host_of, resource_urls
 from json_ld import JSON_LD_TYPE, MAX_TYPE_CHARS, json_ld_types
 from platform_signatures import PLATFORM_SIGNATURES, Signature, detect_platforms, signature_markup
 
@@ -47,6 +47,7 @@ HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
 MAX_STACK_DEPTH = 512
 WORD_CHARACTER = re.compile(r"[^\W_]")  # a letter or digit in any script
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
+ROBOTS_META_NAMES = frozenset({"robots", "googlebot", "bingbot"})  # the meta tags that can say noindex
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,11 @@ class PageFacts:
     platforms: Tuple[str, ...]
     main_lines: Tuple[str, ...]
     boilerplate_lines: Tuple[str, ...]
+    title_count: int = 0  # <title> elements outside inline SVG (title is the text of the first)
+    canonicals: Tuple[str, ...] = ()  # the href of every <link rel=canonical> (canonical is the first)
+    robots_meta: Tuple[str, ...] = ()  # the content of every robots, googlebot and bingbot meta tag
+    jsonld_blobs: Tuple[str, ...] = ()  # the raw text of every JSON-LD block, valid or not
+    resource_urls: Tuple[str, ...] = ()  # addresses of scripts, styles, images, frames and media, as written
 
     def heading_texts(self, level: int) -> Tuple[str, ...]:
         return tuple(heading.text for heading in self.headings if heading.level == level)
@@ -126,6 +132,8 @@ class _FactsParser(HTMLParser):
         self.lang: Optional[str] = None
         self.title_parts: List[str] = []
         self.meta: Dict[str, str] = {}
+        self.robots_meta: List[str] = []
+        self.resources: List[str] = []
         self.link_tags: List[Dict[str, str]] = []
         self.headings: List[Heading] = []
         self.anchors: List[Anchor] = []
@@ -148,6 +156,7 @@ class _FactsParser(HTMLParser):
         self._jsonld: Optional[List[str]] = None
         self._in_title = False
         self._title_done = False
+        self.title_count = 0
 
     # -- the stack of open elements ------------------------------------------------------------------------
 
@@ -206,6 +215,7 @@ class _FactsParser(HTMLParser):
         for name, value in attrs:
             values.setdefault(name, value if value is not None else "")  # a repeated attribute: the first one wins
         self.markup.extend(signature_markup(tag, values))
+        self.resources.extend(resource_urls(tag, values))
         self._end_implied(tag)
         if tag in BLOCK_TAGS:
             self._flush_line()
@@ -229,10 +239,13 @@ class _FactsParser(HTMLParser):
     def _record_start(self, tag: str, values: Dict[str, str]) -> None:
         if tag == "title":
             self._in_title = not self._title_done and self._open["svg"] == 0
+            self.title_count += self._open["svg"] == 0
         elif tag == "meta":
             key = values.get("name") or values.get("property") or values.get("http-equiv")
             if key and "content" in values:
                 self.meta.setdefault(key.lower(), values["content"])
+                if key.lower() in ROBOTS_META_NAMES:
+                    self.robots_meta.append(values["content"])
         elif tag == "link":
             self.link_tags.append({key: values[key] for key in ("rel", "href", "hreflang") if key in values})
         elif tag == "script":
@@ -330,11 +343,13 @@ def _links(anchors: List[Anchor], base_url: str) -> Tuple[Link, ...]:
     return tuple(link for link in classified if link is not None)
 
 
+def _canonical_tags(link_tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    return [tag for tag in link_tags if "canonical" in tag.get("rel", "").lower().split()]
+
+
 def _canonical(link_tags: List[Dict[str, str]]) -> Optional[str]:
-    for tag in link_tags:
-        if "canonical" in tag.get("rel", "").lower().split():
-            return tag.get("href")
-    return None
+    tags = _canonical_tags(link_tags)
+    return tags[0].get("href") if tags else None
 
 
 def extract_facts(html: str, base_url: str) -> PageFacts:
@@ -373,4 +388,9 @@ def extract_facts(html: str, base_url: str) -> PageFacts:
         platforms=detect_platforms("\n".join(parser.markup)),
         main_lines=main,
         boilerplate_lines=tuple(parser.boilerplate_lines),
+        title_count=parser.title_count,
+        canonicals=tuple(tag["href"] for tag in _canonical_tags(parser.link_tags) if "href" in tag),
+        robots_meta=tuple(parser.robots_meta),
+        jsonld_blobs=tuple(parser.jsonld_blobs),
+        resource_urls=tuple(parser.resources),
     )
