@@ -309,6 +309,20 @@ class FetchTests(unittest.TestCase):
         )
         self.assertEqual(result.requested, "http://site.test/a")
 
+    def test_a_non_ascii_address_reaches_the_opener_percent_encoded(self) -> None:
+        page = f"{SITE}/caf%C3%A9"
+        fetcher, opener, _ = make_fetcher({ROBOTS: Reply(404), page: Reply(200, HTML)})
+        result = fetcher.fetch(f"{SITE}/caf\u00e9")
+        self.assertEqual(result.status, 200)
+        self.assertIn(page, opener.urls)
+        self.assertEqual(result.requested, f"{SITE}/caf\u00e9")  # what was asked for is recorded as asked
+
+    def test_a_non_ascii_robots_rule_applies_to_the_encoded_address(self) -> None:
+        robots = "User-agent: *\nDisallow: /caf\u00e9/\n".encode("utf-8")
+        fetcher, opener, _ = make_fetcher({ROBOTS: Reply(200, robots)})
+        self.assertIn("robots.txt", fetcher.fetch(f"{SITE}/caf\u00e9/menu").skipped)
+        self.assertEqual(opener.urls, [ROBOTS])
+
     def test_a_redirect_to_a_file_url_is_refused(self) -> None:
         routes = {ROBOTS: Reply(404), PAGE: Reply(302, b"", {"Location": "file:///etc/hosts"})}
         fetcher, opener, _ = make_fetcher(routes)
@@ -646,6 +660,20 @@ class RealOpenerTests(unittest.TestCase):
         result = self.fetcher().fetch(f"http://127.0.0.1:{free_port()}/page")
         self.assertIn("could not be read", result.skipped)  # robots.txt is the first thing asked for
         self.assertIsNone(result.status)
+
+    def test_a_non_ascii_address_is_sent_percent_encoded(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/caf%C3%A9?q=%E6%9C%A8": Page(200, HTML)})
+        result = self.fetcher().fetch(server.url("/caf\u00e9?q=\u6728"))
+        self.assertEqual((result.status, result.error), (200, ""))
+        self.assertEqual(server.paths, ["/robots.txt", "/caf%C3%A9?q=%E6%9C%A8"])
+
+    def test_a_raw_utf8_location_header_is_followed(self) -> None:
+        wire_value = "/caf\u00e9".encode("utf-8").decode("latin-1")  # what http.client hands back for UTF-8 bytes
+        routes = {"/robots.txt": Page(404), "/old": Page(301, b"", [("Location", wire_value)]), "/caf%C3%A9": Page(200, HTML)}
+        server = self.serve(routes)
+        result = self.fetcher().fetch(server.url("/old"))
+        self.assertEqual((result.status, result.error), (200, ""))
+        self.assertEqual(result.redirects[0].target, server.url("/caf\u00e9"))
 
     def test_the_opener_only_speaks_http_and_https(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

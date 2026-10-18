@@ -120,7 +120,7 @@ class ToolOutputTests(unittest.TestCase):
 
     def test_fetch_pages_result_lines_are_safe(self) -> None:
         url = f"https://site.test/x\x7f{RLO}"
-        routes = {"https://site.test/robots.txt": Reply(404), url: urllib.error.URLError(f"{ESC}[31mboom{BEL}")}
+        routes = {"https://site.test/robots.txt": Reply(404), seo_common.ascii_url(url): urllib.error.URLError(f"{ESC}[31mboom{BEL}")}
         clock = FakeClock()
         opener = FakeOpener(routes, clock=clock)
         with captured() as (out, err):

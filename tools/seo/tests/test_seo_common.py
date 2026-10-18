@@ -88,6 +88,38 @@ class SlugTests(unittest.TestCase):
         self.assertNotEqual(first, second)
 
 
+class AsciiUrlTests(unittest.TestCase):
+    """http.client can only send ASCII; browsers percent-encode the rest, and so must this tool."""
+
+    def test_non_ascii_path_and_query_are_percent_encoded_as_utf8(self) -> None:
+        self.assertEqual(seo_common.ascii_url("https://a.test/caf\u00e9?q=\u6728"), "https://a.test/caf%C3%A9?q=%E6%9C%A8")
+
+    def test_existing_escapes_are_not_encoded_twice(self) -> None:
+        self.assertEqual(seo_common.ascii_url("https://a.test/caf%C3%A9?q=a%20b"), "https://a.test/caf%C3%A9?q=a%20b")
+
+    def test_spaces_become_percent_20(self) -> None:
+        self.assertEqual(seo_common.ascii_url("https://a.test/a b/c"), "https://a.test/a%20b/c")
+
+    def test_the_host_becomes_punycode(self) -> None:
+        self.assertEqual(seo_common.ascii_url("https://b\u00fccher.test/x"), "https://xn--bcher-kva.test/x")
+
+    def test_ports_userless_ipv6_and_fragments(self) -> None:
+        self.assertEqual(seo_common.ascii_url("http://127.0.0.1:8080/x#frag"), "http://127.0.0.1:8080/x")
+        self.assertEqual(seo_common.ascii_url("http://[::1]:8000/caf\u00e9"), "http://[::1]:8000/caf%C3%A9")
+
+    def test_an_ascii_address_is_unchanged(self) -> None:
+        for url in ("https://a.test/", "https://a.test/a/b.html?x=1&y=2", "https://a.test/a;b/c,d(e)!*'~-._"):
+            with self.subTest(url=url):
+                self.assertEqual(seo_common.ascii_url(url), url)
+
+    def test_the_result_is_always_ascii(self) -> None:
+        self.assertTrue(seo_common.ascii_url("https://a\u00e9.test/\u6728?\u00fc").isascii())
+
+    def test_a_host_that_cannot_be_encoded_is_left_for_the_request_to_refuse(self) -> None:
+        url = "https://" + "\u00e9" * 80 + ".test/"  # a label over 63 characters has no IDNA form
+        self.assertEqual(seo_common.ascii_url(url), url)
+
+
 class AssignStemsTests(unittest.TestCase):
     """Two different URLs must never be saved under one name (the second used to replace the first)."""
 

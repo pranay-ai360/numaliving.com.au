@@ -38,6 +38,7 @@ from urllib.parse import urljoin, urlsplit
 from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
 from seo_common import (
     SeoToolError,
+    ascii_url,
     assign_stems,
     emit,
     log,
@@ -196,11 +197,19 @@ def policy_from_reply(reply: RawReply) -> RobotsPolicy:
     return RobotsPolicy(blocked=f"robots.txt answered HTTP {status}, so permission is unknown")
 
 
+def header_text(value: str) -> str:
+    """http.client reads header bytes as Latin-1; a server that sent UTF-8 (a Location with an \u00e9) needs re-reading."""
+    try:
+        return value.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return value
+
+
 def redirect_target(current: str, reply: RawReply) -> Tuple[str, str]:
     """(next URL, "") for a followable redirect, ("", problem) for a refused one, ("", "") when the reply is final."""
     if reply.status not in REDIRECT_STATUSES or reply.error:
         return "", ""
-    location = next((value for name, value in reply.headers if name == "location"), "").strip()
+    location = header_text(next((value for name, value in reply.headers if name == "location"), "")).strip()
     if not location:
         return "", ""
     try:
@@ -350,7 +359,7 @@ class PoliteFetcher:
         return max([self._delay, *crawl])
 
     def _open(self, url: str) -> RawReply:
-        request = urllib.request.Request(url, headers=REQUEST_HEADERS)
+        request = urllib.request.Request(ascii_url(url), headers=REQUEST_HEADERS)
         limit = MAX_BYTES if self._max_bytes is None else self._max_bytes
         try:
             with self._opener.open(request, timeout=TIMEOUT_SECONDS) as response:

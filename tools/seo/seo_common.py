@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple
-from urllib.parse import SplitResult, urlsplit
+from urllib.parse import SplitResult, quote, urlsplit, urlunsplit
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
@@ -93,6 +93,33 @@ def hashed_slug(text: str, max_length: int = SLUG_MAX_LENGTH) -> str:
     readable = slugify(text, max_length)
     digest = _short_hash(text)
     return f"{readable}-{digest}" if readable else digest
+
+
+PATH_SAFE = "/%:@!$&'()*+,;=~"  # RFC 3986: what may stay as it is in a path; % keeps existing escapes
+QUERY_SAFE = PATH_SAFE + "?"
+
+
+def ascii_url(url: str) -> str:
+    """The same address with only ASCII characters, as a browser would send it.
+
+    http.client cannot write a non-ASCII request line, so /caf\u00e9 raised UnicodeEncodeError. The path and query are
+    percent-encoded as UTF-8 (existing escapes stay), the host becomes punycode, and the #fragment is dropped.
+    A host that has no punycode form is left as it is, for the request to refuse.
+    """
+    parts = safe_urlsplit(url)
+    host = (parts.hostname or "") if parts is not None else ""
+    if parts is None or not host:
+        return url
+    netloc = parts.netloc
+    if not netloc.isascii():
+        try:
+            host = host.encode("idna").decode("ascii")
+        except UnicodeError:
+            pass  # no punycode form: the request will refuse it
+        userinfo = netloc.rpartition("@")[0]
+        port = f":{parts.port}" if parts.port else ""
+        netloc = (userinfo + "@" if userinfo else "") + (f"[{host}]" if ":" in host else host) + port
+    return urlunsplit((parts.scheme, netloc, quote(parts.path, safe=PATH_SAFE), quote(parts.query, safe=QUERY_SAFE), ""))
 
 
 def without_fragment(url: str) -> str:
