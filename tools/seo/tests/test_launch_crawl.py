@@ -201,6 +201,22 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(deep.source, ORIGIN + "/new/")
 
 
+class MemoryTests(unittest.TestCase):
+    def test_the_crawl_keeps_what_it_read_from_a_page_but_not_the_page(self) -> None:
+        web = FakeWeb().add(ORIGIN + "/", page("/a/", "/doc.pdf"), content_type="text/html")
+        web.add(ORIGIN + "/a/", page(title="A")).add(ORIGIN + "/doc.pdf", b"%PDF" * 1000, content_type="application/pdf")
+        crawl = run(web)
+        self.assertEqual({item.result.body for item in crawl.fetched}, {b""})
+        self.assertEqual([item.facts.title if item.facts else None for item in crawl.fetched], ["T", "A", None])
+        self.assertEqual([item.result.status for item in crawl.fetched], [200, 200, 200])
+
+    def test_a_page_without_a_content_type_is_still_read_as_html_before_its_body_is_dropped(self) -> None:
+        web = FakeWeb().add(ORIGIN + "/", "<!DOCTYPE html><html><head><title>Bare</title></head></html>", content_type="")
+        item = run(web).fetched[0]
+        assert item.facts is not None
+        self.assertEqual((item.facts.title, item.result.body), ("Bare", b""))
+
+
 class OffSiteTests(unittest.TestCase):
     def test_a_link_that_ends_on_another_site_is_fetched_but_never_read_or_followed(self) -> None:
         web = FakeWeb().add(ORIGIN + "/", page("/out/")).redirect(ORIGIN + "/out/", "https://partner.example.test/")

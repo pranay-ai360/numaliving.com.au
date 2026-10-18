@@ -10,7 +10,7 @@ Standard library only.
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable, Deque, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 from urllib.parse import urlunsplit
 
@@ -126,6 +126,7 @@ def crawl_site(site: Site, fetch: FetchFunction, seeds: Sequence[str], max_pages
         if key in index:  # an earlier fetch already ended at this address
             continue
         item = fetch_item(site, fetch, url, sources[key], key in seed_keys)
+        item = replace(item, result=replace(item.result, body=b""))  # the facts are kept; a page is not held in memory
         fetched.append(item)
         index[key] = item
         index.setdefault(url_key(item.final_url), item)

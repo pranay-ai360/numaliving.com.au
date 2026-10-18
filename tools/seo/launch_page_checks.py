@@ -14,7 +14,7 @@ from typing import Callable, Dict, FrozenSet, List, Sequence, Set, Tuple
 
 from html_facts import PageFacts
 from http_reply import Headers
-from launch_crawl import Crawl, Fetched, fetch_problem, is_html, url_key
+from launch_crawl import Crawl, Fetched, fetch_problem, url_key
 from launch_model import MODE_LIVE, PAGE_SCOPE, CheckResult, Site, judge, listed
 from seo_common import safe_urlsplit, without_fragment
 
@@ -213,7 +213,7 @@ def _insecure_resource_problem(view: PageView) -> str:
 
 def _seed_problem(site: Site, item: Fetched) -> str:
     problem = fetch_problem(site, item.result)
-    if problem or is_html(item.result):
+    if problem or item.facts is not None:  # facts are only read from an HTML page that answered 200
         return problem
     kind = dict(item.result.headers).get("content-type", "no content type")
     return f"answers 200 but is not an HTML page ({kind})"
