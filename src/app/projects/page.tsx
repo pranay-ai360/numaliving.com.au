@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { projects } from "@/content/projects";
+import { requirePageSeo } from "@/content/seo";
 import { Container } from "@/components/ui";
 import { ProjectsGallery } from "@/components/ProjectsGallery";
 
@@ -13,8 +14,9 @@ export default function ProjectsPage() {
       <Breadcrumbs items={[{ name: "Projects", path: "/projects" }]} />
       <section className="py-16">
         <Container>
-          {/* The design shows no title here, so the page's heading is for screen readers and search engines only. */}
-          <h1 className="sr-only">Projects</h1>
+          {/* The heading says what the page's search title says (src/content/seo.ts), and the cards below it are H2s. */}
+          <p className="eyebrow">Projects</p>
+          <h1 className="display mt-4 mb-10 max-w-4xl text-2xl sm:text-4xl">{requirePageSeo("/projects").title}</h1>
           <ProjectsGallery projects={projects} />
         </Container>
       </section>

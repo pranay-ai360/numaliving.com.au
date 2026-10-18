@@ -52,6 +52,46 @@ describe("ProjectCard", () => {
   });
 });
 
+describe("ProjectCard heading", () => {
+  it("is a third-level heading by default, for a card under a section title", () => {
+    // Arrange
+    render(<ProjectCard project={PROJECT} />);
+
+    // Act
+    const heading = screen.getByRole("heading", { name: PROJECT.name });
+
+    // Assert
+    expect(heading.tagName).toBe("H3");
+  });
+
+  it.each([2, 3, 4] as const)("is a level %i heading when the page asks for it, so a card never skips a level", (level) => {
+    // Arrange
+    render(<ProjectCard project={PROJECT} headingLevel={level} />);
+
+    // Act
+    const heading = screen.getByRole("heading", { name: PROJECT.name });
+
+    // Assert
+    expect(heading.tagName).toBe(`H${level}`);
+  });
+
+  it("looks the same whatever its level", () => {
+    // Arrange
+    const classes = ([2, 3, 4] as const).map((level) => {
+      const { unmount, container } = render(<ProjectCard project={PROJECT} headingLevel={level} />);
+      const className = container.querySelector(`h${level}`)?.className;
+      unmount();
+      return className;
+    });
+
+    // Act
+    const distinct = new Set(classes);
+
+    // Assert
+    expect(distinct.size).toBe(1);
+  });
+});
+
 describe("ProjectVisual", () => {
   it("loads lazily by default", () => {
     // Arrange

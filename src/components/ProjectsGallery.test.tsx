@@ -55,4 +55,26 @@ describe("ProjectsGallery", () => {
       expect(photo).toHaveAttribute("decoding", "async");
     }
   });
+
+  it("puts each card's title in a second-level heading, because the page's own title is the H1", () => {
+    // Arrange
+    render(<ProjectsGallery projects={PROJECTS} />);
+
+    // Act
+    const headings = screen.getAllByRole("heading");
+
+    // Assert
+    expect(headings.map((heading) => heading.tagName)).toEqual(PROJECTS.map(() => "H2"));
+  });
+
+  it("puts them one level lower when the page has a section title of its own above them", () => {
+    // Arrange
+    render(<ProjectsGallery projects={PROJECTS} headingLevel={3} />);
+
+    // Act
+    const headings = screen.getAllByRole("heading");
+
+    // Assert
+    expect(headings.map((heading) => heading.tagName)).toEqual(PROJECTS.map(() => "H3"));
+  });
 });

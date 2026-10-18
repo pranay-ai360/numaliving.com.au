@@ -33,7 +33,7 @@ _Avoid_: Form key, form token, mailbox id
 _Avoid_: Live URL, production domain
 
 **Page registry**:
-The list in `src/content/seo.ts` with one entry per page: its title (without the brand), description, share image and the day it last changed. The page metadata, the sitemap and the tests all read it.
+The list in `src/content/seo.ts` with one entry per page: its title (without the brand), description, share image and the day it last changed. The page metadata, the sitemap and the tests all read it, and a test fails when a page in `src/app` has no entry or an entry has no page.
 _Avoid_: SEO file, meta file
 
 **Photo copies**:

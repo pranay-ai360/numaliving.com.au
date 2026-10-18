@@ -135,12 +135,18 @@ export function ProjectVisual({ project, sizes, className = "", photoLoading = "
 /** A card's photo is never a page's main photo: "eager" for a card in view on arrival, such as the first row on the Projects page. */
 export type CardPhotoLoading = Exclude<PhotoLoading, "priority">;
 
+/** The level of a card's title: one below the heading of the section the card sits in (H3 under an H2 section title, H2 directly under the page's H1). */
+export type CardHeadingLevel = 2 | 3 | 4;
+
 type ProjectCardProps = {
   project: ShowcaseProject;
   photoLoading?: CardPhotoLoading;
+  /** Defaults to 3, for a card under a section title (H2). A page that shows its cards straight under its H1 passes 2; the outline never skips a level (src/lib/headings.ts). */
+  headingLevel?: CardHeadingLevel;
 };
 
-export function ProjectCard({ project, photoLoading = "lazy" }: ProjectCardProps) {
+export function ProjectCard({ project, photoLoading = "lazy", headingLevel = 3 }: ProjectCardProps) {
+  const Heading = `h${headingLevel}` as const;
   return (
     <Link href={`/projects/${project.slug}`} className="group block">
       <div className="overflow-hidden">
@@ -149,7 +155,7 @@ export function ProjectCard({ project, photoLoading = "lazy" }: ProjectCardProps
       <p className="eyebrow mt-5">
         {project.sector} · {project.city}, {project.country}
       </p>
-      <h3 className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold">{project.name}</h3>
+      <Heading className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold">{project.name}</Heading>
       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.summary}</p>
     </Link>
   );

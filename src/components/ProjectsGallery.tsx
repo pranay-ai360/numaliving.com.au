@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ShowcaseProject } from "@/lib/types";
-import { ProjectCard, type CardPhotoLoading } from "./ui";
+import { ProjectCard, type CardHeadingLevel, type CardPhotoLoading } from "./ui";
 
 /** The cards in the first row on a wide screen (three columns), which are in view on arrival. */
 const FIRST_ROW_CARD_COUNT = 3;
@@ -14,9 +14,11 @@ function photoLoadingFor(cardIndex: number): CardPhotoLoading {
 
 type ProjectsGalleryProps = {
   projects: readonly ShowcaseProject[];
+  /** The level of each card's title. The Projects page shows the cards straight under its H1, so the default is 2; give 3 when a section title (H2) comes first. */
+  headingLevel?: CardHeadingLevel;
 };
 
-export function ProjectsGallery({ projects }: ProjectsGalleryProps) {
+export function ProjectsGallery({ projects, headingLevel = 2 }: ProjectsGalleryProps) {
   const [sector, setSector] = useState("All");
   const [country, setCountry] = useState("All");
 
@@ -55,7 +57,7 @@ export function ProjectsGallery({ projects }: ProjectsGalleryProps) {
       </p>
       <div className="mt-6 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((p, index) => (
-          <ProjectCard key={p.slug} project={p} photoLoading={photoLoadingFor(index)} />
+          <ProjectCard key={p.slug} project={p} photoLoading={photoLoadingFor(index)} headingLevel={headingLevel} />
         ))}
       </div>
       {shown.length === 0 && <p className="py-16 text-center text-ink-muted">No projects match these filters yet.</p>}

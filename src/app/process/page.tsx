@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { process } from "@/content/pages";
-import { ButtonLink, Container, PageHero } from "@/components/ui";
+import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { ProcessDiagram } from "@/components/ProcessDiagram";
 
 export const metadata: Metadata = pageMetadata("/process");
@@ -14,6 +14,10 @@ export default function ProcessPage() {
       <PageHero eyebrow="Process" title={process.title} lead={process.lead} />
       <section className="py-20">
         <Container>
+          {/* The step names below are H3s, so they need an H2 above them. */}
+          <div className="mb-14">
+            <SectionTitle ghost="Path" title="Our process in eight steps" />
+          </div>
           <ProcessDiagram steps={process.steps} />
           <div className="mx-auto mt-16 max-w-3xl bg-ink p-8 text-white sm:p-10">
             <p className="eyebrow">Client portal: opening soon</p>

@@ -1,6 +1,6 @@
 /**
- * The words in a served page, for the request-only specs that read what a visitor, a screen reader or a
- * search engine gets: the vocabulary spec and the home page's first-screen check.
+ * The words and headings in a served page, for the request-only specs that read what a visitor, a screen
+ * reader or a search engine gets: the vocabulary spec, the headings spec and the home page's first-screen check.
  */
 import { JSDOM } from "jsdom";
 
@@ -46,4 +46,12 @@ export function servedText(html: string): string {
     TEXT_ATTRIBUTES.map((name) => element.getAttribute(name) ?? "").join(" "),
   );
   return [textUnder(document.documentElement, document), ...attributeText, ...structuredData].join("\n");
+}
+
+const HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
+
+/** The level (1 for an H1) of every heading in a served page, in page order. */
+export function headingLevels(html: string): readonly number[] {
+  const { document } = new JSDOM(html).window;
+  return Array.from(document.querySelectorAll(HEADING_SELECTOR), (heading) => Number(heading.tagName.slice(1)));
 }
