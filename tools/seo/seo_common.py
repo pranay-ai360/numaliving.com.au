@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Tuple
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
@@ -130,6 +130,20 @@ def read_list_file(path: Path, what: str = "queries") -> Tuple[str, ...]:
 
 def read_query_file(path: Path) -> Tuple[str, ...]:
     return read_list_file(path, "queries")
+
+
+def safe_urlsplit(url: object) -> Optional[SplitResult]:
+    """urlsplit for untrusted text: None for anything that is not text or that urlsplit refuses with a ValueError.
+
+    Pages, sitemaps, redirects and saved JSON all carry addresses such as ``http://[::1/`` or ``http://a℀.test/``
+    that make urlsplit raise; callers skip the item (and say so) instead of aborting the whole run.
+    """
+    if not isinstance(url, str):
+        return None
+    try:
+        return urlsplit(url)
+    except ValueError:
+        return None
 
 
 def require_http_url(url: str) -> str:
