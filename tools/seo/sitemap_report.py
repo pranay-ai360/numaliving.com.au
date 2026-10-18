@@ -327,6 +327,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help=f"sample paths per group (default {DEFAULT_SAMPLES})")
     parser.add_argument("--delay", type=non_negative_float, default=1.5, metavar="SECONDS",
                         help="least pause between requests to one host when fetching (default 1.5)")
+    parser.add_argument("--allow-private-hosts", action="store_true",
+                        help="also follow redirects to local and private addresses, for your own local preview server")
     return parser
 
 
@@ -344,7 +346,9 @@ def load_source(source: str, fetch: FetchFunction) -> Tuple[bytes, str]:
 
 def main(argv: Optional[Sequence[str]] = None, fetch: Optional[FetchFunction] = None) -> int:
     args = build_parser().parse_args(argv)
-    fetcher = fetch or PoliteFetcher(default_opener(), delay=args.delay, max_bytes=MAX_SITEMAP_BYTES).fetch
+    fetcher = fetch or PoliteFetcher(
+        default_opener(), delay=args.delay, max_bytes=MAX_SITEMAP_BYTES, allow_private_hosts=args.allow_private_hosts
+    ).fetch
     data, origin = load_source(args.source, fetcher)
     sitemap = parse_sitemap(data, args.source)
     report = build_report(sitemap, origin, fetcher, args.max_children, args.samples)

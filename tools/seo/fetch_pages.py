@@ -43,10 +43,12 @@ from seo_common import (
     read_list_file,
     require_http_url,
     run_cli,
+    safe_urlsplit,
     url_slug,
     write_bytes_file,
     write_json_file,
 )
+from url_guard import Resolver, non_public_reason, resolve_addresses
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -129,6 +131,11 @@ class RobotsPolicy:
         if self.rules is not None and not self.rules.allows(request_target(url)):
             return "robots.txt disallows this URL"
         return ""
+
+
+def _hostname(url: str) -> str:
+    parts = safe_urlsplit(url)
+    return (parts.hostname or "") if parts is not None else ""
 
 
 def decode_body(raw: bytes, encoding: str, limit: int = MAX_BYTES) -> Tuple[bytes, bool]:
@@ -252,10 +259,14 @@ class PoliteFetcher:
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         max_bytes: Optional[int] = None,
+        allow_private_hosts: bool = False,
+        resolver: Resolver = resolve_addresses,
     ) -> None:
         self._opener = opener
         self._delay = delay
         self._max_bytes = max_bytes  # None: the page limit, MAX_BYTES, read when a request is made
+        self._allow_private_hosts = allow_private_hosts  # follow redirects to local and private addresses too
+        self._resolve = resolver
         self._clock = clock
         self._sleep = sleep
         self._policies: Dict[str, RobotsPolicy] = {}  # origin -> what its robots.txt allows
@@ -270,7 +281,7 @@ class PoliteFetcher:
                 return build_result(requested, current, hops, None, elapsed_ms, skipped=refusal)
             reply = self._exchange(current)
             elapsed_ms += reply.elapsed_ms
-            target, problem = redirect_target(current, reply)
+            target, problem = self._next_hop(requested, current, reply)
             if not target or len(hops) >= MAX_REDIRECTS:
                 too_many = f"too many redirects (more than {MAX_REDIRECTS})" if target else ""
                 return build_result(requested, current, hops, reply, elapsed_ms, error=problem or too_many)
@@ -284,11 +295,25 @@ class PoliteFetcher:
             self._policies[origin] = self._load_policy(origin)
         return self._policies[origin]
 
+    def _next_hop(self, start: str, current: str, reply: RawReply) -> Tuple[str, str]:
+        """redirect_target, plus the check that the target is not a local or private address (see url_guard).
+
+        A target on the same host as ``start`` is never checked: that host was asked for (it may be the owner's
+        own preview server), and a redirect such as /about -> /about/ must keep working there.
+        """
+        target, problem = redirect_target(current, reply)
+        if not target or self._allow_private_hosts or _hostname(target) == _hostname(start):
+            return target, problem
+        reason = non_public_reason(_hostname(target), self._resolve)
+        if reason:
+            return "", f"redirect from {current} refused: {reason} (--allow-private-hosts follows it)"
+        return target, problem
+
     def _load_policy(self, origin: str) -> RobotsPolicy:
         current = origin + ROBOTS_PATH
         reply = self._exchange(current)
         for _ in range(MAX_REDIRECTS):
-            target, problem = redirect_target(current, reply)
+            target, problem = self._next_hop(origin + ROBOTS_PATH, current, reply)
             if problem:
                 reply = replace(reply, error=problem)
             if not target:
@@ -433,6 +458,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delay", type=non_negative_float, default=DEFAULT_DELAY_SECONDS, metavar="SECONDS",
                         help=f"least pause between requests to one host (default {DEFAULT_DELAY_SECONDS:g}); "
                              "a longer Crawl-delay in robots.txt wins")
+    parser.add_argument("--allow-private-hosts", action="store_true",
+                        help="also follow redirects to local and private addresses (127.0.0.1, 192.168.x.x, "
+                             "169.254.x.x, ...), for your own local preview server; refused by default")
     return parser
 
 
@@ -447,7 +475,10 @@ def main(
     if not args.urls and args.urls_file is None:
         parser.error("give at least one URL, or --urls-file FILE")
     urls = collect_urls(args.urls, args.urls_file)
-    fetcher = PoliteFetcher(opener or default_opener(), delay=args.delay, clock=clock, sleep=sleep)
+    fetcher = PoliteFetcher(
+        opener or default_opener(), delay=args.delay, clock=clock, sleep=sleep,
+        allow_private_hosts=args.allow_private_hosts,
+    )
     return fetch_all(fetcher, urls, args.out_dir)
 
 
