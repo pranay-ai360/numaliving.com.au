@@ -43,6 +43,28 @@ class LoadTests(unittest.TestCase):
         self.assertIn("broken.json", err.getvalue())
         self.assertIn("other.json", err.getvalue())
 
+    def test_hostile_json_files_are_skipped_aloud_and_the_rest_are_read(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "good.json").write_text(json.dumps(record("q", "a.test")), encoding="utf-8")
+            (root / "deep.json").write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+            (root / "bigint.json").write_text('{"n": ' + "1" * 5000 + "}", encoding="utf-8")
+            with captured() as (_, err):
+                records = serp_report.load_records(root)
+        self.assertEqual([item["query"] for item in records], ["q"])
+        self.assertIn("deep.json", err.getvalue())
+        self.assertIn("bigint.json", err.getvalue())
+
+    def test_results_that_are_not_objects_are_dropped_and_the_record_is_kept(self) -> None:
+        good = record("q", "a.test")
+        mixed = {**good, "results": [5, "text", None, ["x"], *good["results"]]}
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "mixed.json").write_text(json.dumps(mixed), encoding="utf-8")
+            with captured() as (_, err):
+                records = serp_report.load_records(Path(folder))
+        self.assertEqual(records[0]["results"], good["results"])
+        self.assertIn("mixed.json", err.getvalue())
+
     def test_a_folder_without_records_is_a_tool_error(self) -> None:
         with tempfile.TemporaryDirectory() as folder, self.assertRaises(SeoToolError):
             serp_report.load_records(Path(folder))
@@ -130,6 +152,27 @@ class FrequencyTests(unittest.TestCase):
         item = record("q", "a.test")
         item["results"].append({"rank": 2, "url": "", "domain": ""})
         self.assertEqual([stat.domain for stat in serp_report.domain_frequency((item,), top=10)], ["a.test"])
+
+
+class HostileResultTests(unittest.TestCase):
+    """Saved SERP files are data from elsewhere: odd values must not abort a report."""
+
+    def odd_record(self) -> dict:
+        odd = [{"url": "http://[", "domain": ""}, {"url": 5, "domain": None}, {"url": "http://a\u2100.test/", "domain": ""}]
+        return {"query": "q", "results": odd + record("q", "good.test")["results"]}
+
+    def test_domain_views_skip_results_with_unreadable_addresses(self) -> None:
+        odd = self.odd_record()
+        self.assertEqual(serp_report.top_domains(odd, 10), ("good.test",))
+        self.assertEqual([stat.domain for stat in serp_report.domain_frequency([odd], 10)], ["good.test"])
+
+    def test_the_url_export_skips_addresses_fetch_pages_would_refuse(self) -> None:
+        odd = self.odd_record()
+        odd["results"] += [{"url": "javascript:alert(1)"}, {"url": "ftp://files.test/x"}, 5]
+        self.assertEqual(serp_report.top_result_urls([odd], 10), ("https://good.test/page",))
+
+    def test_clean_url_leaves_an_unreadable_address_alone(self) -> None:
+        self.assertEqual(serp_report.clean_url("http://["), "http://[")
 
 
 class ExportUrlTests(unittest.TestCase):

@@ -205,6 +205,26 @@ class StructuredDataAndScriptTests(unittest.TestCase):
         self.assertEqual(self.facts.jsonld_blocks, 2)
         self.assertEqual(self.facts.jsonld_errors, 1)
 
+    def test_only_text_values_are_types(self) -> None:
+        html = '<script type="application/ld+json">{"@type":[1,null,{"x":1},[2],"Product"],"n":NaN}</script>'
+        self.assertEqual(facts_of(html).jsonld_types, ("Product",))
+
+    def test_a_huge_integer_in_json_ld_cannot_crash_extraction(self) -> None:
+        """From Python 3.11 json.loads raises a plain ValueError for 5000 digits; before that it parses them."""
+        facts = facts_of('<script type="application/ld+json">{"@type":"Thing","n":' + "1" * 5000 + "}</script>")
+        self.assertEqual(facts.jsonld_blocks, 1)
+        self.assertEqual(facts.jsonld_types + (("Thing",) if facts.jsonld_errors else ()), ("Thing",))
+
+    def test_a_deeply_nested_type_list_cannot_crash_extraction(self) -> None:
+        deep = "[" * 100_000 + "]" * 100_000
+        facts = facts_of('<script type="application/ld+json">{"@type":' + deep + "}</script>")
+        self.assertEqual(facts.jsonld_types, ())
+        self.assertEqual(facts.jsonld_blocks, 1)
+
+    def test_a_very_long_type_is_cut(self) -> None:
+        facts = facts_of('<script type="application/ld+json">{"@type":"' + "T" * 5000 + '"}</script>')
+        self.assertLessEqual(len(facts.jsonld_types[0]), html_facts.MAX_TYPE_CHARS)
+
     def test_json_ld_without_any_type_gives_no_types(self) -> None:
         facts = facts_of('<script type="application/ld+json">{"name": "x"}</script>')
         self.assertEqual((facts.jsonld_types, facts.jsonld_blocks, facts.jsonld_errors), ((), 1, 0))

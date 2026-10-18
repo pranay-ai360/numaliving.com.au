@@ -192,6 +192,35 @@ class DailyCountTests(unittest.TestCase):
         self.assertEqual(sitemap_report.daily_counts(()), ((), 0))
 
 
+class HostileAddressTests(unittest.TestCase):
+    """A <loc> that urlsplit refuses must not abort the report."""
+
+    HOSTILE = ("http://[", "http://[::1/", "http://a\u2100.test/", "http://\uff0f\uff0fevil.test/")
+
+    def test_grouping_skips_unreadable_addresses(self) -> None:
+        entries = tuple(SitemapEntry(url, "") for url in self.HOSTILE) + (SitemapEntry("https://a.test/x/y", ""),)
+        groups = sitemap_report.group_entries(entries)
+        self.assertEqual([(group.segment, group.depth, group.count) for group in groups], [("x", 2, 1)])
+
+    def test_the_report_counts_them_and_says_they_were_left_out_of_the_groups(self) -> None:
+        data = urlset(*[(url, "2026-10-01") for url in self.HOSTILE], ("https://a.test/x/y", "2026-10-02"))
+        sitemap = sitemap_report.parse_sitemap(data, "x.xml")
+        report = sitemap_report.build_report(sitemap, "x.xml", fake_fetch({}))
+        self.assertEqual(report.total_urls, 5)
+        self.assertEqual(sum(group.count for group in report.groups), 1)
+        self.assertTrue(any("4" in note and "address" in note for note in report.notes), report.notes)
+        self.assertIn("5 URLs", sitemap_report.render_report(report))
+
+    def test_main_prints_the_report_for_a_sitemap_with_such_addresses(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "sitemap.xml"
+            path.write_bytes(urlset(("http://[", ""), ("https://a.test/ok", "")))
+            with captured() as (out, _):
+                code = run_cli(sitemap_report.main, [str(path)])
+        self.assertEqual(code, 0)
+        self.assertIn("2 URLs", out.getvalue())
+
+
 class CalendarTests(unittest.TestCase):
     """A lastmod must start with a real calendar day; anything else is "undated", not a day of its own."""
 

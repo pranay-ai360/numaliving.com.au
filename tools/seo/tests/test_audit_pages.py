@@ -163,9 +163,71 @@ class AuditFileTests(unittest.TestCase):
 
     def test_a_skipped_fetch_without_html_is_reported_by_main(self) -> None:
         self.html.unlink()
-        with captured():
+        with captured() as (_, err):
             code = run_cli(audit_pages.main, [str(self.html)])
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 1)
+        self.assertIn("page_rich.html", err.getvalue())
+
+
+class HostileInputTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.folder = Path(self._tmp.name)
+
+    def write(self, name: str, html: str) -> Path:
+        path = self.folder / name
+        path.write_text(html, encoding="utf-8")
+        return path
+
+    def test_image_addresses_that_urlsplit_refuses_do_not_stop_the_audit(self) -> None:
+        html = '<html><body><img src="http://[" alt="a"><img src="http://a\u2100.test/x.png"><img src="/ok.png"></body></html>'
+        summary = audit_pages.audit_file(self.write("imgs.html", html))
+        self.assertEqual(summary["images"], 3)
+        self.assertIn(".png", summary["image_exts"])
+
+    def test_link_and_form_addresses_that_urlsplit_refuses_do_not_stop_the_audit(self) -> None:
+        html = '<html><body><a href="http://[">bad</a><a href="http://a\u2100.test/">nfkc</a><form action="http://["></form></body></html>'
+        summary = audit_pages.audit_file(self.write("links.html", html))
+        self.assertEqual(summary["links_internal"] + summary["links_external"], 0)
+
+    def test_one_unreadable_file_does_not_stop_the_other_pages(self) -> None:
+        first = self.write("first.html", "<html><head><title>First page</title></head><body><h1>One</h1></body></html>")
+        last = self.write("last.html", "<html><head><title>Last page</title></head><body><h1>Two</h1></body></html>")
+        with captured() as (out, err):
+            code = run_cli(audit_pages.main, [str(first), str(self.folder / "missing.html"), str(last)])
+        self.assertEqual(code, 1)
+        self.assertIn("First page", out.getvalue())
+        self.assertIn("Last page", out.getvalue())
+        self.assertIn("missing.html", err.getvalue())
+        self.assertTrue((self.folder / "last.analysis.json").is_file())
+
+    def test_a_broken_meta_file_only_fails_its_own_page(self) -> None:
+        bad = self.write("bad.html", "<html><body><h1>Bad</h1></body></html>")
+        (self.folder / "bad.meta.json").write_text("{nope", encoding="utf-8")
+        good = self.write("good.html", "<html><head><title>Good page</title></head></html>")
+        with captured() as (out, err):
+            code = run_cli(audit_pages.main, [str(bad), str(good)])
+        self.assertEqual(code, 1)
+        self.assertIn("Good page", out.getvalue())
+        self.assertIn("bad.meta.json", err.getvalue())
+
+    def test_the_table_skips_an_unreadable_analysis_file_aloud(self) -> None:
+        for source in sorted(fixture_path("analysis").glob("*.analysis.json")):
+            shutil.copy(source, self.folder / source.name)
+        (self.folder / "broken.analysis.json").write_text('{"final_url": 5}', encoding="utf-8")
+        (self.folder / "deep.analysis.json").write_text("[" * 100_000, encoding="utf-8")
+        with captured() as (out, err):
+            code = audit_pages.main(["--table", str(self.folder)])
+        self.assertEqual(code, 0)
+        self.assertIn("example.test/alpha/", out.getvalue())
+        self.assertIn("broken.analysis.json", err.getvalue())
+        self.assertIn("deep.analysis.json", err.getvalue())
+
+    def test_a_folder_where_every_analysis_file_is_unreadable_is_a_tool_error(self) -> None:
+        (self.folder / "broken.analysis.json").write_text("{nope", encoding="utf-8")
+        with captured(), self.assertRaises(SeoToolError):
+            audit_pages.table_for(self.folder)
 
 
 class PrintingTests(unittest.TestCase):

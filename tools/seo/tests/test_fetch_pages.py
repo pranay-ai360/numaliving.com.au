@@ -417,6 +417,36 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(fetcher.fetch(PAGE).status, 200)
 
 
+HOSTILE_LOCATIONS = (
+    "http://[::1/",  # unclosed IPv6 bracket
+    "http://[",
+    "http://a\u2100.test/",  # the host changes shape under Unicode normalisation
+    "http://\uff0f\uff0fevil.test/",  # full-width slashes
+)
+
+
+class HostileRedirectTests(unittest.TestCase):
+    """urljoin and urlsplit raise ValueError on addresses like these: they must become recorded skips, not crashes."""
+
+    def test_a_hostile_location_is_a_refused_redirect_not_an_exception(self) -> None:
+        for location in HOSTILE_LOCATIONS:
+            with self.subTest(location=location):
+                fetcher, opener, _ = make_fetcher({ROBOTS: Reply(404), PAGE: Reply(302, b"", {"Location": location})})
+                result = fetcher.fetch(PAGE)
+                self.assertEqual(result.status, 302)
+                self.assertIn("redirect", result.error)
+                self.assertIn("refused", result.error)
+                self.assertEqual(opener.urls, [ROBOTS, PAGE])
+
+    def test_a_hostile_location_on_robots_txt_skips_the_site_with_a_reason(self) -> None:
+        for location in HOSTILE_LOCATIONS:
+            with self.subTest(location=location):
+                fetcher, opener, _ = make_fetcher({ROBOTS: Reply(301, b"", {"Location": location}), PAGE: Reply(200, HTML)})
+                result = fetcher.fetch(PAGE)
+                self.assertIn("robots.txt", result.skipped)
+                self.assertNotIn(PAGE, opener.urls)
+
+
 class SaveAndMainTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -468,6 +498,21 @@ class SaveAndMainTests(unittest.TestCase):
         code, _, _, _ = self.run_main([str(self.out), f"{SITE}/gone"], {ROBOTS: Reply(404), f"{SITE}/gone": Reply(404, b"nope")})
         self.assertEqual(code, 0)
         self.assertEqual((self.out / "site.test_gone.html").read_bytes(), b"nope")
+
+    def test_one_hostile_redirect_does_not_stop_the_rest_of_the_batch(self) -> None:
+        good, evil, last = f"{SITE}/good", "https://evil.test/x", f"{SITE}/last"
+        routes = {
+            ROBOTS: Reply(404), "https://evil.test/robots.txt": Reply(404),
+            good: Reply(200, HTML), last: Reply(200, HTML),
+            evil: Reply(302, b"", {"Location": "http://[::1/"}),
+        }
+        code, out, _, opener = self.run_main([str(self.out), good, evil, last], routes)
+        self.assertEqual(code, 1)  # the refused redirect is recorded as an error
+        self.assertIn(last, opener.urls)
+        self.assertTrue((self.out / "site.test_last.html").is_file())
+        meta = json.loads((self.out / "evil.test_x.meta.json").read_text(encoding="utf-8"))
+        self.assertIn("refused", meta["error"])
+        self.assertEqual(len(out.strip().splitlines()), 3)
 
     def test_urls_file_and_arguments_are_merged_without_repeats(self) -> None:
         urls_file = Path(self._tmp.name) / "urls.txt"

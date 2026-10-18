@@ -222,6 +222,17 @@ class FileHelperTests(unittest.TestCase):
             seo_common.read_json_file(bad)
         self.assertIn("bad.json", str(caught.exception))
 
+    def test_read_json_turns_every_json_failure_into_a_tool_error(self) -> None:
+        """Deep nesting raises RecursionError and, from Python 3.11, a huge integer raises ValueError."""
+        for label, text in (("deep nesting", "[" * 100_000 + "]" * 100_000), ("5000-digit integer", '{"n": ' + "1" * 5000 + "}")):
+            bad = self.folder / "hostile.json"
+            bad.write_text(text, encoding="utf-8")
+            with self.subTest(label=label):
+                try:
+                    seo_common.read_json_file(bad)
+                except SeoToolError as error:
+                    self.assertIn("hostile.json", str(error))
+
     def test_read_text_replaces_undecodable_bytes_instead_of_failing(self) -> None:
         odd = self.folder / "odd.html"
         odd.write_bytes(b"caf\xe9 <b>ok</b>")
@@ -289,11 +300,42 @@ class LogAndCliTests(unittest.TestCase):
             self.assertEqual(seo_common.run_cli(interrupted, []), 130)
         self.assertIn("interrupted", err.getvalue())
 
-    def test_run_cli_lets_unexpected_errors_through_so_bugs_are_visible(self) -> None:
+    def test_run_cli_turns_an_unexpected_error_into_one_line_and_exit_1(self) -> None:
         def broken(argv):
             raise ZeroDivisionError("bug")
 
-        with self.assertRaises(ZeroDivisionError):
+        with captured() as (out, err):
+            code = seo_common.run_cli(broken, [])
+        self.assertEqual(code, 1)
+        self.assertEqual(err.getvalue(), "[seo] error: ZeroDivisionError: bug\n")
+        self.assertEqual(out.getvalue(), "")
+
+    def test_the_last_resort_covers_the_errors_hostile_input_causes(self) -> None:
+        for error in (ValueError("Invalid IPv6 URL"), OverflowError("int too large"), RecursionError("too deep")):
+            with self.subTest(error=type(error).__name__):
+                def broken(argv, error=error):
+                    raise error
+
+                with captured() as (_, err):
+                    code = seo_common.run_cli(broken, [])
+                self.assertEqual(code, 1)
+                self.assertNotIn("Traceback", err.getvalue())
+                self.assertEqual(len(err.getvalue().splitlines()), 1)
+
+    def test_a_long_or_multi_line_message_stays_on_one_short_line(self) -> None:
+        def broken(argv):
+            raise ValueError("first line\nsecond line " + "x" * 2000)
+
+        with captured() as (_, err):
+            seo_common.run_cli(broken, [])
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+        self.assertLess(len(err.getvalue()), 400)
+
+    def test_seo_debug_lets_the_traceback_through_for_people_fixing_a_bug(self) -> None:
+        def broken(argv):
+            raise ZeroDivisionError("bug")
+
+        with mock.patch.dict(os.environ, {seo_common.DEBUG_ENV: "1"}), self.assertRaises(ZeroDivisionError):
             seo_common.run_cli(broken, [])
 
 
