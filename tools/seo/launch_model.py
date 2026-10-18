@@ -22,11 +22,13 @@ MODE_PREVIEW, MODE_LIVE = "preview", "live"
 MODES = (MODE_PREVIEW, MODE_LIVE)
 DEFAULT_CANONICAL_HOST = "https://numaliving.us"
 DEFAULT_MAX_PAGES = 60
+HOME_PATH = "/"
 LOGIN_PATH = "/login/"
 INDEX_FILE_PATH = "/index.html"
 SITEMAP_PATH = "/sitemap.xml"
 MISSING_PAGE_PATH = "/launch-check-missing-page-7f3a9c/"  # nothing can live here: a hash keeps it off real paths
 WWW_PREFIX = "www."
+PROBLEMS_SHOWN = 3  # a page with more problems than this shows the first ones and a count of the rest
 
 T = TypeVar("T")
 
@@ -84,6 +86,13 @@ def judge(
     if failures:
         return failing(check_id, scope, title, failures, f"{len(failures)} of {counted(len(subjects), noun)}")
     return passing(check_id, scope, title, counted(len(subjects), noun))
+
+
+def listed(items: Sequence[str], separator: str) -> str:
+    """The first few items joined by ``separator``, then "(+N more)" when there are more."""
+    extra = len(items) - PROBLEMS_SHOWN
+    shown = separator.join(items[:PROBLEMS_SHOWN])
+    return f"{shown} (+{extra} more)" if extra > 0 else shown
 
 
 def counted(number: int, noun: str) -> str:

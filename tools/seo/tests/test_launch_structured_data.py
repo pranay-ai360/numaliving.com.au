@@ -28,7 +28,7 @@ def block(data: object) -> str:
 def run_checks(web: FakeWeb, mode: str = "live") -> Dict[str, CheckResult]:
     site = Site.create(ORIGIN + "/", ORIGIN, mode)
     views = launch_page_checks.build_views(site, crawl_site(site, web, [site.base_url], 60))
-    return {result.id: result for result in launch_structured_data.structured_data_checks(site, views)}
+    return {result.id: result for result in launch_structured_data.structured_data_checks(views)}
 
 
 def failures_of(result: CheckResult) -> Dict[str, str]:
@@ -101,8 +101,17 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(len(data.errors), 1)
 
     def test_nesting_deeper_than_python_can_read_is_an_error_not_a_crash(self) -> None:
+        """json.loads raises RecursionError for this on most Pythons and returns the nested list on 3.15."""
         deep = "[" * 100_000 + "]" * 100_000
-        self.assertIn("block 1 is not valid JSON", parse_structured_data([deep]).errors[0])
+        errors = parse_structured_data([deep]).errors
+        self.assertEqual(len(errors), 1)
+        self.assertRegex(errors[0], r"^block 1 is (not valid JSON: nested too deeply|not a JSON-LD object)$")
+
+    def test_a_deeply_nested_value_inside_a_valid_block_is_walked_without_recursion(self) -> None:
+        deep = "[" * 100_000 + '"x"' + "]" * 100_000
+        data = parse_structured_data(['{"@context":"https://schema.org","@type":"Thing","deep":' + deep + "}"])
+        self.assertEqual(len(data.errors), 0 if "Thing" in data.types else 1)
+        self.assertIn(data.types, (frozenset({"Thing"}), frozenset()))
 
     def test_a_number_with_thousands_of_digits_is_an_error_or_a_number_never_a_crash(self) -> None:
         """From Python 3.11 json.loads refuses 5000 digits with a ValueError; before that it reads them."""

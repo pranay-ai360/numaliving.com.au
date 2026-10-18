@@ -15,7 +15,7 @@ from typing import Callable, Dict, FrozenSet, List, Sequence, Set, Tuple
 from html_facts import PageFacts
 from http_reply import Headers
 from launch_crawl import Crawl, Fetched, fetch_problem, is_html, url_key
-from launch_model import MODE_LIVE, PAGE_SCOPE, CheckResult, Site, judge
+from launch_model import MODE_LIVE, PAGE_SCOPE, CheckResult, Site, judge, listed
 from seo_common import safe_urlsplit, without_fragment
 
 TITLE_MAX_CHARS = 60
@@ -28,7 +28,6 @@ NOINDEX_TOKENS = frozenset({"noindex", "none"})
 NOFOLLOW_TOKENS = frozenset({"nofollow", "none"})
 VALUED_DIRECTIVES = frozenset({"max-snippet", "max-image-preview", "max-video-preview", "unavailable_after"})
 X_ROBOTS_TAG = "x-robots-tag"
-PROBLEMS_SHOWN = 3  # a page with more problems than this shows the first ones and a count of the rest
 Rule = Callable[["PageView"], str]
 
 
@@ -82,12 +81,6 @@ def has_noindex(tokens: FrozenSet[str]) -> bool:
 
 def has_nofollow(tokens: FrozenSet[str]) -> bool:
     return bool(tokens & NOFOLLOW_TOKENS)
-
-
-def _listed(items: Sequence[str], separator: str) -> str:
-    extra = len(items) - PROBLEMS_SHOWN
-    shown = separator.join(items[:PROBLEMS_SHOWN])
-    return f"{shown} (+{extra} more)" if extra > 0 else shown
 
 
 def _normal(text: str) -> str:
@@ -207,12 +200,12 @@ def _image_problem(view: PageView) -> str:
             problems.append(f"{label}: no alt attribute")
         if not image.has_size:
             problems.append(f"{label}: no width and height")
-    return _listed(problems, "; ")
+    return listed(problems, "; ")
 
 
 def _insecure_resource_problem(view: PageView) -> str:
     insecure = [url.strip() for url in view.facts.resource_urls if url.strip().lower().startswith("http://")]
-    return f"loads over http://: {_listed(insecure, ', ')}" if insecure else ""
+    return f"loads over http://: {listed(insecure, ', ')}" if insecure else ""
 
 
 # -- checks that need the crawl --------------------------------------------------------------------------------------
@@ -242,7 +235,7 @@ def _broken_links(site: Site, crawl: Crawl, view: PageView) -> str:
         problem = fetch_problem(site, target.result) if target is not None else ""
         if problem:
             problems.append(f"{without_fragment(link.url)}: {problem}")
-    return _listed(problems, "; ")
+    return listed(problems, "; ")
 
 
 def page_checks(site: Site, views: Sequence[PageView], crawl: Crawl) -> Tuple[CheckResult, ...]:

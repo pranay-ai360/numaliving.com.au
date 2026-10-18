@@ -165,6 +165,17 @@ class ResultTests(unittest.TestCase):
             result.status = "FAIL"  # type: ignore[misc]
 
 
+class ListedTests(unittest.TestCase):
+    def test_up_to_three_items_are_all_shown(self) -> None:
+        self.assertEqual(launch_model.listed([], "; "), "")
+        self.assertEqual(launch_model.listed(["a"], "; "), "a")
+        self.assertEqual(launch_model.listed(["a", "b", "c"], ", "), "a, b, c")
+
+    def test_more_than_three_are_cut_and_counted(self) -> None:
+        self.assertEqual(launch_model.listed(["a", "b", "c", "d"], "; "), "a; b; c (+1 more)")
+        self.assertEqual(launch_model.listed(list("abcdefgh"), ", "), "a, b, c (+5 more)")
+
+
 class JudgeTests(unittest.TestCase):
     def judge(self, subjects: List[str], noun: str = "page") -> CheckResult:
         def test(subject: str) -> str:
