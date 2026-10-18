@@ -9,8 +9,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from helpers import captured, fixture_bytes, fixture_path
+from helpers import FakeOpener, Reply, captured, fixture_bytes, fixture_path
 
+import fetch_pages  # noqa: E402
 import sitemap_report  # noqa: E402
 from fetch_pages import FetchResult  # noqa: E402
 from sitemap_report import SitemapEntry  # noqa: E402
@@ -81,6 +82,19 @@ class ParseTests(unittest.TestCase):
             sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "entity-bomb.xml"), "entity-bomb.xml")
         self.assertIn("DOCTYPE", str(caught.exception))
 
+    def test_a_utf8_byte_order_mark_is_accepted(self) -> None:
+        sitemap = sitemap_report.parse_sitemap(b"\xef\xbb\xbf" + urlset(("https://a.test/x", "2026-10-01")), "bom.xml")
+        self.assertEqual([entry.loc for entry in sitemap.entries], ["https://a.test/x"])
+
+    def test_non_ascii_text_in_a_utf8_sitemap_is_kept(self) -> None:
+        sitemap = sitemap_report.parse_sitemap(urlset(("https://a.test/caf\u00e9", "")), "x.xml")
+        self.assertEqual(sitemap.entries[0].loc, "https://a.test/caf\u00e9")
+
+    def test_a_declared_encoding_does_not_override_the_utf8_bytes(self) -> None:
+        xml = '<?xml version="1.0" encoding="ISO-8859-1"?><urlset><url><loc>https://a.test/x</loc></url></urlset>'
+        sitemap = sitemap_report.parse_sitemap(xml.encode("utf-8"), "declared.xml")
+        self.assertEqual([entry.loc for entry in sitemap.entries], ["https://a.test/x"])
+
     def test_invalid_xml_is_a_tool_error_naming_the_source(self) -> None:
         with self.assertRaises(SeoToolError) as caught:
             sitemap_report.parse_sitemap(b"<urlset><url>", "broken.xml")
@@ -98,6 +112,50 @@ class ParseTests(unittest.TestCase):
     def test_a_sitemap_without_a_namespace_is_read(self) -> None:
         sitemap = sitemap_report.parse_sitemap(b"<urlset><url><loc>https://a.test/x</loc></url></urlset>", "x")
         self.assertEqual([entry.loc for entry in sitemap.entries], ["https://a.test/x"])
+
+
+class EncodingGuardTests(unittest.TestCase):
+    """The DOCTYPE/entity guard must see the text the XML parser will see, whatever the byte encoding."""
+
+    def setUp(self) -> None:
+        self.bomb = fixture_bytes("sitemaps", "entity-bomb.xml").decode("utf-8")
+        patcher = mock.patch.object(sitemap_report.ElementTree, "fromstring", side_effect=AssertionError("parser reached"))
+        self.parser = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def declared(self, encoding: str) -> str:
+        return self.bomb.replace('<?xml version="1.0"?>', f'<?xml version="1.0" encoding="{encoding}"?>')
+
+    def test_utf16_and_utf32_versions_of_the_entity_bomb_never_reach_the_parser(self) -> None:
+        variants = {
+            "utf-16 with BOM and declaration": self.declared("UTF-16").encode("utf-16"),
+            "utf-16-le without BOM": self.bomb.encode("utf-16-le"),
+            "utf-16-be without BOM": self.bomb.encode("utf-16-be"),
+            "utf-32 with BOM": self.bomb.encode("utf-32"),
+            "utf-16 inside gzip": gzip.compress(self.declared("UTF-16").encode("utf-16")),
+        }
+        for label, data in variants.items():
+            with self.subTest(label=label), self.assertRaises(SeoToolError) as caught:
+                sitemap_report.parse_sitemap(data, "bomb.xml")
+            self.assertIn("UTF-8", str(caught.exception))
+        self.parser.assert_not_called()
+
+    def test_a_nul_byte_means_the_file_is_not_utf8_text(self) -> None:
+        with self.assertRaises(SeoToolError) as caught:
+            sitemap_report.parse_sitemap(b"<urlset>\x00</urlset>", "nul.xml")
+        self.assertIn("UTF-8", str(caught.exception))
+
+    def test_bytes_that_are_not_valid_utf8_are_refused_by_name(self) -> None:
+        with self.assertRaises(SeoToolError) as caught:
+            sitemap_report.parse_sitemap(b"<urlset><url><loc>https://a.test/caf\xe9</loc></url></urlset>", "latin.xml")
+        self.assertIn("latin.xml", str(caught.exception))
+        self.assertIn("UTF-8", str(caught.exception))
+
+    def test_the_guard_is_not_fooled_by_case_or_spacing(self) -> None:
+        for marker in ("<!doctype urlset []>", "<! DOCTYPE urlset []>", "<!ENTITY x 'y'>", "<!entity x 'y'>"):
+            with self.subTest(marker=marker), self.assertRaises(SeoToolError) as caught:
+                sitemap_report.parse_sitemap(f"<?xml version='1.0'?>{marker}<urlset/>".encode(), "x.xml")
+            self.assertIn("DOCTYPE", str(caught.exception))
 
 
 class GroupingTests(unittest.TestCase):
@@ -132,6 +190,91 @@ class DailyCountTests(unittest.TestCase):
 
     def test_empty_input(self) -> None:
         self.assertEqual(sitemap_report.daily_counts(()), ((), 0))
+
+
+class CalendarTests(unittest.TestCase):
+    """A lastmod must start with a real calendar day; anything else is "undated", not a day of its own."""
+
+    def test_impossible_dates_are_not_days(self) -> None:
+        for value in ("2026-02-30", "2025-02-29", "2026-13-01", "2026-00-10", "2026-04-31", "0000-01-01", "2026-10-00"):
+            with self.subTest(value=value):
+                self.assertEqual(sitemap_report._day_of(value), "")
+
+    def test_real_dates_including_a_leap_day_are_days(self) -> None:
+        self.assertEqual(sitemap_report._day_of("2024-02-29"), "2024-02-29")
+        self.assertEqual(sitemap_report._day_of("2026-10-18T23:59:59-08:00"), "2026-10-18")
+
+    def test_a_value_that_only_looks_like_a_date_is_undated(self) -> None:
+        for value in ("", "2026-10", "20261018", "2026-1-5", "yesterday"):
+            with self.subTest(value=value):
+                self.assertEqual(sitemap_report._day_of(value), "")
+
+    def test_an_impossible_date_is_counted_as_undated(self) -> None:
+        entries = (SitemapEntry("https://a.test/a", "2026-02-30"), SitemapEntry("https://a.test/b", "2026-10-01"))
+        days, undated = sitemap_report.daily_counts(entries)
+        self.assertEqual((days, undated), ((("2026-10-01", 1),), 1))
+
+
+class TruncationTests(unittest.TestCase):
+    """A sitemap the download cut short must be reported as cut short, not as invalid XML."""
+
+    URL = "https://example.test/sitemap.xml"
+
+    def cut(self, body: bytes = b"<urlset><url><loc>https://a.test/p</loc></url") -> FetchResult:
+        return FetchResult(requested=self.URL, final_url=self.URL, status=200, body=body, truncated=True)
+
+    def test_fetch_problem_says_the_download_was_truncated(self) -> None:
+        problem = sitemap_report.fetch_problem(self.cut(b"x" * 6_000_000))
+        self.assertIn("truncated", problem)
+        self.assertIn("6.0 MB", problem)
+
+    def test_a_complete_answer_has_no_problem(self) -> None:
+        ok = FetchResult(requested=self.URL, final_url=self.URL, status=200, body=b"<urlset/>")
+        self.assertEqual(sitemap_report.fetch_problem(ok), "")
+
+    def test_the_main_sitemap_that_was_cut_off_is_a_tool_error_that_says_so(self) -> None:
+        with captured() as (_, err):
+            code = run_cli(lambda argv: sitemap_report.main(argv, fetch=lambda url: self.cut()), [self.URL])
+        self.assertEqual(code, 2)
+        self.assertIn("truncated", err.getvalue())
+        self.assertNotIn("not valid XML", err.getvalue())
+
+    def test_a_child_sitemap_that_was_cut_off_is_noted(self) -> None:
+        sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), "index.xml")
+        table = {PAGES_URL: self.cut(), POSTS_URL: fixture_bytes("sitemaps", "child-posts.xml")}
+        report = sitemap_report.build_report(sitemap, "https://example.test/i.xml", fake_fetch(table))
+        self.assertTrue(any(PAGES_URL in note and "truncated" in note for note in report.notes))
+        self.assertEqual(report.total_urls, 3)
+
+
+class SitemapDownloadLimitTests(unittest.TestCase):
+    """Sitemaps may be 50 MiB; the page limit (6 MB) must not apply to them."""
+
+    URL = "https://big.test/sitemap.xml"
+
+    def run_main(self, body: bytes):
+        routes = {"https://big.test/robots.txt": Reply(404), self.URL: Reply(200, body, {"Content-Type": "application/xml"})}
+        with mock.patch.object(sitemap_report, "default_opener", return_value=FakeOpener(routes)), captured() as (out, err):
+            code = run_cli(sitemap_report.main, [self.URL, "--delay", "0"])
+        return code, out.getvalue(), err.getvalue()
+
+    def big_sitemap(self) -> bytes:
+        return urlset(*[(f"https://big.test/p/{n}", "2026-10-01") for n in range(100)])
+
+    def test_a_sitemap_over_the_page_limit_but_within_the_sitemap_limit_is_read(self) -> None:
+        body = self.big_sitemap()
+        with mock.patch.object(fetch_pages, "MAX_BYTES", 1_000), mock.patch.object(sitemap_report, "MAX_SITEMAP_BYTES", 100_000):
+            code, out, _ = self.run_main(body)
+        self.assertGreater(len(body), 1_000)
+        self.assertEqual(code, 0)
+        self.assertIn("100 URLs in 1 sitemap(s)", out)
+
+    def test_a_sitemap_over_the_sitemap_limit_is_reported_as_truncated(self) -> None:
+        body = self.big_sitemap()
+        with mock.patch.object(fetch_pages, "MAX_BYTES", 1_000), mock.patch.object(sitemap_report, "MAX_SITEMAP_BYTES", 2_000):
+            code, _, err = self.run_main(body)
+        self.assertEqual(code, 2)
+        self.assertIn("truncated", err)
 
 
 class BuildReportTests(unittest.TestCase):
