@@ -7,7 +7,9 @@
  * `contentBlockers()` in src/content/readiness.ts: invented figures and placeholder photos named in
  * `sampleContent`, company facts not yet supplied (src/content/company.ts), legal drafts waiting for a
  * lawyer (src/content/legal.ts) and claims the owner has not confirmed (src/content/claims.ts). A module
- * with blockers of its own registers them there, not here.
+ * with blockers of its own registers them there, not here. The guard also reads every published photo
+ * (src/lib/photoMetadata.ts): none may still carry a camera serial number, an edit history, Lightroom
+ * settings or a GPS position. That scan runs only when the site is indexable.
  *
  * The guard reads `isIndexable` and `showSampleNotice` as imported values, so a last describe block
  * requires both to be plain `true` or `false` literals in src/config/site.ts: a value computed from an
@@ -23,6 +25,7 @@ import { companyFactsBlockers } from "@/content/company";
 import { legalDraftBlockers } from "@/content/legal";
 import { projects } from "@/content/projects";
 import { contentBlockers, sampleContentBlockers } from "@/content/readiness";
+import { photoMetadataBlockers, scanPhotos, type PhotoFinding } from "@/lib/photoMetadata";
 import { isRealAddress, isRealPhoneNumber, isRealWhatsappNumber } from "@/lib/realContact";
 import type { ShowcaseProject } from "@/lib/types";
 
@@ -38,6 +41,8 @@ type LaunchState = Readonly<{
   projects: readonly ProjectFlags[];
   /** What the content modules still list as not ready (src/content/readiness.ts). */
   contentBlockers: readonly string[];
+  /** The published photos that still carry something private (src/lib/photoMetadata.ts); empty while the site is not indexable, because nothing is scanned then. */
+  photoMetadata: readonly string[];
 }>;
 
 /** The made-up contact details the site shipped with (marked TODO(Ramya) in src/config/site.ts). */
@@ -66,6 +71,7 @@ const READY_STATE: LaunchState = {
   projects: [{ slug: "real-villa" }, { slug: "real-office", sample: false }],
   // No content module has a blocker.
   contentBlockers: contentBlockers([]),
+  photoMetadata: [],
 };
 
 /**
@@ -79,6 +85,12 @@ const OPEN_CONTENT_BLOCKERS = contentBlockers([
   () => legalDraftBlockers(PENDING_LEGAL_DRAFTS),
   () => claimBlockers(LISTED_CLAIMS),
 ]);
+
+/** Photos as the scan would report them, for the tests of the guard itself. */
+const DIRTY_PHOTOS: readonly PhotoFinding[] = [
+  { file: "public/projects/alpha/alpha-01.jpg", findings: ["BodySerialNumber", "LensSerialNumber", "xmpMM:History", "crs: settings"] },
+  { file: "public/projects/alpha/alpha-02.jpg", findings: ["xmpMM:History"] },
+];
 
 /** The words of the ribbon that showSampleNotice switches on (src/components/Chrome.tsx). */
 const SAMPLE_RIBBON_TEXT = "Preview: projects, figures and photos on this site are sample content.";
@@ -112,21 +124,33 @@ function previewBlockers(state: LaunchState): readonly string[] {
 /** Everything that still blocks indexing; nothing while the site is not indexable. */
 function launchBlockers(state: LaunchState): readonly string[] {
   if (!state.isIndexable) return [];
-  return [...contactBlockers(state.contact), ...previewBlockers(state), ...state.contentBlockers];
+  return [...contactBlockers(state.contact), ...previewBlockers(state), ...state.contentBlockers, ...state.photoMetadata];
+}
+
+/** The photo blockers of the published photos under `root`; the photos are read only when the site is indexable. */
+async function photoMetadataIfIndexable(isSiteIndexable: boolean, scan: () => Promise<readonly PhotoFinding[]> = () => scanPhotos(process.cwd())): Promise<readonly string[]> {
+  return isSiteIndexable ? photoMetadataBlockers(await scan()) : [];
 }
 
 function launchGuardMessage(blockers: readonly string[]): string {
   return [
     "isIndexable is true in src/config/site.ts, so search engines may list the site, but it still has placeholder or sample content:",
     ...blockers.map((blocker) => `  - ${blocker}`),
-    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure or placeholder photo listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
+    "To fix it: put Numa's real email address, phone number, WhatsApp number (digits only) and factory address in `site.contact` in src/config/site.ts (marked TODO(Ramya)); replace each project marked `sample: true` in src/content/projects.ts with a real one, or remove it; replace each invented figure or placeholder photo listed in `sampleContent` in src/content/pages.ts with a real one, then delete its entry; fill in each company fact in src/content/company.ts; strip serial numbers, edit history, camera settings and any GPS position from every published original photo under public/, keeping the orientation (`photos.metadata`); have a lawyer review the privacy notice and the terms, then delete their entries in `legalDrafts` in src/content/legal.ts; ask the owner about each claim in `unconfirmedClaims` in src/content/claims.ts, then delete its entry; set showSampleNotice to false in src/config/site.ts; or set isIndexable back to false until all of that is ready.",
   ].join("\n");
 }
 
 describe("launch guard", () => {
-  it("keeps the site out of search engines until its placeholder and sample content is replaced", () => {
+  it("keeps the site out of search engines until its placeholder and sample content is replaced", async () => {
     // Arrange
-    const state: LaunchState = { isIndexable, contact: site.contact, showSampleNotice, projects, contentBlockers: contentBlockers() };
+    const state: LaunchState = {
+      isIndexable,
+      contact: site.contact,
+      showSampleNotice,
+      projects,
+      contentBlockers: contentBlockers(),
+      photoMetadata: await photoMetadataIfIndexable(isIndexable),
+    };
 
     // Act
     const blockers = launchBlockers(state);
@@ -262,13 +286,14 @@ describe("launchBlockers", () => {
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
       contentBlockers: sampleContentBlockers(LISTED_FIGURES),
+      photoMetadata: photoMetadataBlockers(DIRTY_PHOTOS),
     };
 
     // Act
     const blockers = launchBlockers(state);
 
     // Assert
-    expect(blockers).toHaveLength(4 + 1 + 1 + 2);
+    expect(blockers).toHaveLength(4 + 1 + 1 + 2 + 2);
   });
 
   it("lets the site be indexed once every detail is real and no sample content is left", () => {
@@ -290,6 +315,7 @@ describe("launchBlockers", () => {
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
       contentBlockers: OPEN_CONTENT_BLOCKERS,
+      photoMetadata: photoMetadataBlockers(DIRTY_PHOTOS),
     };
 
     // Act
@@ -319,6 +345,7 @@ describe("launchBlockers", () => {
     expect(message).toContain("set showSampleNotice to false in src/config/site.ts");
     expect(message).toContain("src/content/projects.ts");
     expect(message).toContain("or set isIndexable back to false");
+    expect(message).toContain("strip serial numbers, edit history, camera settings and any GPS position from every published original photo under public/, keeping the orientation");
   });
 
   it("names the company facts and the legal drafts that are still open, from the one list the content modules keep", () => {
@@ -346,6 +373,19 @@ describe("launchBlockers", () => {
     expect(blockers).toHaveLength(2);
     expect(blockers[0]).toContain("claims.usShipping");
     expect(blockers[1]).toContain("claims.fireRatedDoors");
+  });
+
+  it("names every published photo that still carries a serial number, an edit history or camera settings when the site is indexable", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, photoMetadata: photoMetadataBlockers(DIRTY_PHOTOS) };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(2);
+    expect(blockers[0]).toContain("photos.metadata: public/projects/alpha/alpha-01.jpg carries BodySerialNumber, LensSerialNumber, xmpMM:History, crs: settings");
+    expect(blockers[1]).toContain("photos.metadata: public/projects/alpha/alpha-02.jpg carries xmpMM:History");
   });
 
   it("takes in the blockers a module registers later, with no change to the guard", () => {
@@ -446,5 +486,45 @@ describe("the switches the guard reads", () => {
 
     // Assert
     expect(written, `${SITE_FILE} must say \`export const ${name} = true;\` or \`= false;\`, not an expression: the guard cannot see a value that depends on the build's environment`).toBe(value);
+  });
+});
+
+describe("photoMetadataIfIndexable", () => {
+  it("reads no photo while the site is not indexable, because the originals may be replaced before launch", async () => {
+    // Arrange
+    let scans = 0;
+    const scan = async (): Promise<readonly PhotoFinding[]> => {
+      scans += 1;
+      return DIRTY_PHOTOS;
+    };
+
+    // Act
+    const blockers = await photoMetadataIfIndexable(false, scan);
+
+    // Assert
+    expect(scans).toBe(0);
+    expect(blockers).toEqual([]);
+  });
+
+  it("reads the photos and names each dirty one once the site is indexable", async () => {
+    // Arrange
+    const scan = async (): Promise<readonly PhotoFinding[]> => DIRTY_PHOTOS;
+
+    // Act
+    const blockers = await photoMetadataIfIndexable(true, scan);
+
+    // Assert
+    expect(blockers).toEqual(photoMetadataBlockers(DIRTY_PHOTOS));
+  });
+
+  it("scans the repository's own photos by default, and every one of them can be read", async () => {
+    // Arrange
+    const isSiteIndexable = true;
+
+    // Act
+    const blockers = await photoMetadataIfIndexable(isSiteIndexable);
+
+    // Assert
+    expect(blockers.every((blocker) => blocker.startsWith("photos.metadata: public/"))).toBe(true);
   });
 });

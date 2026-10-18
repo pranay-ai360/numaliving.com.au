@@ -153,7 +153,7 @@ python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
 
 The verdict is at the top of `report.md` in that folder. The "request-aborted" warnings are the browser cancelling prefetches and are harmless.
 
-Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). Once the site is indexable (`isIndexable` is true) the same checks should show: no `noindex` tag on any page but `/login/`, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for the home page and every other indexable page, never `/login/`. Then submit the sitemap in Search Console.
+Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). Once the site is indexable (`isIndexable` is true) the same checks should show: no `noindex` tag on any page but `/login/`, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for the home page and every other indexable page, never `/login/`. Then submit the sitemap in Search Console. Before the flip, strip serial numbers, edit history and camera settings from every published original photo (keep the orientation); the launch guard names each file that still has them (`photos.metadata`).
 
 ## 10. Known quirks
 
