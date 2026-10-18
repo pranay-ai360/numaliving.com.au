@@ -2,21 +2,26 @@
 """Download pages for an SEO audit politely: robots.txt rules, a pause between requests, every redirect hop recorded.
 
 Usage:
-    fetch_pages.py OUT_DIR URL [URL ...] [--delay SECONDS] [--urls-file FILE]
+    fetch_pages.py OUT_DIR URL [URL ...] [--delay SECONDS] [--urls-file FILE] [--allow-private-hosts]
 
 For each URL the tool writes <slug>.html and <slug>.meta.json into OUT_DIR; audit_pages.py reads both.
-A URL that was skipped or that failed gets only the .meta.json. Exit status: 0 when nothing errored (a skipped URL
-or a 404 page is not an error), 1 when a fetch failed, 2 for a usage error.
+A URL that was skipped or that failed gets only the .meta.json (and an .html of an earlier run is removed).
+Exit status: 0 when nothing errored (a skipped URL or a 404 page is not an error), 1 when a fetch failed, 2 for a
+usage error.
 
 Good manners, because the pages belong to other people:
-  * robots.txt is read once per site (origin). A URL it disallows is recorded as skipped and never requested.
-    A robots.txt that answers 401/403, or cannot be read (network error, 429, 5xx), skips the whole site; a
-    missing one (404) means no rules. Rules for other robots are ignored: this tool reads the "*" group.
-  * Between two requests to the same host it waits at least max(--delay, the site's Crawl-delay). The robots.txt
-    request counts as a request. A Crawl-delay above 60 s skips the site instead of waiting that long.
+  * robots.txt is read once per site (origin) and applied as RFC 9309 describes (robots_rules.py): wildcards, the
+    longest matching rule, the "*" group. A URL it disallows is recorded as skipped and never requested.
+    A robots.txt that answers 401/403, cannot be read (network error, 429, 5xx) or is not UTF-8 text skips the
+    whole site; a missing one (404) means no rules.
+  * Between two requests to the same host it waits at least max(--delay, the site's Crawl-delay), and as long as
+    Retry-After says after a 429 or 503. The robots.txt request counts as a request. A Crawl-delay or Retry-After
+    above 60 s skips the site instead of waiting that long.
   * Redirects are followed here, one hop at a time, so robots.txt and the pause apply to every hop, and only
-    http(s) targets are followed (never file: or ftp:). At most 10 hops.
-  * 4xx and 5xx pages are kept (a custom 404 page is worth auditing); a body is cut at 6 MB.
+    http(s) targets are followed (never file: or ftp:). At most 10 hops. A redirect to a local or private address
+    is refused (url_guard.py) unless it stays on the host you asked for or --allow-private-hosts is given.
+  * 4xx and 5xx pages are kept (a custom 404 page is worth auditing); a body is cut at 6 MB, and a download that
+    takes more than 5 minutes is an error.
 Standard library only.
 """
 

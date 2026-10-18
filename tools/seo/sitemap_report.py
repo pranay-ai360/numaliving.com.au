@@ -3,9 +3,11 @@
 
 Usage:
     sitemap_report.py SOURCE [--max-children N] [--top N] [--max-days N] [--samples N] [--delay SECONDS]
+                      [--allow-private-hosts]
 
 SOURCE is a sitemap file (.xml or .xml.gz) or an http(s) URL, which is fetched politely through fetch_pages
-(robots.txt, pauses). A sitemap index is followed for at most 10 child sitemaps, all on the index's host.
+(robots.txt, pauses, a 50 MiB limit). A sitemap must be UTF-8 and without a DOCTYPE or entity declaration. A
+sitemap index is followed for at most 10 child sitemaps (--max-children 0 to 10), all on the index's host.
 
 The report shows the lastmod range, the URL groups (first path segment and depth, with sample paths) and a
 per-day count with bars. The per-day view is how scaled content stands out: one competitor's sitemap listed

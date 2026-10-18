@@ -179,10 +179,14 @@ class _FactsParser(HTMLParser):
     # -- text lines ------------------------------------------------------------------------------------------
 
     def _flush_line(self) -> None:
+        """End the current text line. A block boundary also separates the words of an open heading or link."""
         text = _clean("".join(self._buffer))
         if text:
             (self.boilerplate_lines if self._buffer_is_boilerplate else self.main_lines).append(text)
         self._buffer = []
+        for parts in (self._heading[1] if self._heading else None, self._anchor["parts"] if self._anchor else None):
+            if parts:
+                parts.append(" ")
 
     def _add_text(self, data: str) -> None:
         """Whitespace between inline elements is kept inside a line and dropped at the start of one."""

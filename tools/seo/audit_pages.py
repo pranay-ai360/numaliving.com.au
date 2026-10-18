@@ -8,7 +8,9 @@ Usage:
 Reads the page and, when present, the FILE.meta.json that fetch_pages.py saved next to it (status, redirect hops,
 headers and the final URL, which decides what counts as an internal link). Without a meta file, --base-url
 (default https://example.invalid/) plays that part. FILE.txt holds the headings, the main text and the
-boilerplate text (nav, header, footer, aside) for vocab_gap.py. The pages are parsed, never executed.
+boilerplate text (nav, header, footer, aside) for vocab_gap.py. The pages are parsed, never executed, but they are
+untrusted: what is printed or written to FILE.txt shows control characters as escapes. A file that is not .html or
+.htm is refused (the output names replace that suffix), and a page that fails does not stop the others (exit 1).
 Standard library only.
 """
 
