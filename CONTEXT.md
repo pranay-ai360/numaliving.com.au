@@ -13,7 +13,7 @@ The website's sign-in page and the links that lead to it, standing in for the Cl
 _Avoid_: Portal page, sign-in screen
 
 **Quote Request**:
-A visitor's inquiry about a prospective project, submitted through the "Request a Quote" form on the Contact page and delivered to Numa by email.
+A visitor's inquiry about a prospective project, submitted through the "Request a Quote" form on the Contact page and delivered to Numa by email. It carries the site location and, if the visitor has them, a project size and a bid date.
 _Avoid_: Contact form message, lead
 
 **Drawings**:
@@ -44,3 +44,18 @@ _Avoid_: thumbnails, resized images, optimized images
 Invented figures, lists and projects the site still shows while it is a preview (marked `sample: true` or `SAMPLE`, and the figures named in `sampleContent` in `src/content/pages.ts`). The launch guard keeps the site out of search engines until none is left.
 _Avoid_: dummy content, placeholder text
 
+**Company facts**:
+The facts about the company that only the owner can supply (legal name, founding year, factory area, headcount, certifications with their documents, leadership, parent group link), kept in `src/content/company.ts`. The About page shows each one only once it is set; each one still missing blocks launch.
+_Avoid_: About data, company info
+
+**Launch blockers**:
+The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the content side still keeps the site out of search engines: Sample content, Company facts not yet supplied, and Legal drafts. The launch guard reads this list and nothing else from the content. A module with blockers of its own adds its function to the list.
+_Avoid_: TODO list, checklist
+
+**Legal draft**:
+The privacy notice or the website terms while a lawyer has not reviewed it. The page says it is a draft, and its entry in `legalDrafts` (`src/content/legal.ts`) is a Launch blocker until the entry is deleted.
+_Avoid_: Policy, final policy
+
+**US vocabulary guard**:
+The check (`findUkTerms` in `src/lib/vocabulary.ts`) that no page or message uses a word only British, Australian or Gulf readers use (joinery, wardrobe, programme, colour, enquiry, tender, BOQ and more), or a metric measure that does not follow a US unit. It runs over the copy modules and over every served page.
+_Avoid_: spell check, style check

@@ -1,6 +1,6 @@
 # Owner input pack
 
-What the US SEO programme needs from the owner. It has two parts: ten decisions, and the facts each page needs. Nothing on a page is invented: a page whose facts are missing is not published, and the launch guard keeps the site `noindex` while placeholder or sample content remains. Every line says **Unlocks:** what your answer lets us do. The plan and its phases are described in [ADR 0003](../adr/0003-us-seo-strategy.md); the proposed URLs are the map in that ADR.
+What the US SEO programme needs from the owner. It has three parts: ten decisions, the facts each page needs, and the questions about the photos and sample projects. Nothing on a page is invented: a page whose facts are missing is not published, and the launch guard keeps the site `noindex` while placeholder or sample content remains. Every line says **Unlocks:** what your answer lets us do. The plan and its phases are described in [ADR 0003](../adr/0003-us-seo-strategy.md); the proposed URLs are the map in that ADR.
 
 Answer in any form (a reply, a call, this file filled in). A short answer is enough where the options are given.
 
@@ -90,7 +90,7 @@ Keep the Client Login messaging as "opens soon", or remove it?
 
 Your answer:
 
-**Unlocks:** the Client Portal copy repair in Phase 2 (the portal is promoted but not built); `/login/` stays `noindex` either way.
+**Unlocks:** the Client Portal wording. Phase 2 already reworded every page to say the portal "opens soon" and nothing that implies it works today (a test keeps it so); your answer says whether to keep that, or to remove the portal messaging and the Client Login links. The login notice ("Project teams will be invited by email when their project starts. Until then, please contact your Numa project manager.") is the earlier wording and still needs your confirmation. `/login/` stays `noindex` either way.
 
 ## Part 2. Facts each page needs
 
@@ -100,7 +100,22 @@ Your answer:
 | Standards (`/standards/`) | certificates and their numbers (or "not certified") | a standards page that states only what is verified; AWI alignment only if true |
 | Factory (`/factory/`) | area, machines, headcount, finishing and QC steps, packing method, photos with permission | the factory and quality page, and the plain facts that AI Overviews quote |
 | Sector pages (`/sectors/multifamily/`, `/hospitality/`, `/luxury-residential/`) | two real projects each, typical scope and quantities, repeatability and QC method | the three Wave A sector pages |
-| About (`/about/`) | legal entity, founders and leaders with LinkedIn, year founded, parent group proof | the facts block, named leadership and a verifiable parent-group link (Phase 2) |
+| About (`/about/`) | legal entity, founders and leaders with LinkedIn, year founded, parent group proof, factory area, headcount, certifications with their documents | the Company Facts block on the About page. The seven facts go in `src/content/company.ts`; each one shows once it is set, and each one missing keeps the site `noindex`. If a fact cannot be published (for example, no certifications), say so and its row is removed instead of guessed |
 | Guides (`/resources/<slug>/`) | answers to the interviewer's questions: what do buyers get wrong, one real example with numbers, what surprised you, who should not buy | the four launch guides: cost, AWI Premium versus Custom grade, importing to the US, shop drawings and submittals |
+| Privacy and Terms (`/privacy/`, `/terms/`) | how long Quote Requests are kept; which privacy laws apply (US states, the Australian Privacy Act, the UAE PDPL, the GDPR) and the rights they give visitors; the legal name of the company that receives the requests; a postal address; a lawyer's review of both drafts | the two drafts written in Phase 2 from what the site does today. Deleting their entries in `legalDrafts` (`src/content/legal.ts`) clears the blockers `legal.privacy needs legal review` and `legal.terms needs legal review` |
+| Contact (`/contact/`) | a US phone number, office hours and their time zone, the factory address | `site.contact.hours` and `site.contact.timezone` (the Contact page shows them once set), and the placeholder phone and address that keep the site `noindex` |
+| Home first screen (`/`) | a yes or a rewrite for "Custom millwork, engineered in Dubai. Built for US projects." and "Made in our Dubai factory. Shipped to US job sites." (they state what the factory can do, not projects delivered); confirmation that Numa ships to US job sites | the first-screen wording. It is the plan's starting draft and rests on decision 1 |
+| Capabilities (`/capabilities/`) | certificates for "Fire-rated doors", or a word that the line should go (fire ratings are listed in decision 3 and no certificate is known) | a capability list that states only what Numa can back |
 
 Where a fact cannot be provided, say so. The page will then leave the claim out rather than guess.
+
+## Part 3. Photos and the sample project text (found while building Phases 1 and 2)
+
+The 30 project photos and the six sample projects raise questions only the owner can answer. Until they are answered, the guard keeps the site `noindex` (every project is marked `sample: true`), and no new fact is written about them.
+
+1. **Who owns the photos, and may Numa publish them?** The credit "Photo by Intelier" on the golf-links photos comes only from old file names. Please say who took each set, who owns it, and what the photographers allow (web, social, print).
+2. **Other companies' logos and signage.** The three `sonate-*` photos carry "Condor Developers / Sonate Residences" logos and two `golf-links-*` photos show "Condor Golflinks" signage. They are not used for the home page photo or any share image. Is permission needed (or given) to show them?
+3. **The sample texts do not match several pictures.** The golf-links summary describes a duplex penthouse (curved stair cladding, a smoked oak bar, dressing rooms) but its photos show a lobby, a gym and apartments; the sonate summary describes a family-office build-out (a reception desk, a boardroom) but its photos show an apartment. The text is invented and flagged as sample, so it was changed only in vocabulary and units. Please send the real facts for each project (name, place, year, scope, materials, size, duration, who may be named) or tell us which photos belong to which project.
+4. **Which project photos are US-deliverable references?** None of the six sample projects is in the US; a real US-delivered project (with permission to name the client and designer) is the strongest single proof the site can carry.
+
+**Unlocks:** replacing the sample projects and figures; using more photos for share images and the home page; and the project pages going live.
