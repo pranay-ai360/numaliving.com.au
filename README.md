@@ -57,7 +57,7 @@ Everything marked `sample: true`, `SAMPLE` or `TODO(Ramya)` is placeholder conte
 
 ## How the Request a Quote form works
 
-The form is on the Contact page (`/contact/`). The site has no server, so the visitor's browser sends the Quote Request straight to FormSubmit's AJAX address, `https://formsubmit.co/ajax/<id>`, and FormSubmit emails it to Numa. `<id>` is `NEXT_PUBLIC_FORMSUBMIT_ID`, fixed into the site when it is built. The website keeps no copy. The checking and sending code is in `src/lib/quotes/`; the form itself is `src/components/QuoteForm.tsx` and `src/components/quote-form/`.
+The form is on the Contact page (`/contact/`). The site has no server, so the visitor's browser sends the Quote Request straight to FormSubmit, and FormSubmit emails it to Numa. A request without Drawings goes to FormSubmit's AJAX address, `https://formsubmit.co/ajax/<id>`, which answers in JSON. A request with PDFs goes to its ordinary address, `https://formsubmit.co/<id>`, because only that address carries attachments (the AJAX address drops them, as a live test on 18 October 2026 showed); it answers with a web page, and only FormSubmit's "Thanks!" page counts as sent. `<id>` is `NEXT_PUBLIC_FORMSUBMIT_ID`, fixed into the site when it is built. The website keeps no copy. The checking and sending code is in `src/lib/quotes/`; the form itself is `src/components/QuoteForm.tsx` and `src/components/quote-form/`.
 
 **What Numa receives.** One email per Quote Request:
 
@@ -66,7 +66,7 @@ The form is on the Contact page (`/contact/`). The site has no server, so the vi
 - The Drawings, attached as PDFs.
 - Reply-To is set to the visitor's email address, so pressing Reply answers the visitor.
 
-**Drawings.** PDF only, up to 10 files and 9 MB in total. FormSubmit accepts at most 10 MB of attachments per submission, and the 9 MB limit leaves room for the rest of the request. The form refuses anything else and says why. For larger sets the visitor pastes a Google Drive, Dropbox or WeTransfer link into the optional "Link to larger drawings" field. It must start with `https://`: a plain `http://` link would send the drawings unencrypted. FormSubmit documents attachments for ordinary form posts but not for its AJAX address, so a real test with a PDF is part of [Going live](#going-live).
+**Drawings.** PDF only, up to 10 files and 9 MB in total. FormSubmit accepts at most 10 MB of attachments per submission, and the 9 MB limit leaves room for the rest of the request. The form refuses anything else and says why. For larger sets the visitor pastes a Google Drive, Dropbox or WeTransfer link into the optional "Link to larger drawings" field. It must start with `https://`: a plain `http://` link would send the drawings unencrypted. A real test with PDFs is part of [Going live](#going-live).
 
 **Reference.** Every Quote Request gets a reference such as `NL-7K3QX9`. The visitor sees it on the Thank You panel and Numa sees it in the email subject, so both sides can quote it. It avoids characters that are easy to confuse (no I, O, 0 or 1).
 
@@ -74,7 +74,7 @@ The form is on the Contact page (`/contact/`). The site has no server, so the vi
 
 - A hidden "honeypot" field (`_honey`) that people never see. Form-filling robots tend to fill it in. The visitor's browser checks it: when it is filled, the form shows "Thank You" and sends nothing. The field itself is never sent to FormSubmit.
 - A 2-second minimum: if Send is pressed less than 2 seconds after the form appears, the form sends nothing and says "Please take a moment to review your details, then send again."
-- That is all the protection there is, and all of it runs in the visitor's browser. FormSubmit's captcha cannot run over AJAX, so it is switched off (`_captcha=false`), and FormSubmit cannot limit submissions to this website. Anyone who reads the alias in the page source can post to it directly and skip every check above. See [Security notes](#security-notes).
+- That is all the protection there is, and all of it runs in the visitor's browser. The form reads FormSubmit's answer itself, so FormSubmit's captcha page cannot be used and is switched off (`_captcha=false`), and FormSubmit cannot limit submissions to this website. Anyone who reads the alias in the page source can post to it directly and skip every check above. See [Security notes](#security-notes).
 
 **What the visitor sees.**
 
@@ -93,7 +93,7 @@ The messages are in `src/lib/quotes/messages.ts`; `{email}` stands for the email
 | `timeout` | No answer within 60 seconds | "Sending took too long, which can happen with large drawings on a slow connection. Please try again, or email us at {email}." |
 | `too-large` | FormSubmit refused the request as too large (HTTP 413) | "Your drawings were too large to send through the form. Please remove some files and paste a share link to them instead, or email them to us at {email}." |
 | `rejected` | FormSubmit answered with an error, or said no | "Our form service did not accept your request. Please try again in a few minutes, or email us at {email}." |
-| `invalid-response` | FormSubmit's answer was unclear (no plain yes, or a redirect), so delivery is unconfirmed | "We could not confirm that your request was received. Please email us at {email} so we can check." |
+| `invalid-response` | FormSubmit's answer was unclear (no plain yes, a page other than its "Thanks!" page, or a redirect), so delivery is unconfirmed | "We could not confirm that your request was received. Please email us at {email} so we can check." |
 | `unexpected` | Anything else, for example the sending code failed to load | "Something went wrong while sending your request. Please try again, or email us at {email}." |
 
 ## Going live
@@ -217,7 +217,7 @@ These were the steps of the first publish (11 October 2026). Today a change ship
 
 8. **Keep Quote Requests out of spam (P7).** Look in the spam or junk folder as well. If the test landed there, mark it as not spam. Then add a filter for mail from `formsubmit.co`. In Gmail: Settings > See all settings > Filters and Blocked Addresses > Create a new filter, From `formsubmit.co`, then tick "Never send it to Spam". In Outlook: add `formsubmit.co` to Safe senders.
 
-9. **If the PDF did not arrive: plan B (P8).** The email still lists the file names under "Attached drawings", so you know what the visitor meant to send and can ask for it. Plan B is a small code change: requests with Drawings are sent as an ordinary form post (`multipart/form-data`) to `https://formsubmit.co/<alias>`, the way FormSubmit documents attachments, with `_next` pointing to a static thank-you page at `/contact/thanks/`. Requests without files keep using AJAX. Until that change is live, visitors can still share drawings through the "Link to larger drawings" field.
+9. **Plan B for the PDFs (P8): done.** On 18 October 2026 a live test through FormSubmit's AJAX address delivered the email without its PDF (the file name was listed under "Attached drawings", so the loss was noticed). The same fields sent as an ordinary multipart form post to `https://formsubmit.co/<alias>`, the way FormSubmit documents attachments, did arrive with the PDF, so a request with Drawings is now sent that way. The browser may read FormSubmit's answer to it (the page allows any origin), so the visitor stays on the page and no thank-you page or redirect is needed: only the "Thanks!" page with "The form was submitted successfully" counts as sent, and any other page is reported as a failure with the email fallback. Requests without files keep using AJAX. If a PDF ever fails to arrive again, the file names are still in the email, and visitors can use the "Link to larger drawings" field.
 
 10. **Record the live URL (P9).** Done: the live-site line at the top of this README gives https://numaliving.us/.
 
@@ -301,7 +301,7 @@ The steps below are how it was done, and how to repeat it for another domain. Th
 
 ## Security notes
 
-- **The form id is a public channel.** The FormSubmit alias is in the page source, so anyone can post to `https://formsubmit.co/ajax/<alias>` directly, from anywhere, without opening the site. Every check the form makes (the honeypot, the 2-second minimum, PDF only, the size limits, `https://` links) runs in the visitor's browser, and a direct post skips them all. Treat every Quote Request and every attachment as untrusted:
+- **The form id is a public channel.** The FormSubmit alias is in the page source, so anyone can post to `https://formsubmit.co/ajax/<alias>` or `https://formsubmit.co/<alias>` directly, from anywhere, without opening the site. Every check the form makes (the honeypot, the 2-second minimum, PDF only, the size limits, `https://` links) runs in the visitor's browser, and a direct post skips them all. Treat every Quote Request and every attachment as untrusted:
   - Send Quote Requests to a mailbox used only for them (for example `quotes@` on Numa's own domain), not to a personal or admin mailbox.
   - Make sure that mailbox scans attachments for malware (Gmail and Microsoft 365 do by default), and open attached drawings with care.
   - Never put the mailbox address itself into `FORMSUBMIT_ID`: the deploy refuses it (step 2 of [Going live](#going-live)).

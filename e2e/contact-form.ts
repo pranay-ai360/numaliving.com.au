@@ -2,11 +2,17 @@
  * Helpers for the "Request a Quote" form on the Contact page: a valid Quote Request, generated PDF
  * Drawings, and a stand-in for FormSubmit so nothing is ever sent for real.
  */
-import { expect, type Locator, type Page, type Request } from "@playwright/test";
+import { expect, type Locator, type Page, type Request, type Route } from "@playwright/test";
 import { MIN_FILL_TIME_MS } from "../src/components/quote-form/constants";
 import { CONTACT_PATH, pageUrl } from "./site";
 
 export const FORMSUBMIT_ROUTE = "https://formsubmit.co/ajax/**";
+
+/**
+ * FormSubmit's ordinary endpoint, which carries attachments: one path segment (the form id). The AJAX endpoint
+ * has a second one (`/ajax/<id>`), so this pattern does not match it.
+ */
+export const FORMSUBMIT_PAGE_ROUTE = "https://formsubmit.co/*";
 
 /** The visible text of the dashed Drawings drop zone (a label around the hidden file picker). */
 const DROP_ZONE_TEXT = "Attach drawings or BOQ (PDF)";
@@ -50,6 +56,23 @@ export const FORMSUBMIT_SERVER_ERROR: FormSubmitReply = {
   body: { success: "false", message: "Internal Server Error" },
 };
 
+/** A page from FormSubmit's ordinary endpoint: a heading, then a sentence, as on the real pages. */
+export type FormSubmitPage = { status: number; html: string };
+
+export const FORMSUBMIT_ACCEPTED_PAGE: FormSubmitPage = {
+  status: 200,
+  html:
+    "<!DOCTYPE html><html lang='en'><body><h1>Thanks!</h1>" +
+    "<p>The form was submitted successfully. Return to original site: <a href='https://example.com/'>https://example.com/</a></p>" +
+    "</body></html>",
+};
+
+/** What the ordinary endpoint shows for a form id it does not know: an error page with the status 200. */
+export const FORMSUBMIT_REFUSED_PAGE: FormSubmitPage = {
+  status: 200,
+  html: "<!DOCTYPE html><html lang='en'><body><h1>Check email address</h1><p>Email address is not formatted correctly</p></body></html>",
+};
+
 /** A small, valid PDF (it starts with "%PDF-1.4"), padded with zero bytes up to `sizeBytes`. */
 export function makePdf(name: string, sizeBytes = 0): FilePayload {
   const content = Buffer.from(PDF_SOURCE, "latin1");
@@ -62,20 +85,38 @@ export function makeFakePdf(name: string): FilePayload {
   return { name, mimeType: PDF_MIME_TYPE, buffer: Buffer.from("Not a drawing, just text with a .pdf name.", "latin1") };
 }
 
-/** Answers every FormSubmit call with `reply`. Returns a function that lists the calls seen so far. */
-export async function mockFormSubmit(page: Page, reply: FormSubmitReply): Promise<() => readonly Request[]> {
+type Fulfilment = Parameters<Route["fulfill"]>[0];
+
+/** Answers every call to `urlPattern` with `fulfilment`. Returns a function that lists the calls seen so far. */
+async function answerCalls(page: Page, urlPattern: string, fulfilment: Fulfilment): Promise<() => readonly Request[]> {
   let calls: readonly Request[] = [];
-  await page.route(FORMSUBMIT_ROUTE, async (route) => {
+  await page.route(urlPattern, async (route) => {
     calls = [...calls, route.request()];
     await route.fulfill({
-      status: reply.status,
-      contentType: "application/json",
-      // FormSubmit's AJAX endpoint allows any origin; without this header the browser hides the answer.
+      ...fulfilment,
+      // FormSubmit allows any origin; without this header the browser hides the answer.
       headers: { "access-control-allow-origin": "*" },
-      body: JSON.stringify(reply.body),
     });
   });
   return () => calls;
+}
+
+/** Answers every call to FormSubmit's AJAX endpoint (requests without Drawings) with `reply`. */
+export function mockFormSubmit(page: Page, reply: FormSubmitReply): Promise<() => readonly Request[]> {
+  return answerCalls(page, FORMSUBMIT_ROUTE, {
+    status: reply.status,
+    contentType: "application/json",
+    body: JSON.stringify(reply.body),
+  });
+}
+
+/** Answers every call to FormSubmit's ordinary endpoint (requests with Drawings) with the page `reply`. */
+export function mockFormSubmitPage(page: Page, reply: FormSubmitPage): Promise<() => readonly Request[]> {
+  return answerCalls(page, FORMSUBMIT_PAGE_ROUTE, {
+    status: reply.status,
+    contentType: "text/html; charset=utf-8",
+    body: reply.html,
+  });
 }
 
 /**

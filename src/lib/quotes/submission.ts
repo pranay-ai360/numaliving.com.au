@@ -25,7 +25,7 @@ function countOfPdfs(count: number): string {
 
 /**
  * Says how many PDFs the email should carry before listing them, so an
- * attachment lost on the way (FormSubmit does not document them over AJAX)
+ * attachment lost on the way (FormSubmit's AJAX endpoint did drop them once)
  * is noticed and can be asked for.
  */
 function describeAttachments(files: readonly File[]): string {
@@ -72,9 +72,8 @@ function optionEntries(request: QuoteRequest, files: readonly File[], reference:
  * Builds the multipart body for FormSubmit.
  *
  * Attachments go in as `attachment`, `attachment2`, ... (one file per
- * field). FormSubmit documents file attachments for ordinary form posts
- * but not for its AJAX endpoint, so this is unverified until the live
- * PDF test in the README runbook has been done.
+ * field). FormSubmit carries them only on its ordinary endpoint, which is
+ * where `submitQuoteRequest` sends a request that has any.
  */
 export function buildSubmission(request: QuoteRequest, files: readonly File[], reference: string): FormData {
   const formData = new FormData();
