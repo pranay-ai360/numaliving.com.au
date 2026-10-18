@@ -522,6 +522,15 @@ class PrivateRedirectTests(unittest.TestCase):
         self.assertIs(fetcher._resolve, url_guard.resolve_addresses)
 
 
+class CollectUrlsTests(unittest.TestCase):
+    def test_fragments_are_dropped_because_they_are_never_sent(self) -> None:
+        urls = fetch_pages.collect_urls([f"{SITE}/x#one", f"{SITE}/x#two", f"{SITE}/y#top"], None)
+        self.assertEqual(urls, (f"{SITE}/x", f"{SITE}/y"))
+
+    def test_repeats_and_whitespace_are_still_dropped(self) -> None:
+        self.assertEqual(fetch_pages.collect_urls([f" {SITE}/x ", f"{SITE}/x"], None), (f"{SITE}/x",))
+
+
 class RealOpenerTests(unittest.TestCase):
     """The real urllib opener against a loopback server: redirects, headers, gzip, error bodies and schemes.
 
@@ -755,6 +764,56 @@ class SaveAndMainTests(unittest.TestCase):
         code, out, _, opener = self.run_main([str(self.out), PAGE, "--allow-private-hosts"], routes)
         self.assertEqual(code, 0)
         self.assertIn(target, opener.urls)
+
+    def test_two_addresses_with_one_readable_name_are_both_saved(self) -> None:
+        routes = {
+            "http://site.test/robots.txt": Reply(404), "https://site.test/robots.txt": Reply(404),
+            "http://site.test/": Reply(200, b"HTTP-VERSION"), "https://site.test/": Reply(200, b"HTTPS-VERSION"),
+            f"{SITE}/x/y": Reply(200, b"SLASH"), f"{SITE}/x_y": Reply(200, b"UNDERSCORE"),
+            f"{SITE}/About": Reply(200, b"UPPER"), f"{SITE}/about": Reply(200, b"LOWER"),
+            f"{SITE}/p": Reply(200, b"NO-SLASH"), f"{SITE}/p/": Reply(200, b"SLASH-P"),
+        }
+        urls = ["http://site.test/", "https://site.test/", f"{SITE}/x/y", f"{SITE}/x_y", f"{SITE}/About", f"{SITE}/about",
+                f"{SITE}/p", f"{SITE}/p/"]
+        code, _, _, _ = self.run_main([str(self.out), *urls], routes)
+        self.assertEqual(code, 0)
+        bodies = sorted(path.read_bytes() for path in self.out.glob("*.html"))
+        self.assertEqual(bodies, sorted([b"HTTP-VERSION", b"HTTPS-VERSION", b"SLASH", b"UNDERSCORE", b"UPPER", b"LOWER",
+                                         b"NO-SLASH", b"SLASH-P"]))
+        self.assertEqual(len(list(self.out.glob("*.meta.json"))), 8)
+        names = [path.name.lower() for path in self.out.glob("*.html")]
+        self.assertEqual(len(set(names)), 8)  # also distinct on a case-insensitive disk
+
+    def test_each_meta_file_names_the_address_it_belongs_to(self) -> None:
+        routes = {f"{SITE}/robots.txt": Reply(404), f"{SITE}/p": Reply(200, b"A"), f"{SITE}/p/": Reply(200, b"B")}
+        self.run_main([str(self.out), f"{SITE}/p", f"{SITE}/p/"], routes)
+        found = {json.loads(path.read_text(encoding="utf-8"))["requested"]: path.name for path in self.out.glob("*.meta.json")}
+        self.assertEqual(set(found), {f"{SITE}/p", f"{SITE}/p/"})
+        self.assertEqual(found[f"{SITE}/p"], "site.test_p.meta.json")  # the first keeps the plain name
+
+    def test_a_skipped_refetch_removes_the_old_page_next_to_the_new_skipped_record(self) -> None:
+        stale = self.out / "site.test_private_x.html"
+        self.out.mkdir(parents=True)
+        stale.write_bytes(b"OLD CONTENT")
+        code, _, _, _ = self.run_main([str(self.out), f"{SITE}/private/x"], {ROBOTS: Reply(200, ROBOTS_WITH_RULES)})
+        self.assertEqual(code, 0)
+        self.assertFalse(stale.exists())
+        meta = json.loads((self.out / "site.test_private_x.meta.json").read_text(encoding="utf-8"))
+        self.assertIn("robots.txt", meta["skipped"])
+
+    def test_a_failed_refetch_removes_the_old_page_too(self) -> None:
+        stale = self.out / "site.test_page.html"
+        self.out.mkdir(parents=True)
+        stale.write_bytes(b"OLD CONTENT")
+        code, _, _, _ = self.run_main([str(self.out), PAGE], {ROBOTS: Reply(404), PAGE: urllib.error.URLError("down")})
+        self.assertEqual(code, 1)
+        self.assertFalse(stale.exists())
+
+    def test_a_successful_refetch_replaces_the_old_page(self) -> None:
+        self.out.mkdir(parents=True)
+        (self.out / "site.test_page.html").write_bytes(b"OLD CONTENT")
+        self.run_main([str(self.out), PAGE], {ROBOTS: Reply(404), PAGE: Reply(200, HTML)})
+        self.assertEqual((self.out / "site.test_page.html").read_bytes(), HTML)
 
     def test_urls_file_and_arguments_are_merged_without_repeats(self) -> None:
         urls_file = Path(self._tmp.name) / "urls.txt"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -85,6 +86,57 @@ class SlugTests(unittest.TestCase):
         second = seo_common.url_slug("https://x.test/" + "a" * 300 + "/two")
         self.assertLessEqual(len(first), seo_common.URL_SLUG_MAX_LENGTH + 7)
         self.assertNotEqual(first, second)
+
+
+class AssignStemsTests(unittest.TestCase):
+    """Two different URLs must never be saved under one name (the second used to replace the first)."""
+
+    def stems(self, *urls: str):
+        return seo_common.assign_stems(urls)
+
+    def test_ordinary_urls_keep_their_plain_readable_names(self) -> None:
+        stems = self.stems("https://a.test/", "https://a.test/about/", "https://b.test/x/y")
+        self.assertEqual(stems, {
+            "https://a.test/": "a.test_index", "https://a.test/about/": "a.test_about", "https://b.test/x/y": "b.test_x_y",
+        })
+
+    def test_urls_that_would_share_a_name_get_a_hash_of_the_whole_address(self) -> None:
+        pairs = (
+            ("https://a.test/x", "https://a.test/x/"),
+            ("http://a.test/", "https://a.test/"),
+            ("https://a.test/x/y", "https://a.test/x_y"),
+            ("https://a.test/About", "https://a.test/about"),
+            ("https://a.test/", "https://a.test/index"),
+        )
+        for first, second in pairs:
+            with self.subTest(first=first, second=second):
+                stems = self.stems(first, second)
+                self.assertEqual(stems[first], seo_common.url_slug(first))  # the first keeps the readable name
+                self.assertRegex(stems[second], rf"^{re.escape(seo_common.url_slug(second))}-[0-9a-f]{{6}}$")
+                self.assertEqual(len({stem.lower() for stem in stems.values()}), 2)  # also distinct on a case-insensitive disk
+
+    def test_the_hash_of_a_name_does_not_depend_on_the_other_addresses_in_the_run(self) -> None:
+        alone = self.stems("https://a.test/x", "https://a.test/x/")["https://a.test/x/"]
+        crowded = self.stems("https://a.test/other", "https://a.test/x", "https://a.test/x/")["https://a.test/x/"]
+        self.assertEqual(alone, crowded)
+
+    def test_a_repeated_url_is_one_entry_with_one_name(self) -> None:
+        stems = self.stems("https://a.test/x", "https://a.test/x")
+        self.assertEqual(len(stems), 1)
+        self.assertEqual(stems["https://a.test/x"], "a.test_x")
+
+    def test_fragments_do_not_make_a_different_page(self) -> None:
+        stems = self.stems("https://a.test/x#one", "https://a.test/x#two")
+        self.assertEqual(len(stems), 2)  # both are keys, but they share the one name: the page is the same
+        self.assertEqual(set(stems.values()), {"a.test_x"})
+
+    def test_names_are_safe_file_names(self) -> None:
+        stems = self.stems("https://a.test/a b/%C3%A9", "https://a.test/a-b/%C3%A9", "http://[::1]:80/x", "https://a.test/\u00e9")
+        for stem in stems.values():
+            self.assertRegex(stem, r"^[A-Za-z0-9._-]+$")
+
+    def test_an_address_that_cannot_be_split_still_gets_a_name(self) -> None:
+        self.assertRegex(seo_common.url_slug("http://["), r"^[A-Za-z0-9._-]+$")
 
 
 class ListFileTests(unittest.TestCase):

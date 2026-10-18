@@ -14,6 +14,7 @@ from unittest import mock
 from helpers import captured
 
 import browse  # noqa: E402
+import seo_common  # noqa: E402
 from seo_common import SeoToolError, run_cli  # noqa: E402
 
 
@@ -85,12 +86,25 @@ class LabelTests(unittest.TestCase):
     def test_labels_read_like_host_and_path(self) -> None:
         self.assertEqual(browse.shot_label("https://numaliving.us/capabilities/"), "numaliving.us_capabilities")
 
-    def test_serp_files_are_named_by_the_query(self) -> None:
-        self.assertEqual(browse.serp_label("Custom Millwork Manufacturer"), "custom-millwork-manufacturer")
-        self.assertEqual(browse.serp_label("site:millwork-usa.com"), "site-millwork-usa-com")
+    def test_serp_files_are_named_by_the_query_and_a_hash_of_it(self) -> None:
+        self.assertEqual(browse.serp_label("custom millwork manufacturer"), "custom-millwork-manufacturer-1f04d3")
+        self.assertEqual(browse.serp_label("site:millwork-usa.com"), "site-millwork-usa-com-59f6fa")
 
-    def test_serp_label_never_comes_back_empty(self) -> None:
-        self.assertTrue(browse.serp_label("???"))
+    def test_queries_that_differ_only_in_case_or_punctuation_get_different_files(self) -> None:
+        labels = {browse.serp_label(query) for query in ("Custom Millwork", "custom millwork", "custom-millwork!", "custom millwork ")}
+        self.assertEqual(len(labels), 4)
+
+    def test_non_latin_and_symbol_queries_get_distinct_names(self) -> None:
+        labels = [browse.serp_label(query) for query in ("\u6728\u5de5", "\u5bb6\u5177", "???", "!!!")]
+        self.assertEqual(len(set(labels)), 4)
+        for label in labels:
+            self.assertRegex(label, r"^[a-z0-9-]+$")
+
+    def test_long_queries_with_the_same_start_get_different_files(self) -> None:
+        self.assertNotEqual(browse.serp_label("x" * 70 + "A"), browse.serp_label("x" * 70 + "B"))
+
+    def test_the_label_is_the_same_hashed_name_serp_search_uses(self) -> None:
+        self.assertEqual(browse.serp_label("Custom Millwork"), seo_common.hashed_slug("Custom Millwork", browse.SERP_LABEL_LENGTH))
 
 
 class ParserTests(unittest.TestCase):

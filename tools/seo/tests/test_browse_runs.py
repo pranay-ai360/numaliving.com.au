@@ -211,6 +211,12 @@ class RunShotsTests(SessionFixture):
         self.assertEqual((page["label"], page["url"]), ("a.test_index", "https://a.test/"))
         self.assertEqual([view["error"] for view in page["views"]], [None, None])
 
+    def test_pages_whose_addresses_share_a_readable_name_get_different_labels(self) -> None:
+        self.shots(["https://a.test/x", "https://a.test/x/", "http://a.test/x"])
+        labels = [page["label"] for page in self.manifest()["pages"]]
+        self.assertEqual(len(set(label.lower() for label in labels)), 3)
+        self.assertEqual(labels[0], "a.test_x")
+
     def test_a_failed_view_exits_1_but_later_pages_still_run(self) -> None:
         code, seen, log = self.shots(["https://a.test/", "https://b.test/"], failing=["https://a.test/"])
         self.assertEqual(code, 1)

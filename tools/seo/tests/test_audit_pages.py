@@ -212,6 +212,23 @@ class HostileInputTests(unittest.TestCase):
         self.assertIn("Good page", out.getvalue())
         self.assertIn("bad.meta.json", err.getvalue())
 
+    def test_a_file_that_is_not_html_is_refused_and_left_untouched(self) -> None:
+        notes = self.write("notes.txt", "<html><title>my own notes</title></html>")
+        with captured() as (_, err):
+            code = run_cli(audit_pages.main, [str(notes)])
+        self.assertEqual(code, 1)
+        self.assertIn("notes.txt", err.getvalue())
+        self.assertEqual(notes.read_text(encoding="utf-8"), "<html><title>my own notes</title></html>")
+        self.assertFalse((self.folder / "notes.analysis.json").exists())
+
+    def test_htm_and_upper_case_extensions_are_html(self) -> None:
+        for name in ("page.htm", "PAGE.HTML"):
+            with self.subTest(name=name):
+                path = self.write(name, "<html><head><title>T</title></head></html>")
+                audit_pages.audit_file(path)
+                self.assertTrue(path.with_suffix(".analysis.json").is_file())
+                self.assertTrue(path.with_suffix(".txt").is_file())
+
     def test_the_table_skips_an_unreadable_analysis_file_aloud(self) -> None:
         for source in sorted(fixture_path("analysis").glob("*.analysis.json")):
             shutil.copy(source, self.folder / source.name)
