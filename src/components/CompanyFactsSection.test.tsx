@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CompanyFactsSection } from "@/components/CompanyFactsSection";
-import { companyFacts, type CompanyFacts } from "@/content/company";
+import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
+import type { CompanyFacts } from "@/content/company";
 
 const KNOWN: CompanyFacts = {
   legalName: "Numa Living FZ-LLC",
@@ -19,7 +20,7 @@ const KNOWN: CompanyFacts = {
 describe("CompanyFactsSection", () => {
   it("renders nothing while the company facts are empty, so the About page shows no gap and no placeholder", () => {
     // Arrange
-    const { container } = render(<CompanyFactsSection facts={companyFacts} />);
+    const { container } = render(<CompanyFactsSection facts={EMPTY_COMPANY_FACTS} />);
 
     // Act
     const html = container.innerHTML;
@@ -94,7 +95,7 @@ describe("CompanyFactsSection", () => {
 
   it("shows only the facts that are supplied", () => {
     // Arrange
-    render(<CompanyFactsSection facts={{ ...companyFacts, foundingYear: 2015 }} />);
+    render(<CompanyFactsSection facts={{ ...EMPTY_COMPANY_FACTS, foundingYear: 2015 }} />);
 
     // Act
     const labels = screen.getAllByRole("term").map((term) => term.textContent);

@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { EMPTY_COMPANY_FACTS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { companyFactsBlockers } from "@/content/company";
 import { legalDraftBlockers } from "@/content/legal";
 import { sampleContent, type SampleContent } from "@/content/pages";
-import { contentBlockers, sampleContentBlockers, type BlockerSource } from "@/content/readiness";
-
-const LISTED_FIGURES: readonly SampleContent[] = [
-  { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
-  { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines)" },
-];
+import { BLOCKER_SOURCES, contentBlockers, sampleContentBlockers, type BlockerSource } from "@/content/readiness";
 
 describe("sampleContentBlockers", () => {
   it("names every invented figure still listed in sampleContent, and where to replace it", () => {
@@ -49,38 +45,44 @@ describe("sampleContentBlockers", () => {
 });
 
 describe("contentBlockers", () => {
-  it("lists today's blockers: the sample figures, the company facts that are missing and the two legal drafts, in that order", () => {
+  it("reads these sources, in this order: the sample figures, the company facts and the legal drafts", () => {
     // Arrange
-    const expected = [...sampleContentBlockers(), ...companyFactsBlockers(), ...legalDraftBlockers()];
+    const expected = [sampleContentBlockers, companyFactsBlockers, legalDraftBlockers];
+
+    // Act
+    const sources = BLOCKER_SOURCES;
+
+    // Assert
+    expect(sources).toEqual(expected);
+  });
+
+  it("collects whatever its sources list right now, so clearing a real entry needs no change here", () => {
+    // Arrange
+    const expected = BLOCKER_SOURCES.flatMap((source) => source());
 
     // Act
     const blockers = contentBlockers();
 
     // Assert
     expect(blockers).toEqual(expected);
-    expect(blockers.length).toBeGreaterThan(0);
   });
 
-  it("names the two legal drafts exactly", () => {
+  it("lists one blocker for each open item of every kind, in the order of the sources", () => {
     // Arrange
-    const blockers = contentBlockers();
+    const sources: readonly BlockerSource[] = [
+      () => sampleContentBlockers(LISTED_FIGURES),
+      () => companyFactsBlockers(EMPTY_COMPANY_FACTS),
+      () => legalDraftBlockers(PENDING_LEGAL_DRAFTS),
+    ];
 
     // Act
-    const legal = blockers.filter((blocker) => blocker.startsWith("legal."));
+    const blockers = contentBlockers(sources);
 
     // Assert
-    expect(legal).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
-  });
-
-  it("names all seven company facts while none is supplied", () => {
-    // Arrange
-    const blockers = contentBlockers();
-
-    // Act
-    const facts = blockers.filter((blocker) => blocker.startsWith("company fact"));
-
-    // Assert
-    expect(facts).toHaveLength(7);
+    expect(blockers.slice(0, 2).every((blocker) => blocker.includes("sampleContent"))).toBe(true);
+    expect(blockers.slice(2, 9).every((blocker) => blocker.startsWith("company fact"))).toBe(true);
+    expect(blockers.slice(9)).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
+    expect(blockers).toHaveLength(2 + 7 + 2);
   });
 
   it("says each blocker once, in plain words", () => {

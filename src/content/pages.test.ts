@@ -19,15 +19,15 @@ function resolve(id: string): unknown {
 }
 
 describe("sampleContent", () => {
-  it("lists the figures and lists the pages still carry that are invented", () => {
+  it("names each entry after a content object that exists, as its first word", () => {
     // Arrange
-    const ids = sampleContent.map((item) => item.id);
+    const roots = Object.keys(CONTENT);
 
     // Act
-    const listed = [...ids].sort();
+    const unknown = sampleContent.filter((item) => !roots.includes(item.id.split(".")[0]));
 
     // Assert
-    expect(listed).toEqual(["delivery.regions", "factory.facts", "home.stats", "locations.destinations"]);
+    expect(unknown).toEqual([]);
   });
 
   it.each(sampleContent.map((item) => [item.id] as const))("still finds real content for %s, so a rename cannot leave a stale entry that blocks nothing", (id) => {

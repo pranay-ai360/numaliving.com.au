@@ -9,7 +9,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { isIndexable, showSampleNotice, site } from "@/config/site";
-import type { SampleContent } from "@/content/pages";
+import { EMPTY_COMPANY_FACTS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
+import { companyFactsBlockers } from "@/content/company";
+import { legalDraftBlockers } from "@/content/legal";
 import { projects } from "@/content/projects";
 import { contentBlockers, sampleContentBlockers } from "@/content/readiness";
 import type { ShowcaseProject } from "@/lib/types";
@@ -56,11 +58,16 @@ const READY_STATE: LaunchState = {
   contentBlockers: contentBlockers([]),
 };
 
-/** Invented figures, as sampleContent lists them, for the tests of the guard itself. */
-const LISTED_FIGURES: readonly SampleContent[] = [
-  { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
-  { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines)" },
-];
+/**
+ * What the content modules list while nothing is ready, for the tests of the guard itself: the real
+ * sources, fed with fixtures. The guard's own tests never read the live content (the owner clears it
+ * for real), only the first test below does, because that one is the guard.
+ */
+const OPEN_CONTENT_BLOCKERS = contentBlockers([
+  () => sampleContentBlockers(LISTED_FIGURES),
+  () => companyFactsBlockers(EMPTY_COMPANY_FACTS),
+  () => legalDraftBlockers(PENDING_LEGAL_DRAFTS),
+]);
 
 /** The words of the ribbon that showSampleNotice switches on (src/components/Chrome.tsx). */
 const SAMPLE_RIBBON_TEXT = "Preview: projects, figures and photos on this site are sample content.";
@@ -226,13 +233,14 @@ describe("launchBlockers", () => {
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
-      contentBlockers: contentBlockers(),
+      contentBlockers: OPEN_CONTENT_BLOCKERS,
     };
 
     // Act
     const blockers = launchBlockers(state);
 
     // Assert
+    expect(OPEN_CONTENT_BLOCKERS.length).toBeGreaterThan(0);
     expect(blockers).toEqual([]);
   });
 
@@ -258,7 +266,7 @@ describe("launchBlockers", () => {
 
   it("names the company facts and the legal drafts that are still open, from the one list the content modules keep", () => {
     // Arrange
-    const state: LaunchState = { ...READY_STATE, contentBlockers: contentBlockers() };
+    const state: LaunchState = { ...READY_STATE, contentBlockers: OPEN_CONTENT_BLOCKERS };
 
     // Act
     const blockers = launchBlockers(state);
@@ -267,7 +275,7 @@ describe("launchBlockers", () => {
     expect(blockers).toContain("legal.privacy needs legal review");
     expect(blockers).toContain("legal.terms needs legal review");
     expect(blockers.filter((blocker) => blocker.startsWith("company fact"))).toHaveLength(7);
-    expect(blockers).toEqual(contentBlockers());
+    expect(blockers).toEqual(OPEN_CONTENT_BLOCKERS);
   });
 
   it("takes in the blockers a module registers later, with no change to the guard", () => {
@@ -284,7 +292,7 @@ describe("launchBlockers", () => {
 
   it("tells the owner where the company facts and the legal drafts are cleared", () => {
     // Arrange
-    const blockers = launchBlockers({ ...READY_STATE, contentBlockers: contentBlockers() });
+    const blockers = launchBlockers({ ...READY_STATE, contentBlockers: OPEN_CONTENT_BLOCKERS });
 
     // Act
     const message = launchGuardMessage(blockers);

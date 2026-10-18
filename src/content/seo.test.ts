@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
-import { LEGAL_LAST_UPDATED, legalDrafts } from "@/content/legal";
+import { LEGAL_LAST_UPDATED, privacyNotice, websiteTerms } from "@/content/legal";
 import { pageRegistry, getPageSeo, projectSeo, requirePageSeo } from "@/content/seo";
 import { projects } from "@/content/projects";
 import { canonicalUrl } from "@/lib/seo/canonical";
@@ -16,8 +16,8 @@ const NOINDEX_DESCRIPTION_RANGE = { min: 50, max: 160 } as const;
 const LOGIN_PATH = "/login";
 
 const projectPaths = projects.map((project) => `/projects/${project.slug}`);
-/** The privacy notice and the website terms: linked from the footer, not the main menu. */
-const legalPaths = legalDrafts.map((draft) => draft.page);
+/** The privacy notice and the website terms: linked from the footer, not the main menu. Taken from the pages themselves, not from `legalDrafts`, which the owner empties once a lawyer has reviewed them. */
+const legalPaths = [privacyNotice, websiteTerms].map((legal) => legal.path);
 const menuPaths = site.nav.map((item) => item.href);
 
 function descriptionRange(entry: PageSeo): { min: number; max: number } {

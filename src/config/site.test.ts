@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { site } from "@/config/site";
+import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
 import { companyFacts } from "@/content/company";
 
 describe("site contact details", () => {
@@ -43,13 +44,22 @@ describe("site address and language", () => {
 });
 
 describe("site identity facts that are not known yet", () => {
-  it("leaves the legal name and the founding year empty until Numa confirms them", () => {
-    // Arrange / Act
-    const { legalName, foundingYear } = site;
+  afterEach(() => {
+    vi.doUnmock("@/content/company");
+    vi.resetModules();
+  });
+
+  it("leaves the legal name and the founding year empty while the company facts hold neither", async () => {
+    // Arrange
+    vi.resetModules();
+    vi.doMock("@/content/company", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/content/company")>()), companyFacts: EMPTY_COMPANY_FACTS }));
+
+    // Act
+    const { site: freshSite } = await import("@/config/site");
 
     // Assert
-    expect(legalName).toBeNull();
-    expect(foundingYear).toBeNull();
+    expect(freshSite.legalName).toBeNull();
+    expect(freshSite.foundingYear).toBeNull();
   });
 
   it("takes both from the company facts, the one place the owner's confirmed facts are kept", () => {

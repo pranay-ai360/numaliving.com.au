@@ -21,7 +21,7 @@ export function sampleContentBlockers(items: readonly SampleContent[] = sampleCo
 }
 
 /** Every part of the content that must be real before launch. Add a module's list here. */
-const BLOCKER_SOURCES: readonly BlockerSource[] = [sampleContentBlockers, companyFactsBlockers, legalDraftBlockers];
+export const BLOCKER_SOURCES: readonly BlockerSource[] = [sampleContentBlockers, companyFactsBlockers, legalDraftBlockers];
 
 /** Everything on the content side that still blocks indexing, from every source in order; empty when all of it is ready. */
 export function contentBlockers(sources: readonly BlockerSource[] = BLOCKER_SOURCES): readonly string[] {

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_COMPANY_FACTS } from "@/content/blockerFixtures";
 import { companyFacts, companyFactsBlockers, publishableFacts, type CompanyFacts } from "@/content/company";
 
 /** A company whose every fact is supplied, for the tests of the blockers themselves. */
@@ -13,22 +14,36 @@ const KNOWN: CompanyFacts = {
 };
 
 describe("companyFacts", () => {
-  it("holds no fact until the owner supplies one: every value is empty", () => {
+  it("has a rule for every fact it holds, so no fact can be left out of the launch blockers", () => {
     // Arrange
-    const facts = companyFacts;
+    const facts = Object.keys(companyFacts);
 
     // Act
-    const supplied = Object.entries(facts).filter(([, value]) => (Array.isArray(value) ? value.length > 0 : value !== null));
+    const named = companyFactsBlockers(EMPTY_COMPANY_FACTS).map((blocker) => blocker.match(/company fact "(\w+)"/)?.[1]);
 
     // Assert
-    expect(supplied).toEqual([]);
+    expect([...named].sort()).toEqual([...facts].sort());
+  });
+
+  it("never holds a value the rules reject: a fact that is listed as missing is empty, not set to a zero or a broken link", () => {
+    // Arrange
+    const missing = companyFactsBlockers().map((blocker) => blocker.match(/company fact "(\w+)"/)?.[1] as keyof CompanyFacts);
+
+    // Act
+    const setButUnusable = missing.filter((field) => {
+      const value = companyFacts[field];
+      return Array.isArray(value) ? value.length > 0 : value !== null;
+    });
+
+    // Assert
+    expect(setButUnusable).toEqual([]);
   });
 });
 
 describe("companyFactsBlockers", () => {
   it("names each missing fact in plain words, with the file and the field to fill in", () => {
     // Arrange
-    const facts = companyFacts;
+    const facts = EMPTY_COMPANY_FACTS;
 
     // Act
     const blockers = companyFactsBlockers(facts);
@@ -131,7 +146,7 @@ describe("companyFactsBlockers", () => {
 describe("publishableFacts", () => {
   it("has nothing to publish while the company facts are empty", () => {
     // Arrange
-    const facts = companyFacts;
+    const facts = EMPTY_COMPANY_FACTS;
 
     // Act
     const published = publishableFacts(facts);
@@ -223,6 +238,7 @@ describe("the structured data", () => {
   it("leaves both out while the company facts are empty", async () => {
     // Arrange
     vi.resetModules();
+    vi.doMock("@/content/company", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/content/company")>()), companyFacts: EMPTY_COMPANY_FACTS }));
     const { organizationJsonLd } = await import("@/lib/seo/jsonld");
 
     // Act

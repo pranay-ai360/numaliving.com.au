@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
+import { PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { LEGAL_LAST_UPDATED, legalDraftBlockers, legalDrafts, privacyNotice, websiteTerms, type LegalDocument, type LegalDraft } from "@/content/legal";
 import { findUkTerms } from "@/lib/vocabulary";
 
@@ -12,16 +13,48 @@ function textOf(legal: LegalDocument): string {
 }
 
 describe("legalDrafts", () => {
-  it("lists the privacy notice and the website terms as drafts that still need a lawyer", () => {
+  it("names a blocker for each draft that still needs a lawyer", () => {
     // Arrange
-    const ids = legalDrafts.map((draft) => draft.id);
+    const drafts = PENDING_LEGAL_DRAFTS;
+
+    // Act
+    const blockers = legalDraftBlockers(drafts);
+
+    // Assert
+    expect(blockers).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
+  });
+
+  it("reads the live list by default, whatever is left in it once the owner has cleared some entries", () => {
+    // Arrange
+    const expected = legalDraftBlockers(legalDrafts);
 
     // Act
     const blockers = legalDraftBlockers();
 
     // Assert
-    expect(ids).toEqual(["legal.privacy", "legal.terms"]);
-    expect(blockers).toEqual(["legal.privacy needs legal review", "legal.terms needs legal review"]);
+    expect(blockers).toEqual(expected);
+  });
+
+  it("only ever lists a draft of one of this module's two pages, under that page's name", () => {
+    // Arrange
+    const documents = [privacyNotice, websiteTerms];
+
+    // Act
+    const strays = legalDrafts.filter((draft) => !documents.some((legal) => draft.page === legal.path && draft.id.startsWith(legal.id)));
+
+    // Assert
+    expect(strays).toEqual([]);
+  });
+
+  it("gives every draft an id of its own", () => {
+    // Arrange
+    const ids = legalDrafts.map((draft) => draft.id);
+
+    // Act
+    const repeated = ids.filter((id, index) => ids.indexOf(id) !== index);
+
+    // Assert
+    expect(repeated).toEqual([]);
   });
 
   it("lists nothing once every draft has been reviewed and its entry deleted", () => {
@@ -65,17 +98,15 @@ describe("LEGAL_LAST_UPDATED", () => {
 describe("the privacy notice", () => {
   const text = textOf(privacyNotice);
 
-  it("is the draft for /privacy, and the launch guard knows it by the same name", () => {
+  it("is the page /privacy, and the launch guard names its draft legal.privacy", () => {
     // Arrange
-    const draft = legalDrafts.find((candidate) => candidate.page === privacyNotice.path);
+    const { path, id } = privacyNotice;
 
     // Act
-    const id = draft?.id;
+    const names = [path, id];
 
     // Assert
-    expect(privacyNotice.path).toBe("/privacy");
-    expect(id).toBe(privacyNotice.id);
-    expect(privacyNotice.id).toBe("legal.privacy");
+    expect(names).toEqual(["/privacy", "legal.privacy"]);
   });
 
   it.each([
@@ -123,17 +154,15 @@ describe("the privacy notice", () => {
 describe("the website terms", () => {
   const text = textOf(websiteTerms);
 
-  it("is the draft for /terms, and the launch guard knows it by the same name", () => {
+  it("is the page /terms, and the launch guard names its draft legal.terms", () => {
     // Arrange
-    const draft = legalDrafts.find((candidate) => candidate.page === websiteTerms.path);
+    const { path, id } = websiteTerms;
 
     // Act
-    const id = draft?.id;
+    const names = [path, id];
 
     // Assert
-    expect(websiteTerms.path).toBe("/terms");
-    expect(id).toBe(websiteTerms.id);
-    expect(websiteTerms.id).toBe("legal.terms");
+    expect(names).toEqual(["/terms", "legal.terms"]);
   });
 
   it.each([

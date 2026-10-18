@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalPage } from "@/components/LegalPage";
+import { PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { LEGAL_LAST_UPDATED, legalDrafts, privacyNotice, websiteTerms } from "@/content/legal";
 
 const DRAFT_NOTICE = "Draft: a lawyer has not reviewed this page yet.";
@@ -48,7 +49,7 @@ describe("LegalPage", () => {
 
   it("says it is a draft while the page is still listed as waiting for a lawyer", () => {
     // Arrange
-    render(<LegalPage legal={privacyNotice} drafts={legalDrafts} />);
+    render(<LegalPage legal={privacyNotice} drafts={PENDING_LEGAL_DRAFTS} />);
 
     // Act
     const notice = screen.getByText(DRAFT_NOTICE);
@@ -59,7 +60,7 @@ describe("LegalPage", () => {
 
   it("says nothing about a draft once the page's entry is deleted from the list", () => {
     // Arrange
-    render(<LegalPage legal={privacyNotice} drafts={legalDrafts.filter((draft) => draft.id !== privacyNotice.id)} />);
+    render(<LegalPage legal={privacyNotice} drafts={PENDING_LEGAL_DRAFTS.filter((draft) => draft.id !== privacyNotice.id)} />);
 
     // Act
     const notice = screen.queryByText(DRAFT_NOTICE);
@@ -70,13 +71,24 @@ describe("LegalPage", () => {
 
   it("keeps the draft notice on the page that is still waiting when only the other one has been reviewed", () => {
     // Arrange
-    render(<LegalPage legal={websiteTerms} drafts={legalDrafts.filter((draft) => draft.id !== privacyNotice.id)} />);
+    render(<LegalPage legal={websiteTerms} drafts={PENDING_LEGAL_DRAFTS.filter((draft) => draft.id !== privacyNotice.id)} />);
 
     // Act
     const notice = screen.queryByText(DRAFT_NOTICE);
 
     // Assert
     expect(notice).toBeInTheDocument();
+  });
+
+  it("follows the live list of drafts when it is given none: a notice while the page's entry is listed, none once it is deleted", () => {
+    // Arrange
+    render(<LegalPage legal={privacyNotice} />);
+
+    // Act
+    const hasNotice = screen.queryByText(DRAFT_NOTICE) !== null;
+
+    // Assert
+    expect(hasNotice).toBe(legalDrafts.some((draft) => draft.id === privacyNotice.id));
   });
 
   it("shows its place in the site as a breadcrumb trail ending at the page", () => {
