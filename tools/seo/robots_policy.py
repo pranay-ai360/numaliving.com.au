@@ -12,7 +12,7 @@ from typing import Optional
 
 from http_reply import RawReply
 from robots_rules import RobotsRules, UnusableRobots, parse_robots, request_target
-from seo_common import safe_urlsplit
+from seo_common import format_seconds, safe_urlsplit
 
 ROBOTS_PATH = "/robots.txt"
 MAX_CRAWL_DELAY_SECONDS = 60.0
@@ -42,10 +42,6 @@ class RobotsPolicy:
         return ""
 
 
-def _seconds(value: float) -> str:
-    return f"{value:,.1f}".rstrip("0").rstrip(".")
-
-
 def parse_policy(body: bytes) -> RobotsPolicy:
     """The policy for a robots.txt that was read successfully."""
     try:
@@ -54,8 +50,8 @@ def parse_policy(body: bytes) -> RobotsPolicy:
         return RobotsPolicy(blocked=str(error))
     if rules.crawl_delay > MAX_CRAWL_DELAY_SECONDS:
         return RobotsPolicy(
-            blocked=f"robots.txt asks for a Crawl-delay of {_seconds(rules.crawl_delay)} s, longer than the "
-            f"{_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
+            blocked=f"robots.txt asks for a Crawl-delay of {format_seconds(rules.crawl_delay)} s, longer than the "
+            f"{format_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
         )
     return RobotsPolicy(rules=rules, crawl_delay=rules.crawl_delay)
 

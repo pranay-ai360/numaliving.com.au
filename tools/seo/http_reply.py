@@ -5,8 +5,11 @@ a limit (a gzip bomb is cut at the limit, not expanded). Standard library only.
 from __future__ import annotations
 
 import http.client
+import re
 import zlib
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
 
@@ -20,6 +23,9 @@ KEPT_HEADERS = (
     "last-modified", "etag", "location", "retry-after",
 )
 GZIP_WBITS = zlib.MAX_WBITS | 16
+MAX_RETRY_AFTER_SECONDS = 31_536_000.0  # a year: what a number too long to read is taken to mean
+MAX_RETRY_AFTER_DIGITS = 15
+SECONDS = re.compile(r"\d+", re.ASCII)
 Headers = Tuple[Tuple[str, str], ...]
 
 
@@ -99,3 +105,18 @@ def read_reply(response: Any, status: int, max_bytes: int = MAX_BYTES) -> RawRep
     except (OSError, http.client.HTTPException, ValueError) as error:
         return RawReply(status, headers, error=f"{type(error).__name__}: {error}")
     return RawReply(status, headers, body=body, truncated=truncated)
+
+
+def retry_after_seconds(value: str, now: Optional[datetime] = None) -> Optional[float]:
+    """How long a server asked clients to wait: ``Retry-After: 120`` or an HTTP date. None when not understood."""
+    text = value.strip()
+    if SECONDS.fullmatch(text):
+        too_long = len(text) > MAX_RETRY_AFTER_DIGITS
+        return MAX_RETRY_AFTER_SECONDS if too_long else min(float(text), MAX_RETRY_AFTER_SECONDS)
+    try:
+        when = parsedate_to_datetime(text)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
+    when = when if when.tzinfo is not None else when.replace(tzinfo=timezone.utc)
+    seconds = (when - (now or datetime.now(timezone.utc))).total_seconds()
+    return max(0.0, min(seconds, MAX_RETRY_AFTER_SECONDS))

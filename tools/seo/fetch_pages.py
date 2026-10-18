@@ -28,12 +28,13 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from email.message import Message
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple
 from urllib.parse import urlsplit
 
+from fetch_result import FetchResult, Journey, RedirectHop, meta_record, result_line, save_result  # noqa: F401
 from http_reply import (  # noqa: F401  (re-exported: the names other tools and tests import from here)
     KEPT_HEADERS,
     MAX_BYTES,
@@ -44,6 +45,7 @@ from http_reply import (  # noqa: F401  (re-exported: the names other tools and 
     header_text,
     read_reply,
     redirect_target,
+    retry_after_seconds,
 )
 from robots_policy import (  # noqa: F401
     KEEP_OUT_STATUSES,
@@ -58,18 +60,14 @@ from seo_common import (
     ascii_url,
     assign_stems,
     emit,
+    format_seconds,
     log,
     non_negative_float,
-    printable,
     read_list_file,
-    remove_file,
     require_http_url,
     run_cli,
     safe_urlsplit,
-    url_slug,
     without_fragment,
-    write_bytes_file,
-    write_json_file,
 )
 from url_guard import Resolver, non_public_reason, resolve_addresses
 
@@ -86,6 +84,8 @@ REQUEST_HEADERS = {
 TIMEOUT_SECONDS = 30
 MAX_REDIRECTS = 10
 DEFAULT_DELAY_SECONDS = 1.5
+BACKOFF_STATUSES = (429, 503)
+DEFAULT_BACKOFF_SECONDS = 10.0
 _parse_robots = parse_policy  # the old private names, kept for scripts that import them
 _read_reply = read_reply
 
@@ -96,56 +96,13 @@ class Opener(Protocol):
     def open(self, request: urllib.request.Request, /, *, timeout: float) -> Any: ...
 
 
-@dataclass(frozen=True)
-class RedirectHop:
-    status: int
-    source: str
-    target: str
-
-
-@dataclass(frozen=True)
-class FetchResult:
-    """The outcome for one requested URL, after robots.txt and any redirects."""
-
-    requested: str
-    final_url: str
-    status: Optional[int] = None
-    error: str = ""
-    skipped: str = ""
-    headers: Headers = ()
-    redirects: Tuple[RedirectHop, ...] = ()
-    body: bytes = b""
-    elapsed_ms: int = 0
-    truncated: bool = False
+def _netloc(url: str) -> str:
+    return urlsplit(url).netloc.lower()
 
 
 def _hostname(url: str) -> str:
     parts = safe_urlsplit(url)
     return (parts.hostname or "") if parts is not None else ""
-
-
-def build_result(
-    requested: str,
-    final_url: str,
-    hops: Sequence[RedirectHop],
-    reply: Optional[RawReply],
-    elapsed_ms: int,
-    error: str = "",
-    skipped: str = "",
-) -> FetchResult:
-    status = reply.status if reply else (hops[-1].status if hops else None)
-    return FetchResult(
-        requested=requested,
-        final_url=final_url,
-        status=status,
-        error=error or (reply.error if reply else ""),
-        skipped=skipped,
-        headers=reply.headers if reply else (),
-        redirects=tuple(hops),
-        body=reply.body if reply else b"",
-        elapsed_ms=elapsed_ms,
-        truncated=reply.truncated if reply else False,
-    )
 
 
 class PoliteFetcher:
@@ -170,22 +127,23 @@ class PoliteFetcher:
         self._sleep = sleep
         self._policies: Dict[str, RobotsPolicy] = {}  # origin -> what its robots.txt allows
         self._last_end: Dict[str, float] = {}  # host -> when the last request to it finished
+        self._backoff_until: Dict[str, float] = {}  # host -> not before this time (a 429 or 503 asked for a wait)
+        self._gave_up: Dict[str, str] = {}  # host -> why no more requests go there
 
     def fetch(self, url: str) -> FetchResult:
         requested = require_http_url(url)
-        current, hops, elapsed_ms = requested, [], 0
+        journey = Journey(requested, requested)
         while True:
-            refusal = self._policy(current).refusal(current)
+            refusal = self._gave_up.get(_netloc(journey.current)) or self._policy(journey.current).refusal(journey.current)
             if refusal:
-                return build_result(requested, current, hops, None, elapsed_ms, skipped=refusal)
-            reply = self._exchange(current)
-            elapsed_ms += reply.elapsed_ms
-            target, problem = self._next_hop(requested, current, reply)
-            if not target or len(hops) >= MAX_REDIRECTS:
+                return journey.result(skipped=refusal)
+            reply = self._exchange(journey.current)
+            journey = journey.after(reply)
+            target, problem = self._next_hop(requested, journey.current, reply)
+            if not target or len(journey.hops) >= MAX_REDIRECTS:
                 too_many = f"too many redirects (more than {MAX_REDIRECTS})" if target else ""
-                return build_result(requested, current, hops, reply, elapsed_ms, error=problem or too_many)
-            hops.append(RedirectHop(reply.status or 0, current, target))
-            current = target
+                return journey.result(reply, error=problem or too_many)
+            journey = journey.moved_to(target, reply.status)
 
     def _policy(self, url: str) -> RobotsPolicy:
         parts = urlsplit(url)
@@ -229,13 +187,28 @@ class PoliteFetcher:
             reply = self._open(url)
         finally:
             self._last_end[host] = self._clock()
+        self._note_rate_limit(host, reply)
         return replace(reply, elapsed_ms=round((self._last_end[host] - started) * 1000))
+
+    def _note_rate_limit(self, host: str, reply: RawReply) -> None:
+        """After a 429 or 503, wait as long as Retry-After says (10 s without it); a longer ask ends the visit."""
+        if reply.status not in BACKOFF_STATUSES:
+            return
+        asked = retry_after_seconds(dict(reply.headers).get("retry-after", ""))
+        wait = DEFAULT_BACKOFF_SECONDS if asked is None else asked
+        if wait > MAX_CRAWL_DELAY_SECONDS:
+            self._gave_up[host] = (
+                f"{host} answered HTTP {reply.status} and asked clients to wait {format_seconds(wait)} s (Retry-After), "
+                f"longer than the {format_seconds(MAX_CRAWL_DELAY_SECONDS)} s this tool will wait"
+            )
+        else:
+            self._backoff_until[host] = max(self._backoff_until.get(host, 0.0), self._clock() + wait)
 
     def _wait_for_turn(self, host: str) -> None:
         last_end = self._last_end.get(host)
         if last_end is None:
             return
-        pause = last_end + self._gap(host) - self._clock()
+        pause = max(last_end + self._gap(host), self._backoff_until.get(host, 0.0)) - self._clock()
         if pause > 0:
             self._sleep(pause)
 
@@ -288,50 +261,6 @@ def default_opener() -> Opener:
     ):
         opener.add_handler(handler)
     return opener
-
-
-def meta_record(result: FetchResult) -> Dict[str, Any]:
-    """The .meta.json content: the keys of the research prototype plus skipped and truncated."""
-    return {
-        "requested": result.requested,
-        "final_url": result.final_url,
-        "status": result.status,
-        "error": result.error or None,
-        "skipped": result.skipped or None,
-        "headers": dict(result.headers),
-        "redirects": [{"status": hop.status, "from": hop.source, "to": hop.target} for hop in result.redirects],
-        "bytes": len(result.body),
-        "elapsed_ms": result.elapsed_ms,
-        "truncated": result.truncated,
-    }
-
-
-def save_result(out_dir: Path, result: FetchResult, stem: Optional[str] = None) -> str:
-    """Write the page (when a real answer arrived) and its meta file; returns the file name stem.
-
-    ``stem`` is the name from assign_stems; without it the plain name for the address is used. When nothing
-    arrived, a page saved by an earlier run is removed so that it cannot sit beside a record saying it was skipped.
-    """
-    slug = stem or url_slug(result.requested)
-    page = out_dir / f"{slug}.html"
-    if result.status is not None and not (result.skipped or result.error):
-        write_bytes_file(page, result.body)
-    else:
-        remove_file(page)
-    write_json_file(out_dir / f"{slug}.meta.json", meta_record(result))
-    return slug
-
-
-def result_line(index: int, total: int, result: FetchResult) -> str:
-    """One line per URL for the terminal; what servers and redirects said is shown in its safe form."""
-    prefix = f"[{index}/{total}]"
-    if result.skipped:
-        return printable(f"{prefix} skipped ({result.skipped}) {result.requested}")
-    if result.error:
-        return printable(f"{prefix} ERROR {result.error} {result.requested}")
-    hops = ">".join(str(hop.status) for hop in result.redirects) or "-"
-    size = f"{len(result.body) / 1024:.1f} KB"
-    return printable(f"{prefix} {result.status} hops:{hops} {size} {result.requested} -> {result.final_url}")
 
 
 def collect_urls(urls: Sequence[str], urls_file: Optional[Path]) -> Tuple[str, ...]:

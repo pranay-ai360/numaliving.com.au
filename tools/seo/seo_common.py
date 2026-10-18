@@ -69,6 +69,11 @@ def log(message: str) -> None:
     print(f"[seo] {printable(message)}", file=sys.stderr, flush=True)
 
 
+def format_seconds(value: float) -> str:
+    """61 -> "61", 2.5 -> "2.5", 31536000 -> "31,536,000": a duration for a message."""
+    return f"{value:,.1f}".rstrip("0").rstrip(".")
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
