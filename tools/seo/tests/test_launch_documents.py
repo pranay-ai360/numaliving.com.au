@@ -343,7 +343,7 @@ class CompletenessTests(unittest.TestCase):
 
     def test_an_empty_live_sitemap_lists_none_of_the_pages(self) -> None:
         results = with_sitemap(live_sitemap())
-        self.assertEqual(sorted(failures_of(results["sitemap-complete"])), [HOME, ABOUT, PROJECTS, CONTACT])
+        self.assertEqual(sorted(failures_of(results["sitemap-complete"])), sorted([HOME, ABOUT, PROJECTS, CONTACT]))
 
     def test_a_noindex_page_need_not_be_listed(self) -> None:
         about = swap(launch_text("about.html"), 'content="index, follow"', 'content="noindex, follow"')
