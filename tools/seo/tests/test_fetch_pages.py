@@ -11,11 +11,13 @@ import socket
 import tempfile
 import unittest
 import urllib.error
+import urllib.request
 import zlib
 from pathlib import Path
 from unittest import mock
 
 from helpers import FakeClock, FakeOpener, Reply, captured
+from loopback import LoopbackServer, Page, free_port
 
 import fetch_pages  # noqa: E402
 from fetch_pages import FetchResult, PoliteFetcher, RedirectHop  # noqa: E402
@@ -415,6 +417,134 @@ class FetchTests(unittest.TestCase):
     def test_a_missing_robots_txt_allows_everything(self) -> None:
         fetcher, _, _ = make_fetcher({ROBOTS: Reply(404), PAGE: Reply(200, HTML)})
         self.assertEqual(fetcher.fetch(PAGE).status, 200)
+
+
+ROBOTS_BLOCKING_PRIVATE = b"User-agent: *\nDisallow: /private/\n"
+
+
+class RealOpenerTests(unittest.TestCase):
+    """The real urllib opener against a loopback server: redirects, headers, gzip, error bodies and schemes.
+
+    FakeOpener replaces urllib in the other tests, so without these a change such as building the opener with
+    plain build_opener() (which follows redirects by itself and skips every per-hop robots.txt check) would pass.
+    """
+
+    def setUp(self) -> None:
+        proxies = mock.patch("urllib.request.getproxies", return_value={})  # never send loopback traffic to a proxy
+        proxies.start()
+        self.addCleanup(proxies.stop)
+
+    def serve(self, routes):
+        server = LoopbackServer(routes)
+        server.__enter__()
+        self.addCleanup(server.__exit__, None, None, None)
+        return server
+
+    def fetcher(self) -> PoliteFetcher:
+        return PoliteFetcher(fetch_pages.default_opener(), delay=0)
+
+    def test_status_headers_and_body_arrive(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/p": Page(200, HTML, [("Content-Type", "text/html"), ("Server", "loop")])})
+        result = self.fetcher().fetch(server.url("/p"))
+        self.assertEqual((result.status, result.body, result.error), (200, HTML, ""))
+        self.assertEqual(dict(result.headers), {"content-type": "text/html", "server": "loop"})
+
+    def test_repeated_response_headers_are_all_kept(self) -> None:
+        page = Page(200, HTML, [
+            ("Content-Type", "text/html"),
+            ("X-Robots-Tag", "all"), ("X-Robots-Tag", "googlebot: noindex"),
+            ("Link", "</a.css>; rel=preload"), ("Link", "<https://x.test/>; rel=canonical"),
+        ])
+        server = self.serve({"/robots.txt": Page(404), "/p": page})
+        headers = dict(self.fetcher().fetch(server.url("/p")).headers)
+        self.assertEqual(headers["x-robots-tag"], "all, googlebot: noindex")
+        self.assertEqual(headers["link"], "</a.css>; rel=preload, <https://x.test/>; rel=canonical")
+
+    def test_a_redirect_into_a_disallowed_path_is_stopped_before_it_is_requested(self) -> None:
+        routes = {
+            "/robots.txt": Page(200, ROBOTS_BLOCKING_PRIVATE),
+            "/start": Page(302, b"", [("Location", "/private/secret")]),
+            "/private/secret": Page(200, b"SECRET"),
+        }
+        server = self.serve(routes)
+        result = self.fetcher().fetch(server.url("/start"))
+        self.assertIn("robots.txt", result.skipped)
+        self.assertEqual(result.redirects[0].target, server.url("/private/secret"))
+        self.assertNotIn("/private/secret", server.paths)
+
+    def test_every_hop_of_a_redirect_chain_is_requested_and_recorded(self) -> None:
+        routes = {
+            "/robots.txt": Page(404),
+            "/a": Page(301, b"", [("Location", "/b")]),
+            "/b": Page(307, b"", [("Location", "/c?x=1")]),
+            "/c?x=1": Page(200, HTML),
+        }
+        server = self.serve(routes)
+        result = self.fetcher().fetch(server.url("/a"))
+        self.assertEqual(result.status, 200)
+        self.assertEqual([hop.status for hop in result.redirects], [301, 307])
+        self.assertEqual(result.final_url, server.url("/c?x=1"))
+        self.assertEqual(server.paths, ["/robots.txt", "/a", "/b", "/c?x=1"])
+
+    def test_a_redirect_to_another_scheme_is_refused(self) -> None:
+        for location in ("ftp://127.0.0.1/x", "file:///etc/hosts", "data:text/plain,hi", "javascript:alert(1)"):
+            with self.subTest(location=location):
+                server = self.serve({"/robots.txt": Page(404), "/go": Page(302, b"", [("Location", location)])})
+                result = self.fetcher().fetch(server.url("/go"))
+                self.assertIn("refused", result.error)
+                self.assertEqual(result.status, 302)
+
+    def test_a_redirect_loop_stops_after_ten_hops(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/loop": Page(302, b"", [("Location", "/loop")])})
+        result = self.fetcher().fetch(server.url("/loop"))
+        self.assertIn("too many redirects", result.error)
+        self.assertEqual(server.count("/loop"), fetch_pages.MAX_REDIRECTS + 1)
+
+    def test_gzip_and_deflate_bodies_are_decoded(self) -> None:
+        routes = {
+            "/robots.txt": Page(404),
+            "/gz": Page(200, gzip.compress(HTML), [("Content-Encoding", "gzip")]),
+            "/df": Page(200, zlib.compress(HTML), [("Content-Encoding", "deflate")]),
+        }
+        server = self.serve(routes)
+        self.assertEqual(self.fetcher().fetch(server.url("/gz")).body, HTML)
+        self.assertEqual(self.fetcher().fetch(server.url("/df")).body, HTML)
+
+    def test_a_404_page_keeps_its_body_and_headers(self) -> None:
+        page = Page(404, b"custom not found page", [("Content-Type", "text/html"), ("X-Robots-Tag", "noindex")])
+        server = self.serve({"/robots.txt": Page(404), "/gone": page})
+        result = self.fetcher().fetch(server.url("/gone"))
+        self.assertEqual((result.status, result.body, result.error), (404, b"custom not found page", ""))
+        self.assertEqual(dict(result.headers)["x-robots-tag"], "noindex")
+
+    def test_an_oversized_body_is_cut_and_marked(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/big": Page(200, b"z" * 500)})
+        with mock.patch.object(fetch_pages, "MAX_BYTES", 100):
+            result = self.fetcher().fetch(server.url("/big"))
+        self.assertEqual((len(result.body), result.truncated), (100, True))
+
+    def test_the_request_carries_the_fixed_headers_and_nothing_else_of_ours(self) -> None:
+        server = self.serve({"/robots.txt": Page(404), "/p": Page(200, HTML)})
+        self.fetcher().fetch(server.url("/p"))
+        sent = next(item.headers for item in server.seen if item.path == "/p")
+        self.assertEqual(sent["user-agent"], fetch_pages.USER_AGENT)
+        self.assertEqual(sent["accept-encoding"], "gzip, deflate")
+        self.assertEqual(sent["accept-language"], "en-US,en;q=0.9")
+        self.assertNotIn("cookie", sent)
+        self.assertNotIn("authorization", sent)
+
+    def test_a_server_that_is_not_there_is_recorded_not_raised(self) -> None:
+        result = self.fetcher().fetch(f"http://127.0.0.1:{free_port()}/page")
+        self.assertIn("could not be read", result.skipped)  # robots.txt is the first thing asked for
+        self.assertIsNone(result.status)
+
+    def test_the_opener_only_speaks_http_and_https(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            local = Path(folder) / "secret.txt"
+            local.write_text("local file", encoding="utf-8")
+            for url in (local.as_uri(), "ftp://127.0.0.1/x", "data:text/plain,hello"):
+                with self.subTest(url=url[:20]), self.assertRaises(urllib.error.URLError):
+                    fetch_pages.default_opener().open(urllib.request.Request(url), timeout=2)
 
 
 HOSTILE_LOCATIONS = (
