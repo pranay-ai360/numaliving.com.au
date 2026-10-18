@@ -1,0 +1,4 @@
+# Output of the SEO tools (saved pages, SERP files, screenshots): regenerate locally, never commit
+data/
+# Python bytecode from running the tests
+__pycache__/
