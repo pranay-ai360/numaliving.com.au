@@ -29,8 +29,8 @@ export default function ContactPage() {
                 <li>We review your scope within two business days.</li>
                 <li>We will get in touch with you to understand your project better.</li>
                 <li>We provide you with a proposal.</li>
-                <li>Once agreed, your team gets access to the client portal.</li>
-                <li>Progress is updated in the portal until final delivery.</li>
+                <li>Once agreed, we start your project.</li>
+                <li>The client portal, which opens soon, will track progress until final delivery.</li>
               </ol>
             </div>
           </aside>

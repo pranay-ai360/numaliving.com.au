@@ -79,10 +79,10 @@ export default function HomePage() {
         <Container className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="eyebrow">How we work</p>
-            <h2 className="display mt-4 text-2xl sm:text-3xl">Every Approval, Online</h2>
+            <h2 className="display mt-4 text-2xl sm:text-3xl">A Client Portal, Opening Soon</h2>
             <p className="mt-6 max-w-lg leading-relaxed text-white/70">
-              Clients, architects and contractors follow their project in the Numa client portal: drawings, shop drawing
-              approvals, RFIs, samples and production status in one place.
+              Clients, architects and contractors will follow their project in the Numa client portal: drawings, shop drawing
+              approvals, RFIs, samples and production status in one place. It opens soon.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/process">Our Process</ButtonLink>

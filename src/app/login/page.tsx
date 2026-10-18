@@ -16,8 +16,8 @@ export default function LoginPage() {
           <div className="bg-paper p-8 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-10">
             <div className="text-center">
               <Wordmark />
-              <h1 className="display mt-8 text-lg">Client Portal</h1>
-              <p className="mt-2 text-sm text-ink-muted">Drawings, approvals, RFIs and production status for your project.</p>
+              <h1 className="display mt-8 text-lg">Client Login</h1>
+              <p className="mt-2 text-sm text-ink-muted">The client portal will hold the drawings, approvals, RFIs and production status for your project.</p>
             </div>
             <div className="mt-8">
               <LoginForm />

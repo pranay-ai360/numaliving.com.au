@@ -67,7 +67,7 @@ export const about = {
   values: [
     { name: "Craft", text: "Bookmatched veneers, hand-finished lacquer and joints you will never see." },
     { name: "Precision", text: "CNC-driven production from approved shop drawings, checked at every stage." },
-    { name: "Transparency", text: "Every client sees their drawings, approvals and production status online." },
+    { name: "Transparency", text: "Clients will see their drawings, approvals and production status online once the client portal opens." },
     { name: "Reach", text: "Export-packed, shipped and installed wherever the project is." },
   ],
 };
@@ -131,7 +131,7 @@ export const factory = {
  */
 export const process = {
   title: "How We Work",
-  lead: "A clear path from first conversation to handover. Once a project starts, every step is tracked in your client portal.",
+  lead: "A clear path from first conversation to handover. The client portal, which opens soon, will track every step.",
   steps: [
     { phase: "Brief", icon: "inquiry", name: "Inquiry & Bid", text: "Send drawings, a quantity takeoff or even a scanned sketch (PDF). We review scope and return a priced proposal." },
     { phase: "Brief", icon: "responsibilities", name: "Responsibilities", text: "At kick-off we agree who on your team uploads drawings, approves samples and signs off quotes." },
@@ -139,7 +139,7 @@ export const process = {
     { phase: "Approve", icon: "samples", name: "Samples & Mock-ups", text: "Finishes, veneers and hardware are sampled and approved before production." },
     { phase: "Make", icon: "production", name: "Production", text: "Items move through machining, assembly and finishing, with photos at each stage." },
     { phase: "Make", icon: "quality", name: "Quality Control", text: "Every piece is checked and dry-fitted against approved drawings." },
-    { phase: "Deliver", icon: "shipping", name: "Packing & Shipping", text: "Export-crated and shipped, with container and tracking details shared online." },
+    { phase: "Deliver", icon: "shipping", name: "Packing & Shipping", text: "Export-crated and shipped, with container and tracking details shared with your team." },
     { phase: "Deliver", icon: "handover", name: "Installation & Handover", text: "We provide 24/7 support to your local install team until installation is complete." },
   ],
 };
@@ -156,7 +156,7 @@ export const delivery = {
   ],
   points: [
     { name: "Export packing", text: "Moisture-protected, crated and labelled by room and install sequence." },
-    { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared online." },
+    { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared with you." },
     { name: "Installation", text: "Our own installers, or supervision of your local team, wherever the site is." },
     { name: "After care", text: "Spare parts, touch-up kits and a warranty period on every project." },
   ],
