@@ -244,6 +244,30 @@ class PoliteFetcherSettingsTests(unittest.TestCase):
         self.assertEqual((settings["delay"], settings["max_bytes"]), (4.0, sitemap_report.MAX_SITEMAP_BYTES))
 
 
+class DamagedInputTests(unittest.TestCase):
+    def test_a_plain_file_over_the_size_limit_is_refused(self) -> None:
+        with mock.patch.object(sitemap_report, "MAX_SITEMAP_BYTES", 1000), self.assertRaises(SeoToolError) as caught:
+            sitemap_report.parse_sitemap(b"<urlset>" + b" " * 2000 + b"</urlset>", "big.xml")
+        self.assertIn("too large", str(caught.exception))
+
+    def test_a_file_that_starts_like_gzip_but_is_damaged_is_a_tool_error(self) -> None:
+        with self.assertRaises(SeoToolError) as caught:
+            sitemap_report.parse_sitemap(b"\x1f\x8bnot really gzip", "bad.xml.gz")
+        self.assertIn("not a valid gzip file", str(caught.exception))
+
+    def test_a_child_that_downloads_but_is_not_a_sitemap_is_noted(self) -> None:
+        sitemap = sitemap_report.parse_sitemap(fixture_bytes("sitemaps", "index.xml"), "index.xml")
+        table = {PAGES_URL: b"<html>not xml at all", POSTS_URL: fixture_bytes("sitemaps", "child-posts.xml")}
+        report = sitemap_report.build_report(sitemap, "https://example.test/i.xml", fake_fetch(table))
+        self.assertTrue(any(PAGES_URL in note and "could not read" in note for note in report.notes))
+        self.assertEqual(report.total_urls, 3)
+
+    def test_a_child_count_that_is_not_a_number_is_refused(self) -> None:
+        with captured(), self.assertRaises(SystemExit) as caught:
+            sitemap_report.main(["x.xml", "--max-children", "many"])
+        self.assertEqual(caught.exception.code, 2)
+
+
 class CalendarTests(unittest.TestCase):
     """A lastmod must start with a real calendar day; anything else is "undated", not a day of its own."""
 

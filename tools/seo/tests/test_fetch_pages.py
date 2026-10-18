@@ -185,6 +185,11 @@ class RobotsPolicyTests(unittest.TestCase):
         self.assertIn("61.5", policy.refusal(PAGE))
 
 
+class UnparseableUrlPolicyTests(unittest.TestCase):
+    def test_an_address_that_cannot_be_split_is_refused_by_any_policy(self) -> None:
+        self.assertEqual(fetch_pages.RobotsPolicy().refusal("http://["), "not a valid URL")
+
+
 class FetchTests(unittest.TestCase):
     def test_returns_status_body_selected_headers_and_size(self) -> None:
         headers = {"Content-Type": "text/html", "Server": "fake", "X-Unlisted": "dropped"}

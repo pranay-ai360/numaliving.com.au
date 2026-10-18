@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import time
 import unittest
+from unittest import mock
 
 from helpers import fixture_text
 
@@ -365,6 +366,22 @@ class AttributeAndLinkTests(unittest.TestCase):
 
     def test_empty_and_fragment_only_links_are_skipped(self) -> None:
         self.assertEqual(facts_of('<a href="#top">t</a><a href="#">h</a><a href="">e</a><a>nohref</a>').links, ())
+
+
+class LeftoverBranchTests(unittest.TestCase):
+    def test_an_end_tag_for_a_void_element_is_ignored(self) -> None:
+        facts = facts_of("<p>one</br>two</img></p>")
+        self.assertEqual(facts.main_lines, ("onetwo",))
+
+    def test_a_json_ld_script_that_never_ends_is_still_counted(self) -> None:
+        facts = facts_of('<script type="application/ld+json">{"@type":"Thing"')
+        self.assertEqual((facts.jsonld_blocks, facts.jsonld_errors), (1, 1))
+
+    def test_an_address_urljoin_hands_back_unsplittable_is_a_link_of_another_kind(self) -> None:
+        anchor = html_facts._Anchor("x", "", "text", False)
+        with mock.patch.object(html_facts, "urljoin", return_value="http://["):
+            link = html_facts.classify_link(anchor, BASE)
+        self.assertEqual((link.kind, link.url), ("other", "x"))
 
 
 class WordCountTests(unittest.TestCase):

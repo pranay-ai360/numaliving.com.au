@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from helpers import captured, fixture_path, fixture_text
 
@@ -245,6 +246,54 @@ class HostileInputTests(unittest.TestCase):
         (self.folder / "broken.analysis.json").write_text("{nope", encoding="utf-8")
         with captured(), self.assertRaises(SeoToolError):
             audit_pages.table_for(self.folder)
+
+
+class ErrorPathTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.folder = Path(self._tmp.name)
+
+    def test_a_meta_file_that_is_not_a_json_object_is_a_tool_error(self) -> None:
+        page = self.folder / "p.html"
+        page.write_text("<html></html>", encoding="utf-8")
+        (self.folder / "p.meta.json").write_text("[1, 2]", encoding="utf-8")
+        with self.assertRaises(SeoToolError) as caught:
+            audit_pages.audit_file(page)
+        self.assertIn("p.meta.json", str(caught.exception))
+
+    def test_an_analysis_file_with_the_wrong_kinds_of_values_is_a_tool_error(self) -> None:
+        data = json.loads((fixture_path("analysis") / "example.test_alpha.analysis.json").read_text(encoding="utf-8"))
+        data["h1"], data["words_main"] = 5, "many"
+        path = self.folder / "x.analysis.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        with self.assertRaises(SeoToolError) as caught:
+            audit_pages.read_analysis(path)
+        self.assertIn("h1", str(caught.exception))
+        self.assertIn("words_main", str(caught.exception))
+
+    def test_a_page_that_fails_in_an_unexpected_way_is_reported_and_the_run_goes_on(self) -> None:
+        good = self.folder / "good.html"
+        good.write_text("<html><head><title>Fine page</title></head></html>", encoding="utf-8")
+        odd = self.folder / "odd.html"
+        odd.write_text("<html></html>", encoding="utf-8")
+        real = audit_pages.audit_file
+
+        def flaky(path, base_url=audit_pages.DEFAULT_BASE_URL):
+            if path.name == "odd.html":
+                raise ValueError("odd content")
+            return real(path, base_url)
+
+        with mock.patch.object(audit_pages, "audit_file", side_effect=flaky), captured() as (out, err):
+            code = audit_pages.main([str(odd), str(good)])
+        self.assertEqual(code, 1)
+        self.assertIn("Fine page", out.getvalue())
+        self.assertIn("odd.html: ValueError: odd content", err.getvalue())
+
+    def test_files_and_table_together_are_a_usage_error(self) -> None:
+        with captured(), self.assertRaises(SystemExit) as caught:
+            audit_pages.main(["page.html", "--table", str(self.folder)])
+        self.assertEqual(caught.exception.code, 2)
 
 
 class PrintingTests(unittest.TestCase):

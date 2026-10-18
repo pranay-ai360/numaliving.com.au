@@ -353,6 +353,34 @@ class ConnectTests(unittest.TestCase):
         self.assertIn("cannot load", str(caught.exception))
 
 
+class ClientLoadingEdgeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.folder = Path(self._tmp.name)
+
+    def test_a_python_file_that_cannot_become_a_module_is_reported(self) -> None:
+        (self.folder / "searxng_client.py").write_text("x = 1\n", encoding="utf-8")
+        with mock.patch("importlib.util.spec_from_file_location", return_value=None), self.assertRaises(SeoToolError):
+            serp_search.load_client_module(self.folder)
+
+    def test_a_file_that_is_not_the_searxng_client_is_recognised(self) -> None:
+        (self.folder / "searxng_client.py").write_text("x = 1\n", encoding="utf-8")
+        with captured(), self.assertRaises(SeoToolError) as caught:
+            serp_search.connect_searxng("http://localhost:8080", self.folder)
+        self.assertIn("does not look like the SearXNG client", str(caught.exception))
+
+    def test_main_prints_the_remote_instance_warning(self) -> None:
+        queries = self.folder / "q.txt"
+        queries.write_text("one query\n", encoding="utf-8")
+        connection = SearxngConnection(FakeClient([hits("https://a.test/")]), FakeSearxngError)
+        with mock.patch.object(serp_search, "remote_instance_warning", return_value="SearXNG is far away"):
+            with captured() as (_, err):
+                serp_search.main([str(queries), "--out-dir", str(self.folder / "out")],
+                                 connect=lambda url, folder: connection, sleep=FakeClock().sleep)
+        self.assertIn("warning: SearXNG is far away", err.getvalue())
+
+
 class MainTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()

@@ -175,6 +175,12 @@ class HostileResultTests(unittest.TestCase):
         self.assertEqual(serp_report.clean_url("http://["), "http://[")
 
 
+class OddValueTests(unittest.TestCase):
+    def test_a_result_that_is_not_an_object_has_no_domain(self) -> None:
+        self.assertEqual(serp_report._result_domain("not a dict"), "")
+        self.assertEqual(serp_report._result_domain(None), "")
+
+
 class ExportUrlTests(unittest.TestCase):
     def test_clean_url_drops_tracking_parameters_and_the_fragment(self) -> None:
         cleaned = serp_report.clean_url("https://alpha-fab.example/about/?srsltid=TRACK&utm_source=x&keep=1#team")

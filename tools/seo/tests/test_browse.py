@@ -1,6 +1,7 @@
 """Tests for the pure helpers in browse.py: URL building, block detection, argument limits and the launcher import.
 
-The browser itself is never started here; the functions that drive it are excluded from coverage.
+The browser itself is never started here: test_browse_capture.py and test_browse_runs.py drive the capture code
+with fake pages, and nothing in browse.py is excluded from coverage.
 """
 
 from __future__ import annotations
@@ -175,6 +176,19 @@ class RunValidationTests(unittest.TestCase):
         self.assertIn("python3.14", str(caught.exception))
 
 
+class MainDispatchTests(unittest.TestCase):
+    def test_shots_hands_the_checked_urls_to_run_shots(self) -> None:
+        with mock.patch.object(browse, "run_shots", return_value=0) as run_shots:
+            code = browse.main(["shots", "https://a.test/", "https://a.test/#frag", "https://b.test/"])
+        self.assertEqual(code, 0)
+        self.assertEqual(run_shots.call_args.args[1], ("https://a.test/", "https://b.test/"))
+
+    def test_serp_without_a_query_is_a_usage_error(self) -> None:
+        with captured(), self.assertRaises(SystemExit) as caught:
+            browse.main(["serp"])
+        self.assertEqual(caught.exception.code, 2)
+
+
 class LauncherImportTests(unittest.TestCase):
     def test_the_launcher_is_the_site_qa_one_and_is_found_by_path(self) -> None:
         self.assertEqual(browse.QA_DIR, Path(browse.__file__).resolve().parent.parent / "site-qa")
@@ -192,6 +206,23 @@ class LauncherImportTests(unittest.TestCase):
             with self.assertRaises(SeoToolError) as caught:
                 browse.load_launcher()
         self.assertIn("qa_common.py", str(caught.exception))
+
+    def test_a_launcher_that_fails_to_import_is_reported_and_forgotten(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "qa_common.py").write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+            with mock.patch.object(browse, "QA_DIR", Path(folder)), self.assertRaises(SeoToolError) as caught:
+                browse.load_launcher()
+        self.assertIn("RuntimeError: boom", str(caught.exception))
+        self.assertNotIn(browse.LAUNCHER_MODULE, sys.modules)
+
+    def test_a_launcher_file_python_cannot_load_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "qa_common.py").write_text("x = 1\n", encoding="utf-8")
+            with mock.patch.object(browse, "QA_DIR", Path(folder)):
+                with mock.patch("importlib.util.spec_from_file_location", return_value=None):
+                    with self.assertRaises(SeoToolError) as caught:
+                        browse.load_launcher()
+        self.assertIn("cannot load", str(caught.exception))
 
 
 if __name__ == "__main__":

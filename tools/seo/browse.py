@@ -186,7 +186,7 @@ def open_seat() -> ContextManager[Any]:
     return seat(load_launcher())
 
 
-def _context(qa: ModuleType, browser: Any, viewport: Tuple[int, int], mobile: bool) -> Any:  # pragma: no cover
+def _context(qa: ModuleType, browser: Any, viewport: Tuple[int, int], mobile: bool) -> Any:
     width, height = viewport
     if mobile:
         return browser.new_context(
@@ -198,7 +198,7 @@ def _context(qa: ModuleType, browser: Any, viewport: Tuple[int, int], mobile: bo
 
 def _capture_view(
     browser: Any, url: str, out_dir: Path, label: str, name: str, mobile: bool, full_page: bool
-) -> Dict[str, Any]:  # pragma: no cover - needs the real browser
+) -> Dict[str, Any]:
     qa = load_launcher()
     viewport = MOBILE if mobile else DESKTOP
     context = _context(qa, browser, viewport, mobile)
@@ -256,7 +256,7 @@ def run_shots(
     return 1 if failed else 0
 
 
-def _capture_serp(browser: Any, query: str, out_dir: Path) -> Dict[str, Any]:  # pragma: no cover
+def _capture_serp(browser: Any, query: str, out_dir: Path) -> Dict[str, Any]:
     context = browser.new_context(viewport={"width": DESKTOP[0], "height": DESKTOP[1]}, locale="en-US")
     record: Dict[str, Any] = {"query": query, "blocked": False, "error": None}
     try:

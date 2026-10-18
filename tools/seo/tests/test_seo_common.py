@@ -171,6 +171,29 @@ class AssignStemsTests(unittest.TestCase):
         self.assertRegex(seo_common.url_slug("http://["), r"^[A-Za-z0-9._-]+$")
 
 
+class LeftoverBranchTests(unittest.TestCase):
+    def test_ascii_url_leaves_an_unsplittable_address_alone(self) -> None:
+        self.assertEqual(seo_common.ascii_url("http://["), "http://[")
+        self.assertEqual(seo_common.ascii_url("https:///path"), "https:///path")
+
+    def test_a_hash_clash_between_names_still_never_shares_a_file(self) -> None:
+        with mock.patch.object(seo_common, "_short_hash", return_value="abc123"):
+            stems = seo_common.assign_stems(["https://a.test/x/y", "https://a.test/x_y", "https://a.test/x_y/"])
+        self.assertEqual(stems["https://a.test/x/y"], "a.test_x_y")
+        self.assertEqual(stems["https://a.test/x_y"], "a.test_x_y-abc123")
+        self.assertEqual(stems["https://a.test/x_y/"], "a.test_x_y-abc123-2")
+
+    def test_removing_a_file_that_cannot_be_removed_is_a_tool_error(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "dir").mkdir()
+            with self.assertRaises(SeoToolError):
+                seo_common.remove_file(Path(folder) / "dir")
+
+    def test_removing_a_file_that_is_not_there_is_fine(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            seo_common.remove_file(Path(folder) / "nope.html")
+
+
 class ListFileTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()

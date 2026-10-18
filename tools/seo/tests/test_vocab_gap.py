@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import tempfile
 import unittest
 from pathlib import Path
@@ -274,6 +275,24 @@ class FileDiscoveryTests(unittest.TestCase):
             target = Path(folder) / "x_login.txt"
             target.write_text("x", encoding="utf-8")
             self.assertEqual(vocab_gap.collect_text_files([str(target)]), (target,))
+
+
+class InputEdgeTests(unittest.TestCase):
+    def test_a_pattern_that_matches_no_file_is_a_tool_error(self) -> None:
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(SeoToolError):
+            vocab_gap.collect_text_files([str(Path(folder) / "nothing_*.txt")])
+
+    def test_a_folder_holding_only_skipped_pages_is_a_tool_error(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "login.txt").write_text("x", encoding="utf-8")
+            with self.assertRaises(SeoToolError):
+                vocab_gap.collect_text_files([folder])
+
+    def test_the_share_must_be_a_number_between_0_and_1(self) -> None:
+        self.assertEqual(vocab_gap._share("0.25"), 0.25)
+        for bad in ("abc", "1.5", "-0.1"):
+            with self.subTest(value=bad), self.assertRaises(argparse.ArgumentTypeError):
+                vocab_gap._share(bad)
 
 
 class TermTableTests(unittest.TestCase):

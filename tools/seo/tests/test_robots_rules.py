@@ -180,6 +180,12 @@ class MatchingTests(unittest.TestCase):
         self.assertFalse(pattern_matches("/a$", "/ab"))
 
 
+class LeftoverBranchTests(unittest.TestCase):
+    def test_a_middle_part_that_is_missing_fails_the_match(self) -> None:
+        self.assertFalse(pattern_matches("/a*b*c", "/axyz"))
+        self.assertTrue(pattern_matches("/a*b*c", "/a-b-c"))
+
+
 class CrawlDelayTests(unittest.TestCase):
     def delay(self, value: str) -> float:
         return rules_of(f"User-agent: *\nCrawl-delay: {value}\nDisallow: /x\n").crawl_delay
