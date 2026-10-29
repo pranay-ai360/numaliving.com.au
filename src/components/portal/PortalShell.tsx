@@ -23,6 +23,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     { href: "/portal/approvals/", label: "Approvals", show: can("designDrawings", 1) || can("shopDrawings", 1) || can("samples", 1), n: count("/portal/approvals") },
     { href: "/portal/rfis/", label: "RFIs", show: can("rfis", 1), n: count("/portal/rfis") },
     { href: "/portal/tracking/", label: "Production & shipping", show: can("production", 1), n: count("/portal/tracking") },
+    { href: "/portal/installation/", label: "Installation videos", show: can("installation", 1), n: 0 },
     { href: "/portal/team/", label: "Team & access", show: true, n: 0 },
   ].filter((i) => i.show);
   const isActive = (href: string) => (href === "/portal/" ? pathname === "/portal" || pathname === "/portal/" : pathname.startsWith(href.slice(0, -1)));
@@ -66,7 +67,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper px-5 py-3 sm:px-8">
           <p className="text-sm text-ink-muted">
             Signed in as <span className="font-semibold text-ink">{people[person].name}</span> · {people[person].org}
-            {mainContact === person && <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.14em] text-gold-dark">Main contact</span>}
+            {mainContact === person && <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.14em] text-gold-dark">Client admin</span>}
           </p>
           <div role="group" aria-label="Demo: view the portal as" className="flex flex-wrap items-center gap-1 border border-dashed border-gold p-1">
             <span className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-dark">Demo: view as</span>

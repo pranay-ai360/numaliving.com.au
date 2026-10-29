@@ -63,7 +63,8 @@ export type PortalModule =
   | "samples"
   | "production"
   | "updates"
-  | "commercials";
+  | "commercials"
+  | "installation";
 
 export type Permission = "hidden" | "view" | "act" | "approve";
 
@@ -77,7 +78,8 @@ export interface ProjectMember {
   email: string;
   displayName: string;
   organisation: string;
-  isMainContact: boolean;
+  /** The client admin: appointed first, assigns everyone's rights on the responsibility form. */
+  isClientAdmin: boolean;
   rights: Record<PortalModule, Permission>;
 }
 

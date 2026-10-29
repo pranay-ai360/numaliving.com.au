@@ -6,15 +6,15 @@
 
 export const home = {
   heroTitle: "Woodwork, Mastered",
-  heroSub: "Australia · India · Qatar · UAE · UK · USA",
+  heroSub: "UAE · Qatar · USA",
   intro:
     "Numa Living crafts details that defines a room: panelled walls, kitchens, wardrobes, doors and statement pieces, engineered in-house and installed anywhere in the world.",
   // SAMPLE figures
   stats: [
-    { value: "120+", label: "Projects delivered" },
-    { value: "14", label: "Countries shipped to" },
-    { value: "18,000 m²", label: "Factory floor" },
-    { value: "250", label: "Craftspeople and engineers" },
+    { value: "45+", label: "Projects delivered" },
+    { value: "4", label: "Countries shipped to" },
+    { value: "8,000 sq ft", label: "Factory floor" },
+    { value: "50", label: "Craftspeople and engineers" },
   ],
   sectors: [
     {
@@ -42,7 +42,7 @@ export const about = {
   ],
   values: [
     { name: "Craft", text: "Bookmatched veneers, hand-finished lacquer and joints you will never see." },
-    { name: "Precision", text: "CNC-driven production from approved shop drawings, checked at every stage." },
+    { name: "Precision", text: "Production from approved shop drawings, checked at every stage." },
     { name: "Transparency", text: "Every client sees their drawings, approvals and production status online." },
     { name: "Reach", text: "Export-packed, shipped and installed wherever the project is." },
   ],
@@ -84,20 +84,13 @@ export const capabilities = {
 export const factory = {
   title: "The Factory",
   lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and programme.",
-  // SAMPLE figures — replace with real ones
-  facts: [
-    { value: "18,000 m²", label: "Production floor" },
-    { value: "6", label: "CNC machining centres" },
-    { value: "4", label: "Pressurised spray booths" },
-    { value: "2,500 m²", label: "Monthly panel output" },
-  ],
   zones: [
-    { name: "Engineering", text: "Shop drawings, cutting lists and CNC programmes produced from your approved design." },
-    { name: "Machining", text: "Nested-based CNC, panel saws and edgebanders for repeatable precision." },
-    { name: "Veneer", text: "Veneer selection, bookmatching and pressing, with flitches reserved per project." },
-    { name: "Finishing", text: "Dust-controlled spray booths for lacquer and oil finishes, colour-matched to approved samples." },
+    { name: "Engineering", text: "Shop drawings and cutting lists produced from your approved design." },
+    { name: "Machining", text: "Panel saws, edgebanders and boring machines for repeatable precision." },
+    { name: "Veneer", text: "Veneer selection, laying and hot pressing onto panels." },
+    { name: "Finishing", text: "Spray booths for lacquer and paint finishes, matched to approved samples." },
     { name: "Assembly & QC", text: "Pre-assembly and dry-fitting, checked against drawings before anything is packed." },
-    { name: "Export Packing", text: "Crated, labelled by room and sequence, ready for container or air freight." },
+    { name: "Export Packing", text: "Crated, labelled by room and sequence, ready for container shipping." },
   ],
 };
 
@@ -128,13 +121,12 @@ export const delivery = {
   // SAMPLE list — replace with real destinations
   regions: [
     { name: "Middle East", countries: ["UAE", "Qatar"] },
-    { name: "Austalia & Asia", countries: ["Australia", "India"] },
-    { name: "Europe", countries: ["United Kingdom"] },
+    { name: "Asia", countries: ["India"] },
     { name: "North America", countries: ["United States"] },
   ],
   points: [
     { name: "Export packing", text: "Moisture-protected, crated and labelled by room and install sequence." },
-    { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared online." },
+    { name: "Freight", text: "Sea freight through established logistics partners, with tracking shared online." },
     { name: "Installation", text: "Our own installers, or supervision of your local team, wherever the site is." },
     { name: "After care", text: "Spare parts, touch-up kits and a defects period on every project." },
   ],
@@ -148,12 +140,12 @@ export const delivery = {
  * walnut, oak, lacquer, stone, brass or linen.
  */
 export const craft = [
-  { src: "/craft/Living-01-out-1400x788.jpg", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
-  { src: "", material: "oak", alt: "Fluted oak panelling detail", caption: "Fluted oak" },
+  { src: "/projects/Primrose/Living-01-out-1400x788.jpg", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
+  { src: "/craft/veneer-laying.jpg", material: "oak", alt: "Craftsmen laying a veneer sheet onto a panel before hot pressing", caption: "Veneer laid by hand" },
   { src:"/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
-  { src: "", material: "lacquer", alt: "Hand-finished lacquer door", caption: "Hand-finished lacquer" },
-  { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
+  { src: "/craft/lacquer-spray-booth.jpg", material: "lacquer", alt: "Finisher spraying lacquer onto a wood-veneer frame in the spray booth", caption: "Hand-finished lacquer" },
+  { src: "/craft/edgebanding.jpg", material: "walnut", alt: "Machinist feeding a panel through the edgebanding machine", caption: "Joints you never see" },
 ];
 
 /** One wide photo of the factory floor, shown above the factory section. */
-export const factoryPhoto = { src: "/craft/Picture15-1200x800.jpg", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" };
+export const factoryPhoto = { src: "/craft/factory-jointer.jpg", material: "oak", alt: "Craftsmen straightening timber on the jointer, Numa Living factory, Dubai", caption: "The factory floor, Dubai" };

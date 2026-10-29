@@ -29,7 +29,7 @@ export default function AboutPage() {
           <div className="mt-12">
             <WorldMap />
           </div>
-          <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-8 sm:grid-cols-3">
             {delivery.regions.map((r) => (
               <div key={r.name} className="border-t-2 border-gold pt-5">
                 <h3 className="display text-sm">{r.name}</h3>

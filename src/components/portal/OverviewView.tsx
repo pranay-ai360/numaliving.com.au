@@ -58,7 +58,7 @@ export function OverviewView() {
             </Link>
           ))}
           {!can("commercials", 1) && (
-            <p className="bg-[#faf8f4] px-5 py-3 text-xs text-ink-muted">Commercials are hidden for you. The main contact sets this on Team &amp; access.</p>
+            <p className="bg-[#faf8f4] px-5 py-3 text-xs text-ink-muted">Commercials are hidden for you. Your client admin sets this on Team &amp; access.</p>
           )}
         </section>
 

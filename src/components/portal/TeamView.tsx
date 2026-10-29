@@ -28,8 +28,8 @@ export function TeamView() {
       </PortalTitle>
 
       <p className="-mt-4 mb-5 max-w-3xl text-sm leading-relaxed text-ink-muted">
-        Filled in at kick-off by the main contact, whoever that is on the client side: owner, architect, contractor or project manager. It decides, for each person, what
-        they can see, act on and approve. {isMain ? "You are the main contact: click any box to change it, then switch roles above to see the effect." : `Only the main contact (${people[mainContact].name}) can change it.`}
+        The first step on every project: the client appoints a client admin. It can be the owner, architect, contractor or project manager. The client admin decides, for
+        each person, what they can see, act on and approve. {isMain ? "You are the client admin: click any box to change it, then switch roles above to see the effect." : `Only the client admin (${people[mainContact].name}) can change it.`}
       </p>
       {notice && (
         <p role="status" className="mb-4 bg-gold-soft px-4 py-2.5 text-sm">
@@ -47,7 +47,7 @@ export function TeamView() {
       </div>
 
       <div className="overflow-x-auto border border-line bg-paper">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-[0.1em] text-ink-muted">
               <th scope="col" className="border-b border-line px-5 py-3 font-semibold">Person</th>
@@ -64,7 +64,7 @@ export function TeamView() {
                 <th scope="row" className="border-b border-[#efeae1] px-5 py-3 text-left font-normal">
                   <span className="block font-semibold">
                     {p.name}
-                    {pi === mainContact && <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.12em] text-gold-dark">Main contact</span>}
+                    {pi === mainContact && <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.12em] text-gold-dark">Client admin</span>}
                   </span>
                   <span className="block text-xs text-ink-muted">{p.org}</span>
                 </th>
@@ -93,7 +93,7 @@ export function TeamView() {
       {isMain && (
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
           <label className="text-sm font-semibold">
-            Hand over main contact to
+            Hand over client admin to
             <select
               value={mainContact}
               onChange={(e) => setMainContact(Number(e.target.value))}

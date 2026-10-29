@@ -31,6 +31,7 @@ export const modules: { key: PortalModule; label: string }[] = [
   { key: "production", label: "Production" },
   { key: "updates", label: "Updates" },
   { key: "commercials", label: "Commercials" },
+  { key: "installation", label: "Installation" },
 ];
 
 export const people = [
@@ -43,14 +44,17 @@ export const people = [
 
 /** Starting answers on the responsibility form: one row per person, one column per module (same order as `modules`). */
 export const startingRights: Level[][] = [
-  [1, 1, 3, 1, 1, 1, 3],
-  [2, 3, 2, 2, 1, 1, 1],
-  [2, 2, 2, 2, 1, 1, 0],
-  [2, 1, 1, 2, 1, 1, 0],
-  [1, 1, 1, 1, 1, 1, 2],
+  [1, 1, 3, 1, 1, 1, 3, 1],
+  [2, 3, 2, 2, 1, 1, 1, 1],
+  [2, 2, 2, 2, 1, 1, 0, 1],
+  [2, 1, 1, 2, 1, 1, 0, 1],
+  [1, 1, 1, 1, 1, 1, 2, 0],
 ];
 
-/** Who started the conversation with Numa. Can be anyone; can be handed over. */
+/**
+ * The client admin: the first thing the client side does is appoint one person
+ * (owner, architect, contractor or PM) who assigns everyone's rights. Can be handed over.
+ */
 export const startingMainContact = 1;
 
 /** The three people you can "be" in the demo, and which row of `people` they are. */
@@ -188,4 +192,19 @@ export const tasks: Task[] = [
   { id: "rfi12", tag: "RFI", title: "RFI-012 · Handle height on wardrobe doors", meta: "Answer by 15 Oct", cta: "Answer", href: "/portal/rfis/", module: "rfis", to: 1 },
   { id: "rfi14", tag: "RFI", title: "RFI-014 · Confirm ceiling height in majlis", meta: "Answer by 15 Oct", cta: "Answer", href: "/portal/rfis/", module: "rfis", to: 3 },
   { id: "s2", tag: "Shipping", title: "Confirm site is ready for Shipment 2", meta: "Delivery window 10–14 Nov", cta: "Confirm", href: "/portal/tracking/", module: "production", to: 3 },
+];
+
+/**
+ * Installation videos: one row per item, with a link to the video
+ * (Google Drive, YouTube unlisted, or anywhere else that gives a share link).
+ * Leave `video` as "" until the video is ready; the row then shows "Coming before delivery".
+ * SAMPLE links below just open Google Drive. Replace them with real share links.
+ */
+export const installItems = [
+  { code: "MV_ENT_DR1", item: "Entrance door", room: "Entrance", stage: "Delivered", video: "https://drive.google.com/" },
+  { code: "MV_GST_VN1", item: "Guest suite vanity", room: "Guest suite", stage: "Quality control", video: "https://drive.google.com/" },
+  { code: "MV_BR1_MW1", item: "Master wardrobe", room: "Master bedroom", stage: "Finishing", video: "https://drive.google.com/" },
+  { code: "MV_KIT_KT1", item: "Kitchen island and run", room: "Kitchen", stage: "Machining", video: "" },
+  { code: "MV_MAJ_WP1", item: "Majlis wall panelling", room: "Majlis", stage: "On hold", video: "" },
+  { code: "MV_LIB_WP1", item: "Library wall", room: "Library", stage: "Shop drawings", video: "" },
 ];
