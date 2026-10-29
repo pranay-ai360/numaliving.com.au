@@ -4,6 +4,7 @@ import { projects } from "@/content/projects";
 import { site } from "@/config/site";
 import { LineArt, Wordmark } from "@/components/Brand";
 import { ButtonLink, Container, ProjectCard, SectionTitle } from "@/components/ui";
+import { PortalPreview } from "@/components/PortalPreview";
 
 export default function HomePage() {
   const featured = projects.filter((p) => p.featured).slice(0, 3);
@@ -29,8 +30,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* About strip */}
+      {/* Featured projects */}
       <section className="py-24">
+        <Container>
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <SectionTitle ghost="Projects" title="Selected Work" />
+            <Link href="/projects" className="text-sm font-medium text-gold hover:text-gold-dark">
+              All projects →
+            </Link>
+          </div>
+          <div className="mt-12 grid gap-10 md:grid-cols-3">
+            {featured.map((p) => (
+              <ProjectCard key={p.slug} project={p} />
+            ))}
+          </div>
+        </Container>
+      </section>
+
+     {/* About strip */}
+      <section className="linen py-24">
         <Container className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
             <SectionTitle ghost="About" eyebrow={site.group} title="The Craft Behind Great Interiors" />
@@ -52,39 +70,6 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* Sectors */}
-      <section className="linen py-24">
-        <Container>
-          <SectionTitle ghost="Sectors" title="Who We Build For" />
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {home.sectors.map((s, i) => (
-              <div key={s.name} className="border-t-2 border-gold bg-paper p-8">
-                <p className="display text-sm text-gold">0{i + 1}</p>
-                <h3 className="mt-4 text-xl font-semibold">{s.name}</h3>
-                <p className="mt-3 leading-relaxed text-ink-muted">{s.text}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* Featured projects */}
-      <section className="py-24">
-        <Container>
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <SectionTitle ghost="Projects" title="Selected Work" />
-            <Link href="/projects" className="text-sm font-medium text-gold hover:text-gold-dark">
-              All projects →
-            </Link>
-          </div>
-          <div className="mt-12 grid gap-10 md:grid-cols-3">
-            {featured.map((p) => (
-              <ProjectCard key={p.slug} project={p} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
       {/* Process teaser + portal */}
       <section className="bg-ink py-24 text-white">
         <Container className="grid gap-12 lg:grid-cols-2 lg:items-center">
@@ -102,14 +87,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-             <ol className="grid gap-px bg-white/10 sm:grid-cols-2">
-     {["Brief", "Approve", "Make", "Deliver"].map((p, i) => (
-       <li key={p} className="bg-ink p-5">
-         <span className="display text-xs text-gold">{String(i + 1).padStart(2, "0")}</span>
-         <p className="mt-2 font-medium">{p}</p>
-       </li>
-     ))}
-   </ol>
+          <PortalPreview />
         </Container>
       </section>
 

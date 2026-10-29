@@ -22,7 +22,5 @@ export const factory: MapPlace = { name: "Dubai", country: "UAE", lat: 25.2, lon
 export const destinations: MapPlace[] = [
   { name: "Doha", country: "Qatar", lat: 25.29, lon: 51.53, label: "below" },
   { name: "Thiruvananthapuram", country: "India", lat: 8.52, lon: 76.94, label: "left" },
-  { name: "London", country: "United Kingdom", lat: 51.51, lon: -0.13, label: "above" },
   { name: "California", country: "United States", lat: 36.77, lon: -119.41, label: "below" },
-  { name: "Queensland", country: "Australia", lat: -27.47, lon: 153.01, label: "below" },
 ];
