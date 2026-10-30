@@ -40,6 +40,7 @@ A push straight to `main` deploys as well, and `verify` still has to pass before
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high           # CI fails the run on a high or critical advisory in the packages that ship
 npm run lint
 npm run typecheck
 npm run test:coverage                              # keep coverage at 80% or more
@@ -56,6 +57,8 @@ CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google 
 ```
 
 CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10).
+
+Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when a served image is over 1.5 MB, and every file stays in git history for good.
 
 ## 4. Install the tools (macOS with Homebrew)
 
@@ -140,6 +143,15 @@ python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
 ```
 
 The verdict is at the top of `report.md` in that folder. The "request-aborted" warnings are the browser cancelling prefetches and are harmless.
+
+The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex`, loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
+
+```bash
+CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:live
+playwright screenshot --full-page --viewport-size="1440, 3000" https://numaliving.us/ home-1440.png
+```
+
+The live test expects `noindex`: change it when the site launches.
 
 ## 10. Known quirks
 

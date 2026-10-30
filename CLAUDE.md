@@ -6,9 +6,11 @@ A static Next.js 16 site (React 19, Tailwind 4, Zod) for Numa Living, a luxury j
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high # CI runs this first; a high or critical advisory fails the run
 npm run lint && npm run typecheck
 npm run test:coverage                    # Vitest; keep coverage at 80% or more (about 99% today)
 npm run build:e2e && npm run test:e2e    # Playwright against a static build
+npm run test:live                        # after a deploy: read-only Playwright smoke test of the live site (e2e-live/)
 ```
 
 Run Playwright with `CHROMIUM_EXECUTABLE_PATH` set to a Chrome-family binary (the installed Google Chrome works). See the runbook for details.

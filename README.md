@@ -232,9 +232,10 @@ npm test                # Vitest unit and component tests (src/**/*.test.ts and 
 npm run test:coverage   # the same, but fails below 80% coverage of src/lib/**
 npm run build:e2e       # static build below /numaliving.com.au, with the test form id e2e-form-id
 npm run test:e2e        # Playwright, against that build served like GitHub Pages
+npm run test:live       # Playwright, read-only, against the deployed site (run it after a deploy; CI does not)
 ```
 
-The deploy workflow's `verify` job runs these same commands on every pull request and every push to `main`.
+The deploy workflow's `verify` job runs the commands above `test:live` on every pull request and every push to `main`.
 
 **End-to-end tests.** `npm run test:e2e` starts `scripts/serve-pages.mjs`, a small server that behaves like GitHub Pages (the site only below `/numaliving.com.au/`, a redirect that adds a missing trailing slash, the site's own 404 page with status 404, file names matched case-sensitively), and runs the specs in `e2e/` against `out/` at desktop and phone sizes. Build first with `npm run build:e2e`: the tests expect the base path and the test form id it bakes in. They intercept every request to FormSubmit, so nothing is ever emailed, and a test fails when a page throws, logs a console error, fails to load a file or calls any other host. To test a build for another base path, give both commands the same `PAGES_BASE_PATH`, for example `PAGES_BASE_PATH=/other npm run build:e2e`, then `PAGES_BASE_PATH=/other npm run test:e2e` (an empty value means the root of a domain).
 
