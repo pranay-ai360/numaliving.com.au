@@ -139,4 +139,6 @@ The 86 project photos, the nine projects and some sentences on the pages raise q
    | `claims.factoryVeneer` | "Veneer selection, laying and hot pressing onto panels." (Capabilities, the factory step Veneer) | that the factory lays veneer onto panels and presses it hot in house |
    | `claims.factoryFinishing` | "Spray booths for lacquer and paint finishes, matched to approved samples." (Capabilities, the factory step Finishing) | that the factory has spray booths and matches each finish to an approved sample |
 
+7. **Final page addresses for the projects.** A page address is hard to change once search engines have it, so please choose the final one for each project before indexing. `penthouse25` reads like an internal code, not a name a visitor would search for. Each address comes from the project's `slug` in `src/content/projects.ts`.
+
 **Unlocks:** replacing the sample projects and figures; using more photos for share images and the home page; the claims leaving the launch guard's list; and the project pages going live.
