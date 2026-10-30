@@ -58,7 +58,7 @@ CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google 
 
 CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10).
 
-Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when a served image is over 1.5 MB, and every file stays in git history for good.
+Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when any image in `public/` is over 1.5 MB, whether a page uses it or not, and every file stays in git history for good.
 
 ## 4. Install the tools (macOS with Homebrew)
 
