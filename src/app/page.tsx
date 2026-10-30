@@ -47,7 +47,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-     {/* About strip */}
+      {/* About strip */}
       <section className="linen py-24">
         <Container className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
