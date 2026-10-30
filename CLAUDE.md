@@ -6,9 +6,11 @@ A static Next.js 16 site (React 19, Tailwind 4, Zod) for Numa Living, a luxury j
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high # CI runs this first; a high or critical advisory fails the run
 npm run lint && npm run typecheck
 npm run test:coverage                    # Vitest; keep coverage at 80% or more (about 99% today)
 npm run build:e2e && npm run test:e2e    # Playwright against a static build
+npm run test:live                        # after a deploy: read-only Playwright smoke test of the live site (e2e-live/)
 ```
 
 Run Playwright with `CHROMIUM_EXECUTABLE_PATH` set to a Chrome-family binary (the installed Google Chrome works). See the runbook for details.
@@ -30,7 +32,7 @@ numaliving.us is registered at GoDaddy, its DNS is on Cloudflare (every site rec
 
 ## Secrets: hard rules
 
-- `api-keys.json` (repository root, git-ignored) holds Cloudflare credentials. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` blocks the obvious ways to read it (a speed bump, not a boundary, so the rule is yours to keep). Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values; it supports a file outside the repository through `NUMA_KEYS_FILE`.
+- `api-keys.json` holds Cloudflare credentials. It lives outside the repository, at `~/.config/numaliving/api-keys.json` (mode 600), where the helper finds it by itself; `NUMA_KEYS_FILE` points it elsewhere, and a copy in the repository root (git-ignored) is used first when one exists. **Never read, cat, grep, print, paste or send it.** `.claude/settings.json` blocks the obvious ways to read it (a speed bump, not a boundary, so the rule is yours to keep). Use `tools/cloudflare/cf_dns.py`, which reads it locally and prints no values.
 - No secret in any committed file, log, commit message or pull request. Every `NEXT_PUBLIC_` value is public.
 
 ## Conventions

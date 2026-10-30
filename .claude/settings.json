@@ -6,6 +6,8 @@
       "Read(**/api-keys.json)",
       "Edit(./api-keys.json)",
       "Edit(**/api-keys.json)",
+      "Read(~/.config/numaliving/**)",
+      "Edit(~/.config/numaliving/**)",
       "Bash(*api-keys.json*)",
       "Bash(gh api -X DELETE *)",
       "Bash(gh api --method DELETE *)",

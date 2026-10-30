@@ -1,4 +1,5 @@
 import type { Page, Request } from "@playwright/test";
+import { craft, factoryPhoto } from "../src/content/pages";
 import { projects } from "../src/content/projects";
 import { BASE_PATH, SERVER_ORIGIN } from "./env";
 import { expect, test } from "./fixtures";
@@ -20,6 +21,7 @@ type PageWithPhotos = { path: string; photos: readonly string[] };
 const PAGES_WITH_PHOTOS: readonly PageWithPhotos[] = [
   { path: "/", photos: [] },
   { path: PROJECTS_PATH, photos: [] },
+  { path: "/capabilities", photos: [...craft.map((photo) => photo.src), factoryPhoto.src].filter((src) => src !== "") },
   ...projects.map((project) => ({ path: `${PROJECTS_PATH}/${project.slug}`, photos: project.images })),
 ];
 

@@ -40,6 +40,7 @@ A push straight to `main` deploys as well, and `verify` still has to pass before
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high           # CI fails the run on a high or critical advisory in the packages that ship
 npm run lint
 npm run typecheck
 npm run test:coverage                              # keep coverage at 80% or more
@@ -56,6 +57,8 @@ CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google 
 ```
 
 CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10).
+
+Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when any image in `public/` is over 1.5 MB, whether a page uses it or not, and every file stays in git history for good.
 
 ## 4. Install the tools (macOS with Homebrew)
 
@@ -109,7 +112,7 @@ dig @1.1.1.1 www.numaliving.us CNAME +short        # pranay-ai360.github.io.
 python3 -I tools/cloudflare/cf_dns.py check        # records in the Cloudflare zone, and what would change
 ```
 
-If the certificate does not start about 30 minutes after the DNS is right, GitHub's DNS check has kept an old "no records" answer. Clear the domain and set it again, then switch on HTTPS once the certificate says `approved`. While the domain is cleared another GitHub account could claim it, so verify the domain with GitHub first (profile Settings > Pages > Add a domain, then the `_github-pages-challenge-pranay-ai360` TXT record in Cloudflare) and run the two commands back to back:
+If the certificate does not start about 30 minutes after the DNS is right, GitHub's DNS check has kept an old "no records" answer. Clear the domain and set it again, then switch on HTTPS once the certificate says `approved`. While the domain is cleared another GitHub account could claim it, so verify the domain with GitHub first (profile Settings > Pages > Add a domain, then `python3 -I tools/cloudflare/cf_dns.py github-challenge <the-code> --yes` to add the `_github-pages-challenge-pranay-ai360` TXT record, then Verify; see `tools/cloudflare/README.md`) and run the two commands back to back:
 
 ```bash
 echo '{"cname":null}' | gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages --input - \
@@ -121,8 +124,8 @@ Roll back the domain with the first command alone (`cname: null`), then redeploy
 
 ## 8. Secrets
 
-- Cloudflare credentials live in a keys file: `api-keys.json` at the repository root, or better a file outside the repository (set `NUMA_KEYS_FILE`; see `tools/cloudflare/README.md`). Start from `tools/cloudflare/api-keys.example.json` and run `chmod 600` on it. Use a scoped token (Zone > DNS > Edit and Zone > Zone > Read on `numaliving.us` only, with an expiry) in `zone-api-key`. The helper does not use a Global API Key: delete any from the file and roll it in the dashboard.
-- Never commit, paste, print or send the file. `.gitignore` covers `api-keys*` at any depth, and `.claude/settings.json` blocks the obvious ways for Claude Code to read it (the Read and Edit tools, and any shell command that names it). That is a speed bump, not a boundary: a shell command that does not name the file can still open it, so the safest home for the file is outside the repository. The helper reads it locally and prints no values.
+- Cloudflare credentials live in a keys file named `api-keys.json`, kept outside the repository at `~/.config/numaliving/api-keys.json`: the helper looks there by itself, or at the path in `NUMA_KEYS_FILE`, and uses a copy in the repository root first when one exists (see `tools/cloudflare/README.md`). Start from `tools/cloudflare/api-keys.example.json` and run `chmod 600` on it. Use a scoped token (Zone > DNS > Edit and Zone > Zone > Read on `numaliving.us` only, with an expiry) in `zone-api-key`. The helper does not use a Global API Key: delete any from the file and roll it in the dashboard.
+- Never commit, paste, print or send the file. `.gitignore` covers `api-keys*` at any depth, and `.claude/settings.json` blocks the obvious ways for Claude Code to read it (the Read and Edit tools, in the repository and under `~/.config/numaliving/`, and any shell command that names it). That is a speed bump, not a boundary: a shell command that does not name the file can still open it, which is why the file lives outside the repository. The helper reads it locally and prints no values.
 - If a key leaks, delete or roll it in the Cloudflare dashboard (My Profile > API Tokens) and make a new one.
 - Every `NEXT_PUBLIC_` value, the FormSubmit alias included, is public by design.
 
@@ -141,10 +144,20 @@ python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
 
 The verdict is at the top of `report.md` in that folder. The "request-aborted" warnings are the browser cancelling prefetches and are harmless.
 
+The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex`, loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
+
+```bash
+CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:live
+playwright screenshot --full-page --viewport-size="1440, 3000" https://numaliving.us/ home-1440.png
+```
+
+The live test expects `noindex`: change it when the site launches.
+
 ## 10. Known quirks
 
-- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. A browser launch that exits with code 76 means another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it.
+- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. A browser launch that exits with code 76 means another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it: `ps -o ppid= -p <pid>` gives the parent, and `lsof -a -p <ppid> -d cwd` shows the project it runs from.
 - **Tower stashes for you.** Switching branches in Tower auto-stashes uncommitted work. Look at `git stash list` if something seems to have vanished.
+- **Start new work from `origin/main`, not from an old branch.** Once part of a branch has reached `main` by cherry-pick, carrying on in that branch brings the same change back as conflicts. The `Ramya` branch's content commit went in as an adapted cherry-pick (PR #9), so merging `Ramya` into `main` as it stands conflicts in 7 files (`src/app/page.tsx`, `src/content/pages.ts`, `src/content/projects.ts`, `src/components/PortalPreview.tsx`, `src/components/LoginForm.tsx` and two portal files that `main` no longer has). Its two older commits, the brown ink colour (`94270b8`) and the client portal demo (`bd74207`), are not on `main`. To ship them, branch from `origin/main` and cherry-pick them (`git switch -c feat/portal-demo origin/main`, then `git cherry-pick 94270b8 bd74207`). Expect conflicts in `LoginForm.tsx`: on `main` it is deliberately design-only (no `<form>`, so a password can never reach a URL) and pinned by tests. The demo's data module, `src/lib/portal/demo.ts`, would also fall under the 80% coverage gate.
 - **A lint warning after the coverage run.** `npm run lint` right after `npm run test:coverage` warns about the generated `coverage/block-navigation.js`. CI is not affected.
 - **FormSubmit** is a free third party with no service guarantee. Send a test Quote Request now and then.
 - **Placeholders remain** for the phone number, WhatsApp number, address and the sample projects, so the site stays `noindex` with its Preview ribbon (`src/config/launchGuard.test.ts` enforces this).

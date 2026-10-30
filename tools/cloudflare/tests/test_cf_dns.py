@@ -27,6 +27,7 @@ ZONE_ID = "1" * 32
 ACCOUNT_ID = "2" * 32
 ZONE_PATH = f"/zones/{ZONE_ID}"
 RECORDS_PATH = f"{ZONE_PATH}/dns_records"
+CHALLENGE_CODE = "0123456789abcdef0123456789abcd"  # a made-up code of the shape GitHub shows: 30 lowercase hex characters
 
 
 def keys(**extra: str) -> dict[str, str]:
@@ -169,9 +170,26 @@ class KeysFileTests(unittest.TestCase):
         with mock.patch.dict("os.environ", {cf_dns.KEYS_FILE_ENV: "/elsewhere/keys.json"}):
             self.assertEqual(cf_dns.default_keys_file(), Path("/elsewhere/keys.json"))
 
-    def test_default_path_is_the_file_in_the_repository_root(self):
-        with mock.patch.dict("os.environ", clear=True):
-            self.assertEqual(cf_dns.default_keys_file(), cf_dns.REPO_ROOT / "api-keys.json")
+    def test_default_path_is_the_copy_in_the_repository_root_when_there_is_one(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict("os.environ", clear=True):
+            (Path(folder) / "api-keys.json").write_text("{}", encoding="utf-8")
+            with mock.patch.object(cf_dns, "REPO_ROOT", Path(folder)):
+                self.assertEqual(cf_dns.default_keys_file(), Path(folder) / "api-keys.json")
+
+    def test_default_path_is_the_file_in_the_home_folder_when_the_repository_has_none(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict("os.environ", clear=True):
+            with mock.patch.object(cf_dns, "REPO_ROOT", Path(folder)):
+                self.assertEqual(cf_dns.default_keys_file(), cf_dns.USER_KEYS_FILE)
+
+    def test_the_home_folder_file_is_under_dot_config_numaliving(self):
+        self.assertEqual(cf_dns.USER_KEYS_FILE, Path.home() / ".config" / "numaliving" / "api-keys.json")
+
+    def test_the_environment_override_beats_a_copy_in_the_repository_root(self):
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "api-keys.json").write_text("{}", encoding="utf-8")
+            with mock.patch.object(cf_dns, "REPO_ROOT", Path(folder)):
+                with mock.patch.dict("os.environ", {cf_dns.KEYS_FILE_ENV: "/elsewhere/keys.json"}):
+                    self.assertEqual(cf_dns.default_keys_file(), Path("/elsewhere/keys.json"))
 
 
 class DescribeKeysFileTests(unittest.TestCase):
@@ -499,7 +517,186 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(zone.writes, [])
 
 
+class ChallengeActionTests(unittest.TestCase):
+    def test_the_record_name_is_the_one_github_asks_for(self):
+        self.assertEqual(cf_dns.CHALLENGE_NAME, "_github-pages-challenge-pranay-ai360.numaliving.us")
+
+    def test_a_missing_record_is_not_present(self):
+        self.assertFalse(cf_dns.challenge_record_present([], CHALLENGE_CODE))
+
+    def test_a_record_with_the_same_value_is_present(self):
+        existing = [record("TXT", cf_dns.CHALLENGE_NAME, CHALLENGE_CODE)]
+
+        self.assertTrue(cf_dns.challenge_record_present(existing, CHALLENGE_CODE))
+
+    def test_a_value_that_cloudflare_returns_in_one_pair_of_quotes_is_present(self):
+        existing = [record("TXT", cf_dns.CHALLENGE_NAME, f'"{CHALLENGE_CODE}"')]
+
+        self.assertTrue(cf_dns.challenge_record_present(existing, CHALLENGE_CODE))
+
+    def test_only_one_matching_pair_of_quotes_is_removed(self):
+        for stored in (f'"{CHALLENGE_CODE}', f'{CHALLENGE_CODE}"', f'""{CHALLENGE_CODE}""'):
+            with self.subTest(stored=stored):
+                existing = [record("TXT", cf_dns.CHALLENGE_NAME, stored)]
+
+                with self.assertRaisesRegex(cf_dns.CloudflareError, "different TXT value"):
+                    cf_dns.challenge_record_present(existing, CHALLENGE_CODE)
+
+    def test_a_different_value_is_an_error_never_a_replacement(self):
+        existing = [record("TXT", cf_dns.CHALLENGE_NAME, "0" * 30)]
+
+        with self.assertRaisesRegex(cf_dns.CloudflareError, "different TXT value"):
+            cf_dns.challenge_record_present(existing, CHALLENGE_CODE)
+
+    def test_the_name_and_type_are_compared_the_way_dns_does(self):
+        spellings = (("TXT", cf_dns.CHALLENGE_NAME.upper()), ("txt", cf_dns.CHALLENGE_NAME),
+                     ("TXT", f"{cf_dns.CHALLENGE_NAME}."))
+        for rtype, name in spellings:
+            with self.subTest(rtype=rtype, name=name):
+                existing = [record(rtype, name, CHALLENGE_CODE)]
+
+                self.assertTrue(cf_dns.challenge_record_present(existing, CHALLENGE_CODE))
+
+    def test_the_same_value_on_another_name_does_not_count(self):
+        elsewhere = [record("TXT", f"other.{cf_dns.DOMAIN}", CHALLENGE_CODE), record("TXT", cf_dns.DOMAIN, CHALLENGE_CODE)]
+
+        self.assertFalse(cf_dns.challenge_record_present(elsewhere, CHALLENGE_CODE))
+
+    def test_an_address_record_on_the_name_does_not_count(self):
+        other_type = [record("A", cf_dns.CHALLENGE_NAME, "203.0.113.5")]
+
+        self.assertFalse(cf_dns.challenge_record_present(other_type, CHALLENGE_CODE))
+
+    def test_a_cname_on_the_name_is_reported_because_it_cannot_sit_beside_a_txt_record(self):
+        blocking = [record("CNAME", cf_dns.CHALLENGE_NAME, "somewhere.example")]
+
+        with self.assertRaisesRegex(cf_dns.CloudflareError, "CNAME"):
+            cf_dns.challenge_record_present(blocking, CHALLENGE_CODE)
+
+    def test_the_plan_for_the_managed_records_keeps_the_challenge_record(self):
+        plan = cf_dns.build_plan([*wanted_records(), record("TXT", cf_dns.CHALLENGE_NAME, CHALLENGE_CODE)])
+
+        self.assertEqual(plan, {"create": [], "delete_first": [], "delete_after": [], "unproxy": []})
+
+
+class OpenZoneTests(unittest.TestCase):
+    def open_with(self, zone: FakeZone):
+        with keys_file(json.dumps(keys())) as path, mock.patch.object(cf_dns, "call", zone):
+            with contextlib.redirect_stdout(io.StringIO()):
+                return cf_dns.open_zone(path)
+
+    def test_returns_the_credentials_and_every_page_of_records(self):
+        found_creds, records = self.open_with(FakeZone(wanted_records(), page_size=3))
+
+        self.assertEqual(found_creds, creds())
+        self.assertEqual(len(records), len(cf_dns.DESIRED_RECORDS))
+
+    def test_a_zone_of_another_domain_is_refused(self):
+        with self.assertRaisesRegex(cf_dns.CloudflareError, "refusing"):
+            self.open_with(FakeZone([], zone_name="other.example"))
+
+    def test_an_unreadable_zone_with_nothing_to_confirm_it_is_refused(self):
+        for records in ([], [record("A", "other.example", "1.1.1.1")]):
+            with self.subTest(records=len(records)):
+                with self.assertRaisesRegex(cf_dns.CloudflareError, "Zone > Zone > Read"):
+                    self.open_with(FakeZone(records, zone_readable=False))
+
+    def test_an_unreadable_zone_whose_records_are_all_ours_is_allowed(self):
+        self.open_with(FakeZone([record("MX", cf_dns.DOMAIN, "mx1.forwardemail.net")], zone_readable=False))
+
+
+class GithubChallengeCommandTests(unittest.TestCase):
+    def run_challenge(self, zone: FakeZone, code: str = CHALLENGE_CODE) -> tuple[int, str]:
+        with keys_file(json.dumps(keys())) as path, mock.patch.object(cf_dns, "call", zone):
+            return run_main("--keys-file", str(path), "github-challenge", code, "--yes")
+
+    def test_creates_only_the_txt_record_whatever_else_is_wrong_with_the_zone(self):
+        messy_zone = FakeZone([
+            record("A", cf_dns.DOMAIN, "3.33.130.190", record_id="parking"),  # `apply` would delete this
+            record("A", cf_dns.DOMAIN, cf_dns.GITHUB_IPV4[0], proxied=True, record_id="proxied"),  # and un-proxy this
+            record("MX", cf_dns.DOMAIN, "mx1.forwardemail.net"),
+        ])
+
+        code, _ = self.run_challenge(messy_zone)
+
+        self.assertEqual(code, 0)
+        self.assertEqual(len(messy_zone.writes), 1)
+        method, path, body = messy_zone.writes[0]
+        self.assertEqual((method, path), ("POST", RECORDS_PATH))
+        self.assertEqual((body["type"], body["name"], body["content"]), ("TXT", cf_dns.CHALLENGE_NAME, CHALLENGE_CODE))
+        self.assertEqual((body["ttl"], body["proxied"]), (cf_dns.AUTO_TTL, False))
+        self.assertIn("domain verification", body["comment"])
+
+    def test_says_what_to_do_next_keeps_the_name_and_code_apart_and_never_prints_the_token(self):
+        _, output = self.run_challenge(FakeZone(wanted_records()))
+
+        self.assertIn("Verify", output)
+        self.assertRegex(output, re.escape(cf_dns.CHALLENGE_NAME) + r"\s+" + CHALLENGE_CODE)
+        self.assertNotIn(SECRET, output)
+
+    def test_changes_nothing_when_the_record_is_already_there(self):
+        zone = FakeZone([*wanted_records(), record("TXT", cf_dns.CHALLENGE_NAME, CHALLENGE_CODE)])
+
+        code, output = self.run_challenge(zone)
+
+        self.assertEqual(code, 0)
+        self.assertIn("already in place", output)
+        self.assertEqual(zone.writes, [])
+
+    def test_a_record_that_cloudflare_returns_in_quotes_is_not_created_twice(self):
+        zone = FakeZone([record("TXT", cf_dns.CHALLENGE_NAME, f'"{CHALLENGE_CODE}"')])
+
+        self.assertEqual(self.run_challenge(zone)[0], 0)
+        self.assertEqual(zone.writes, [])
+
+    def test_a_different_value_is_reported_and_nothing_is_deleted_or_replaced(self):
+        zone = FakeZone([record("TXT", cf_dns.CHALLENGE_NAME, "0" * 30, record_id="old-challenge")])
+
+        code, output = self.run_challenge(zone)
+
+        self.assertEqual(code, cf_dns.EXIT_FAILURE)
+        self.assertIn("different TXT value", output)
+        self.assertEqual(zone.writes, [])
+
+    def test_reads_every_page_of_records_before_deciding(self):
+        on_the_last_page = record("TXT", cf_dns.CHALLENGE_NAME, CHALLENGE_CODE)
+        zone = FakeZone([*wanted_records(), on_the_last_page], page_size=3)
+
+        self.assertEqual(self.run_challenge(zone)[0], 0)
+        self.assertEqual(zone.writes, [])
+
+    def test_a_zone_of_another_domain_is_refused_with_no_writes(self):
+        zone = FakeZone([], zone_name="other.example")
+
+        code, output = self.run_challenge(zone)
+
+        self.assertEqual(code, cf_dns.EXIT_FAILURE)
+        self.assertIn("refusing", output)
+        self.assertEqual(zone.writes, [])
+
+    def test_a_failed_create_is_reported_and_says_it_is_safe_to_repeat(self):
+        zone = FakeZone(wanted_records(), post_status=429)
+
+        code, output = self.run_challenge(zone)
+
+        self.assertEqual(code, cf_dns.EXIT_FAILURE)
+        self.assertIn("creating TXT", output)
+        self.assertIn("safe to repeat", output)
+
+    def test_the_function_checks_the_code_itself_before_any_request(self):
+        with keys_file(json.dumps(keys())) as path:
+            with mock.patch.object(cf_dns, "call", side_effect=AssertionError("must not be called")):
+                with self.assertRaisesRegex(cf_dns.CloudflareError, "lowercase hex"):
+                    cf_dns.github_challenge(path, "not hex")
+
+
 class MainTests(unittest.TestCase):
+    def setUp(self):
+        # A regression that got past a guard must not be able to open the real keys file.
+        patcher = mock.patch.object(cf_dns, "default_keys_file", return_value=Path("/nonexistent/none.json"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_apply_without_yes_does_not_touch_the_api(self):
         with mock.patch.object(cf_dns, "call", side_effect=AssertionError("must not be called")):
             code, _ = run_main("apply")
@@ -526,6 +723,32 @@ class MainTests(unittest.TestCase):
         self.assertEqual(code, cf_dns.EXIT_FAILURE)
         self.assertIn("RuntimeError", output)
         self.assertNotIn(SECRET, output)
+
+    def test_github_challenge_without_yes_does_not_touch_the_api(self):
+        with mock.patch.object(cf_dns, "call", side_effect=AssertionError("must not be called")):
+            code, _ = run_main("github-challenge", CHALLENGE_CODE)
+
+        self.assertEqual(code, cf_dns.EXIT_USAGE)
+
+    def test_a_code_that_is_not_lowercase_hex_is_refused_before_any_request_and_never_echoed(self):
+        bad_codes = ("", "xyz", "7fc2", CHALLENGE_CODE.upper(), f"{CHALLENGE_CODE} extra", f"{CHALLENGE_CODE}\n",
+                     "a" * 65, "g" * 30, f"{CHALLENGE_CODE}.numaliving.us")
+        for bad in bad_codes:
+            with self.subTest(bad=bad):
+                with mock.patch.object(cf_dns, "call", side_effect=AssertionError("must not be called")):
+                    code, output = run_main("github-challenge", bad, "--yes")
+
+                self.assertEqual(code, cf_dns.EXIT_USAGE)
+                if bad.strip():
+                    self.assertNotIn(bad.strip(), output)
+
+    def test_the_code_length_limits_are_20_and_64_characters(self):
+        for length, accepted in ((19, False), (20, True), (64, True), (65, False)):
+            with self.subTest(length=length):
+                code, _ = run_main("github-challenge", "a" * length, "--yes")
+
+                # An accepted code gets as far as the (missing) keys file, which is a failure, not a usage error.
+                self.assertEqual(code == cf_dns.EXIT_USAGE, not accepted)
 
 
 if __name__ == "__main__":
