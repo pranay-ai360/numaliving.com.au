@@ -1,11 +1,23 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { projects } from "@/content/projects";
 import { requirePageSeo } from "@/content/seo";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import ProjectPage, { generateMetadata } from "./page";
 
 type ProjectPageProps = Parameters<typeof ProjectPage>[0];
+
+/** A slug no real project uses: the mock below answers it with a copy of the first project that has no photos. */
+const { PROJECT_WITHOUT_PHOTOS_SLUG } = vi.hoisted(() => ({ PROJECT_WITHOUT_PHOTOS_SLUG: "project-without-photos" }));
+
+vi.mock("@/content/projects", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/content/projects")>();
+  const [first] = actual.projects;
+  return {
+    ...actual,
+    getProject: (slug: string) => (slug === PROJECT_WITHOUT_PHOTOS_SLUG ? { ...first, slug, photos: [] } : actual.getProject(slug)),
+  };
+});
 
 /** The photos that belong to the project itself: the "More work" cards at the bottom (each a link) show other projects' covers. */
 function ownPhotos(): readonly HTMLElement[] {
@@ -97,9 +109,7 @@ describe("project page gallery", () => {
 
   it("shows a swatch placeholder, and no photo, for a project without photos", async () => {
     // Arrange
-    const project = projects.find((candidate) => candidate.photos.length === 0);
-    if (project === undefined) throw new Error("Every project has photos, so there is no placeholder to test.");
-    await renderProjectPage(project.slug);
+    await renderProjectPage(PROJECT_WITHOUT_PHOTOS_SLUG);
 
     // Act
     const images = ownPhotos();

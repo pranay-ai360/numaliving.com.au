@@ -75,17 +75,20 @@ const PAGES: readonly PageSeo[] = [
 ];
 
 /**
- * Search descriptions of the sample projects, in US words and within 120 to 160 characters (the
+ * Search descriptions of the projects, in US words and within 120 to 160 characters (the
  * summaries on the pages are written in other words and one is too short). A project without one
  * here falls back to its summary.
  */
 const PROJECT_DESCRIPTIONS: Readonly<Record<string, string>> = {
-  "marina-villa": "Full interior millwork for a beachfront villa in Dubai Marina: walnut wall paneling, a bookmatched veneer library and a lacquered kitchen with integrated stone.",
-  sonate: "Executive floor fit-out for a family office in Dubai: a reception desk, boardroom table and acoustic oak slat walls, with pantry millwork and executive suites.",
-  penthouse25: "Repeatable kitchen and closet packages for luxury apartments in Dubai, engineered for fast installation and a consistent finish in every unit.",
-  "golf-links": "A duplex penthouse in Sports City, UAE, with curved stair cladding, a smoked oak bar, custom dressing rooms in silk-lined lacquer and a media wall.",
-  "london-mayfair-apartment": "Made in our Dubai factory and shipped to London in two containers: paneled reception rooms, a kitchen, closets and vanities for four bathrooms.",
-  "trivandrum-tech-campus": "Workplace millwork across three floors of a technology campus in India: collaboration booths, cafe counters, lockers and a timber-lined auditorium.",
+  "marina-villa": "Interior millwork for a beachfront villa in Dubai Marina: a backlit display wall framed by fluted panels, pale cabinetry and floating vanities.",
+  amherst: "Whole-house millwork in light natural wood for a home in Los Altos Hills, USA: a kitchen with fluted-glass cabinets, a window unit, closets and vanities.",
+  sonate: "Kitchens and bathroom millwork for luxury apartments in Dubai Sports City: handleless kitchens with cream upper cabinets and floating vanities.",
+  "poppy-16": "A light wood home in Pebble Beach, USA: a kitchen wall of tall units with lit niches, a breakfast-bar island, vanities, a dressing room and a pantry.",
+  penthouse25: "A high-rise penthouse in Dubai in warm neutrals: a long bar counter in a champagne metallic finish, a kitchen island and backlit display shelving.",
+  sandy: "A hillside home in Morgan Hill, USA: a dark wood-grain kitchen with a two-level island, a home office with a waterfall desk and a lit bar and wine lounge.",
+  "golf-links": "Lobby and apartment millwork for a residential tower in Sports City, UAE: a lit reception desk, paneled lobby walls, kitchens, closets and vanities.",
+  "poppy-11": "A modern coastal home in Pebble Beach, USA: a dark wood-grain kitchen around a charcoal island, closet walls with tinted-glass doors and floating vanities.",
+  estacada: "Light, calm millwork through a single-story home in Los Altos Hills, USA: a pale wood kitchen wall, a waterfall island, closets and vanities.",
 };
 
 /** The entry for a project's page: its name, a search description, and the share image of its first photo, when it has photos. */
