@@ -1,5 +1,5 @@
 import { defineConfig } from "@playwright/test";
-import { BASE_PATH, BASE_URL, SERVER_PORT } from "./e2e/env";
+import { BASE_PATH, BASE_URL, REUSE_EXISTING_SERVER, SERVER_PORT } from "./e2e/env";
 
 /**
  * End-to-end tests against the static export (`npm run build:e2e` first: it builds below the base
@@ -39,6 +39,6 @@ export default defineConfig({
     // "--prefix=" (with "=") also works when the base path is empty.
     command: `node scripts/serve-pages.mjs --root out --prefix=${BASE_PATH} --port ${SERVER_PORT}`,
     url: BASE_URL,
-    reuseExistingServer: !isCI,
+    reuseExistingServer: REUSE_EXISTING_SERVER,
   },
 });

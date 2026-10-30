@@ -4,7 +4,7 @@
  * playwright.config.ts and the specs.
  */
 import { parseBasePath } from "../src/lib/basePath";
-import { parsePort } from "../src/lib/port";
+import { mayReuseExistingServer, parsePort } from "../src/lib/port";
 
 const DEFAULT_BASE_PATH = "/numaliving.com.au";
 const DEFAULT_PORT = 4173;
@@ -18,6 +18,9 @@ export const SERVER_HOST = "127.0.0.1";
  */
 export const SERVER_PORT = parsePort(process.env.E2E_PORT, DEFAULT_PORT, "E2E_PORT");
 export const SERVER_ORIGIN = `http://${SERVER_HOST}:${SERVER_PORT}`;
+
+/** Whether a server already running on that port may be reused: only locally on the default port (see `mayReuseExistingServer`). */
+export const REUSE_EXISTING_SERVER = mayReuseExistingServer(process.env);
 
 /**
  * PAGES_BASE_PATH must match the NEXT_PUBLIC_BASE_PATH the site was built with; `npm run build:e2e`

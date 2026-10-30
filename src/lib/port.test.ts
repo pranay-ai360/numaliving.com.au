@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PORT, MIN_PORT, parsePort } from "@/lib/port";
+import { MAX_PORT, MIN_PORT, mayReuseExistingServer, parsePort } from "@/lib/port";
 
 const DEFAULT_PORT = 4173;
 
@@ -87,5 +87,40 @@ describe("parsePort", () => {
 
     // Assert
     expect(act).toThrow("Leave it unset to use 4173.");
+  });
+});
+
+describe("mayReuseExistingServer", () => {
+  it("reuses a server that is already running, for a quick local rerun on the default port", () => {
+    // Arrange
+    const env = {};
+
+    // Act
+    const mayReuse = mayReuseExistingServer(env);
+
+    // Assert
+    expect(mayReuse).toBe(true);
+  });
+
+  it("never reuses a server in CI", () => {
+    // Arrange
+    const env = { CI: "true" };
+
+    // Act
+    const mayReuse = mayReuseExistingServer(env);
+
+    // Assert
+    expect(mayReuse).toBe(false);
+  });
+
+  it("never reuses a server on a port that E2E_PORT names, so a stale server left there is not tested in place of the fresh build", () => {
+    // Arrange
+    const env = { E2E_PORT: "4312" };
+
+    // Act
+    const mayReuse = mayReuseExistingServer(env);
+
+    // Assert
+    expect(mayReuse).toBe(false);
   });
 });
