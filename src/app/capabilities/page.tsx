@@ -46,15 +46,6 @@ export default function CapabilitiesPage() {
 
           <PhotoTile photo={factoryPhoto} className="mt-10 aspect-[16/7] w-full" />
 
-          <dl className="mt-10 grid grid-cols-2 gap-y-8 lg:grid-cols-4">
-            {factory.facts.map((f) => (
-              <div key={f.label} className="flex flex-col-reverse justify-end pr-6">
-                <dt className="text-sm text-ink-muted">{f.label}</dt>
-                <dd className="display mb-1 normal-case text-2xl text-gold">{f.value}</dd>
-              </div>
-            ))}
-          </dl>
-
           <ol className="mt-12 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {factory.zones.map((z, i) => (
               <li key={z.name} className="border-t-2 border-gold pt-4">
