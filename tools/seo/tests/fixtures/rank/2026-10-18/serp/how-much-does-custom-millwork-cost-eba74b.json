@@ -1,0 +1,91 @@
+{
+ "query": "how much does custom millwork cost",
+ "language": "en-US",
+ "fetched_at": "2026-10-18T09:00:00+00:00",
+ "attempts": 1,
+ "results": [
+  {
+   "rank": 1,
+   "url": "https://www.angi.com/",
+   "domain": "www.angi.com",
+   "title": "www.angi.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.95,
+   "published": null
+  },
+  {
+   "rank": 2,
+   "url": "https://www.homeadvisor.com/",
+   "domain": "www.homeadvisor.com",
+   "title": "www.homeadvisor.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.9,
+   "published": null
+  },
+  {
+   "rank": 3,
+   "url": "https://www.thumbtack.com/",
+   "domain": "www.thumbtack.com",
+   "title": "www.thumbtack.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.85,
+   "published": null
+  },
+  {
+   "rank": 4,
+   "url": "https://www.houzz.com/magazine/custom-millwork-cost",
+   "domain": "www.houzz.com",
+   "title": "www.houzz.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.8,
+   "published": null
+  },
+  {
+   "rank": 5,
+   "url": "https://www.fixr.com/",
+   "domain": "www.fixr.com",
+   "title": "www.fixr.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.75,
+   "published": null
+  },
+  {
+   "rank": 6,
+   "url": "https://www.bobvila.com/",
+   "domain": "www.bobvila.com",
+   "title": "www.bobvila.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.7,
+   "published": null
+  }
+ ],
+ "suggestions": [],
+ "answers": [],
+ "corrections": [],
+ "infoboxes": [],
+ "unresponsive": []
+}

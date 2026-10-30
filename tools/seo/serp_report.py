@@ -109,6 +109,9 @@ def _result_domain(result: Any) -> str:
     return normalise_domain(parts.netloc) if parts is not None else ""
 
 
+result_domain = _result_domain  # the public name, for the tools that read results (rank_rows.py)
+
+
 def top_domains(record: Record, top: int) -> Tuple[str, ...]:
     """The distinct domains among the first ``top`` results, in rank order."""
     found = (_result_domain(result) for result in record["results"][:top])

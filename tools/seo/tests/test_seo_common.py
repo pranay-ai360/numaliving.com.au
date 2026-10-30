@@ -463,6 +463,17 @@ class LogAndCliTests(unittest.TestCase):
             seo_common.run_cli(broken, [])
 
 
+class CountedTests(unittest.TestCase):
+    def test_one_is_singular_and_anything_else_is_plural(self) -> None:
+        self.assertEqual(seo_common.counted(1, "page"), "1 page")
+        self.assertEqual(seo_common.counted(0, "page"), "0 pages")
+        self.assertEqual(seo_common.counted(2, "page"), "2 pages")
+
+    def test_an_irregular_plural_can_be_given(self) -> None:
+        self.assertEqual(seo_common.counted(1, "address", "addresses"), "1 address")
+        self.assertEqual(seo_common.counted(3, "address", "addresses"), "3 addresses")
+
+
 class ArgumentTypeTests(unittest.TestCase):
     def test_non_negative_float(self) -> None:
         self.assertEqual(seo_common.non_negative_float("0"), 0.0)

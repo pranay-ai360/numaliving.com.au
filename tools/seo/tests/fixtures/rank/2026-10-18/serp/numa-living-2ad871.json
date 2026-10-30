@@ -1,0 +1,78 @@
+{
+ "query": "numa living",
+ "language": "en-US",
+ "fetched_at": "2026-10-18T09:00:00+00:00",
+ "attempts": 1,
+ "results": [
+  {
+   "rank": 1,
+   "url": "https://numaliving.us/",
+   "domain": "numaliving.us",
+   "title": "numaliving.us page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.95,
+   "published": null
+  },
+  {
+   "rank": 2,
+   "url": "https://numaliving.it/",
+   "domain": "numaliving.it",
+   "title": "numaliving.it page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.9,
+   "published": null
+  },
+  {
+   "rank": 3,
+   "url": "https://numastays.com/",
+   "domain": "numastays.com",
+   "title": "numastays.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.85,
+   "published": null
+  },
+  {
+   "rank": 4,
+   "url": "https://numastyle.com/",
+   "domain": "numastyle.com",
+   "title": "numastyle.com page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.8,
+   "published": null
+  },
+  {
+   "rank": 5,
+   "url": "https://numaliving.co.uk/",
+   "domain": "numaliving.co.uk",
+   "title": "numaliving.co.uk page",
+   "snippet": "Fixture snippet.",
+   "engines": [
+    "google cse",
+    "duckduckgo"
+   ],
+   "score": 1.75,
+   "published": null
+  }
+ ],
+ "suggestions": [],
+ "answers": [],
+ "corrections": [],
+ "infoboxes": [],
+ "unresponsive": []
+}

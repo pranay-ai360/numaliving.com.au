@@ -12,8 +12,8 @@ from unittest import mock
 from helpers import TOOLS_DIR
 
 SCRIPTS = (
-    "audit_pages", "browse", "fetch_pages", "google_features", "serp_report", "serp_search", "sitemap_report",
-    "vocab_gap",
+    "audit_pages", "browse", "fetch_pages", "google_features", "launch_check", "rank_log", "serp_report",
+    "serp_search", "sitemap_report", "vocab_gap",
 )
 
 
