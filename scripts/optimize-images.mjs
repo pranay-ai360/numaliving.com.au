@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Makes the fast copies of the project photos, and the share images, with sharp.
+ * Makes the fast copies of the project photos and the craft photos, and the share images, with sharp.
  *
  *   npm run images:build                          # make what is missing or out of date
  *   node scripts/optimize-images.mjs --check      # change nothing; exit 1 if anything is missing, out of date or left over
@@ -9,7 +9,8 @@
  * From each source photo public/projects/<project-slug>/<project-slug>-<nn>.jpg it writes, next to it,
  * an AVIF and a WebP at 480, 800, 1200 and 1600 px wide (never wider than the photo) without any
  * metadata, and for each project a 1200 x 630 share image public/og/<project-slug>.jpg cut from
- * `<project-slug>-01.jpg`, plus public/og/default.jpg for the whole site. The sources are never touched.
+ * `<project-slug>-01.jpg`, plus public/og/default.jpg for the whole site. The craft and factory photos,
+ * public/craft/<name>.jpg, get the same copies next to them but no share image. The sources are never touched.
  *
  * The output is deterministic, and `scripts/images.manifest.json` records which photos (by SHA-256)
  * and which settings the files were made from, so a second run changes nothing and a test
@@ -23,6 +24,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 import {
+  CRAFT_DIR,
   ENCODER_SETTINGS,
   MANIFEST_PATH,
   OG_CROP_POSITION,
@@ -83,14 +85,22 @@ function problemsWithSource(file) {
   return [...slugProblem, ...nameProblem];
 }
 
+/** What is wrong with the place or name of a craft photo: it goes directly in public/craft/, named in lower case with hyphens. @param {string} file */
+function problemsWithCraftSource(file) {
+  const [name, ...deeper] = file.slice(CRAFT_DIR.length + 1).split("/");
+  if (deeper.length > 0) return [`${file}: put each photo directly in ${CRAFT_DIR}/`];
+  return isSourceName(name) ? [] : [`${file}: rename it in lower case with hyphens and a .jpg ending (for example spray-booth.jpg)`];
+}
+
 /** @returns {Promise<string[]>} */
 async function findSourcePaths(root) {
-  const files = (await listFiles(root, PROJECTS_DIR)).filter((file) => SOURCE_EXTENSION.test(file));
-  const problems = files.flatMap(problemsWithSource);
+  const projectFiles = (await listFiles(root, PROJECTS_DIR)).filter((file) => SOURCE_EXTENSION.test(file));
+  const craftFiles = (await listFiles(root, CRAFT_DIR)).filter((file) => SOURCE_EXTENSION.test(file));
+  const problems = [...projectFiles.flatMap(problemsWithSource), ...craftFiles.flatMap(problemsWithCraftSource)];
   if (problems.length > 0) {
     throw new Error(`These photos cannot be used, because GitHub Pages matches file names case-sensitively:\n${problems.map((problem) => `  - ${problem}`).join("\n")}`);
   }
-  return files;
+  return [...projectFiles, ...craftFiles];
 }
 
 /** @returns {Promise<SourcePhoto>} */
@@ -108,9 +118,10 @@ async function readSource(root, file) {
   return { path: file, width: isTurned ? height : width, sha256: createHash("sha256").update(bytes).digest("hex") };
 }
 
-/** The generated files on disk: the AVIF and WebP copies of the photos, and the share images. @returns {Promise<string[]>} */
+/** The generated files on disk: the AVIF and WebP copies of the project and craft photos, and the share images. @returns {Promise<string[]>} */
 async function listGenerated(root) {
-  const copies = (await listFiles(root, PROJECTS_DIR)).filter((file) => GENERATED_PHOTO_EXTENSIONS.includes(path.extname(file)));
+  const photoFiles = [...(await listFiles(root, PROJECTS_DIR)), ...(await listFiles(root, CRAFT_DIR))];
+  const copies = photoFiles.filter((file) => GENERATED_PHOTO_EXTENSIONS.includes(path.extname(file)));
   const shareImages = (await listFiles(root, OG_DIR)).filter((file) => path.extname(file) === ".jpg");
   return [...copies, ...shareImages];
 }

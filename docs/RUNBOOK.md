@@ -183,7 +183,7 @@ The live test expects `noindex`: change it when the site launches.
 3. `npm run images:build` makes the AVIF and WebP copies (480, 800, 1200 and 1600 px wide, never wider than the photo, without metadata) and the 1200 x 630 share images in `public/og/`, and updates `scripts/images.manifest.json`. All 30 photos take about two minutes the first time; later runs make only what is missing or out of date and remove copies nobody asks for any more. `node scripts/optimize-images.mjs --check` changes nothing and exits with 1 if a copy is missing, out of date or left over.
 4. Commit the photo, the content change, the copies, the share images and the manifest together. The unit tests fail if the copies are out of date (`src/content/projects.test.ts`) or if a page would load more than 1.5 MB of images on first view (`src/components/firstViewBudget.test.tsx`).
 
-The pipeline handles project photos only. The craft and factory photos on the Capabilities page are placeholders (`craft` and `factory.photo` in `sampleContent`); a photo dropped in `public/craft/` would bypass it (README, Photos).
+The pipeline handles the project photos and the craft and factory photos (`public/craft/`): run `npm run images:build` after you add or change any of them (README, Photos). The `craft` entry in `sampleContent` stays until the two watermarked renders in the gallery are replaced with photos of the factory.
 
 The pipeline needs `sharp` (a development dependency, installed by `npm ci`). Its settings (widths, formats, quality, the photo the site-wide share image is cut from) are in `scripts/image-plan.mjs`.
 

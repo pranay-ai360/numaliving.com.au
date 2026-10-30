@@ -1,6 +1,12 @@
 {
   "settings": "cbb245bfc20da17f36a1db7a1e73b7f7f4ccad697adacf40f408fda69eeacc3f",
   "sources": {
+    "public/craft/edgebanding.jpg": "9617648b8699de17ec9c8dc7c15449aca0a214143ba24d68f741d4e028dedeb6",
+    "public/craft/factory-jointer.jpg": "1ccc51cbdf2f6da3b1aca579657111022d3a4f826b617ed8eb88443f9ed49913",
+    "public/craft/lacquer-spray-booth.jpg": "384084ceca392bdf520fb8ba006f869f31271f2caf5f2455bf8dda0dfcc4c1e3",
+    "public/craft/living-01-out-1400x788.jpg": "cd6f87aedbfe64798ae2a51b7352ef001e797a1928ccc33a86e9d412957fc7b3",
+    "public/craft/lobby-out-2-1400x788.jpg": "3d03a13b8a527e2e294fbfa8b3c9f217825befadd79082c225cb442d28229e23",
+    "public/craft/veneer-laying.jpg": "c81e32e687f7916007ed028f8ce1097c6ac4d795f2954a0d4c28f87cc2fa8fb9",
     "public/projects/amherst/amherst-01.jpg": "27a3406979d5d8bec8a63f6ab5c6c9ca741fbb85b3031d4cf81c15a45e9cac34",
     "public/projects/amherst/amherst-02.jpg": "99f52255b9848c1e8c6d4c56439d0d7fc97422d7087e6341dcd183d290aa6bec",
     "public/projects/amherst/amherst-03.jpg": "d33b564626d3d05c37c8bfba24d8285346651fa71e360c90dc36eb429bb52f87",

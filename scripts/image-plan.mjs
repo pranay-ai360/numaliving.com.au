@@ -12,6 +12,12 @@ import { createHash } from "node:crypto";
 /** Where the source photos live, one folder per project: public/projects/<project-slug>/<project-slug>-<nn>.jpg. */
 export const PROJECTS_DIR = "public/projects";
 
+/**
+ * Where the craft and factory photos live, directly in the folder: public/craft/<name>.jpg. They get their
+ * AVIF and WebP copies like the project photos, but no share image: no page of their own is shared.
+ */
+export const CRAFT_DIR = "public/craft";
+
 /** Where the 1200 x 630 share images go. */
 export const OG_DIR = "public/og";
 

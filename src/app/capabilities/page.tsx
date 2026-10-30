@@ -47,7 +47,8 @@ export default function CapabilitiesPage() {
           <SectionTitle ghost="Factory" title={factory.title} />
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted">{factory.lead}</p>
 
-          <PhotoTile photo={factory.photo} className="mt-10 aspect-[16/7] w-full" />
+          {/* The container is at most 1232 px wide: max-w-7xl less its side padding. */}
+          <PhotoTile photo={factory.photo} sizes="(min-width: 1280px) 1232px, 100vw" className="mt-10 aspect-[16/7] w-full" />
 
           <ol className="mt-12 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {factory.zones.map((z, i) => (

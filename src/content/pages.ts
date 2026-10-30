@@ -107,7 +107,7 @@ export const factory = {
   title: "The Factory",
   lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and schedule.",
   /** One wide photo of the factory floor, shown above the factory section. */
-  photo: { src: "/craft/factory-jointer.jpg", material: "oak", alt: "Craftsmen straightening timber on the jointer, Numa Living factory, Dubai", caption: "The factory floor, Dubai" },
+  photo: { src: "/craft/factory-jointer.jpg", material: "oak", alt: "Craftsmen straightening timber on the jointer, Numa Living factory, Dubai", caption: "The factory floor, Dubai", width: 1448, height: 633 },
   zones: [
     { name: "Engineering", text: "Shop drawings and cutting lists produced from your approved design." },
     { name: "Machining", text: "Panel saws, edgebanders and boring machines for repeatable precision." },
@@ -161,19 +161,18 @@ export const delivery = {
  * While src is "", a wood-tone placeholder shows instead. The first photo is shown large. `material` only
  * picks the placeholder colour: walnut, oak, lacquer, stone, brass or linen.
  *
- * These files sit in /public/craft/, which the image pipeline (scripts/image-plan.mjs) does not handle: it
- * reads public/projects/<slug>/<slug>-NN.jpg only, so each loads as one full-size JPEG with no AVIF or WebP
- * copies, no srcset and no width and height. `craft` and `factory.photo` therefore stay listed in
- * `sampleContent` below, so the launch guard keeps the site out of search engines until the pipeline learns
- * the folder (README, Photos and `npm run images:build`). Two of the five are renders carrying another
- * brand's watermark, not photos of the factory: replace them before launch.
+ * These files sit in /public/craft/, in lower case with hyphens. `npm run images:build` makes their AVIF and
+ * WebP copies next to them (README, Photos) and `Photo` shows them with their `width` and `height`; each
+ * description is 8 to 20 words, and src/content/craftPhotos.test.ts checks all of it. `craft` stays listed in
+ * `sampleContent` below, so the launch guard keeps the site out of search engines, because two of the five
+ * are renders carrying another brand's watermark, not photos of the factory: replace them before launch.
  */
 export const craft = [
-  { src: "/craft/living-01-out-1400x788.jpg", material: "walnut", alt: "Render of a living room with a fluted wood-paneled wall, a marble TV panel and veneer cabinetry", caption: "Bookmatched veneer" },
-  { src: "/craft/veneer-laying.jpg", material: "oak", alt: "Craftsmen laying a veneer sheet onto a panel before hot pressing", caption: "Veneer laid by hand" },
-  { src: "/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Render of a lobby with a marble reception desk and wood-and-brass slatted wall panels", caption: "Brass inlay" },
-  { src: "/craft/lacquer-spray-booth.jpg", material: "lacquer", alt: "Finisher spraying lacquer onto a wood-veneer frame in the spray booth", caption: "Hand-finished lacquer" },
-  { src: "/craft/edgebanding.jpg", material: "walnut", alt: "Machinist feeding a panel through the edgebanding machine", caption: "Joints you never see" },
+  { src: "/craft/living-01-out-1400x788.jpg", material: "walnut", alt: "Render of a living room with a fluted wood-paneled wall, a marble TV panel and veneer cabinetry", caption: "Bookmatched veneer", width: 1400, height: 788 },
+  { src: "/craft/veneer-laying.jpg", material: "oak", alt: "Craftsmen laying a veneer sheet onto a panel before hot pressing", caption: "Veneer laid by hand", width: 1086, height: 1086 },
+  { src: "/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Render of a lobby with a marble reception desk and wood-and-brass slatted wall panels", caption: "Brass inlay", width: 1400, height: 788 },
+  { src: "/craft/lacquer-spray-booth.jpg", material: "lacquer", alt: "Finisher spraying lacquer onto a wood-veneer frame in the spray booth", caption: "Hand-finished lacquer", width: 1086, height: 1086 },
+  { src: "/craft/edgebanding.jpg", material: "walnut", alt: "Machinist feeding a panel through the edgebanding machine", caption: "Joints you never see", width: 888, height: 888 },
 ];
 
 /** A figure, list or photo that is still invented or missing: `id` is its place in the content (such as "home.stats"), `where` says what to edit. */
@@ -189,7 +188,6 @@ export const sampleContent: readonly SampleContent[] = [
   { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
   { id: "delivery.regions", where: "src/content/pages.ts: delivery.regions (the destinations listed on the About page)" },
   { id: "locations.destinations", where: "src/content/locations.ts: destinations (the places on the About page map)" },
-  { id: "craft", where: "src/content/pages.ts: craft (the five Capabilities gallery photos load as single full-size JPEGs from /public/craft/, and two are watermarked renders, not photos of the factory)" },
-  { id: "factory.photo", where: "src/content/pages.ts: factory.photo (the wide factory photo on the Capabilities page loads as one full-size JPEG from /public/craft/, outside the image pipeline)" },
+  { id: "craft", where: "src/content/pages.ts: craft (two of the five Capabilities gallery photos, Bookmatched veneer and Brass inlay, are watermarked renders, not photos of the factory)" },
 ];
 
