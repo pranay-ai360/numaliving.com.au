@@ -261,7 +261,7 @@ describe("quoteRequestSchema", () => {
   });
 
   describe("bidDate", () => {
-    const PROBLEM = "Please enter the bid date as YYYY-MM-DD, for example 2026-11-12.";
+    const PROBLEM = "Please enter the bid date as YYYY-MM-DD, for example 2026-11-12, in a year from 2000 to 2100.";
 
     it("is optional, so a request without it is valid", () => {
       expect(firstProblem(withoutField(makeRequest(), "bidDate"))).toBeUndefined();
@@ -278,6 +278,8 @@ describe("quoteRequestSchema", () => {
       ["a date with no zeros", "2026-1-5"],
       ["words", "next Friday"],
       ["a date with a time", "2026-11-12T10:00"],
+      ["a year before 2000", "1999-12-31"],
+      ["a year after 2100", "2101-01-01"],
     ])("rejects %s with a message that shows the form to use", (_label, bidDate) => {
       expect(firstProblem(makeRequest({ bidDate }))).toBe(PROBLEM);
     });

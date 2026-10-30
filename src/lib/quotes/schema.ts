@@ -59,7 +59,7 @@ export const quoteRequestSchema = z.object({
   bidDate: z
     .string()
     .trim()
-    .refine(isBlankOrCalendarDay, "Please enter the bid date as YYYY-MM-DD, for example 2026-11-12.")
+    .refine(isBlankOrCalendarDay, "Please enter the bid date as YYYY-MM-DD, for example 2026-11-12, in a year from 2000 to 2100.")
     .transform(blankToUndefined)
     .optional(),
   timeline: z.enum(TIMELINE_OPTIONS, { error: "Please choose a timeline." }),

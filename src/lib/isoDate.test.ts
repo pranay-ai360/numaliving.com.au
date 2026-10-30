@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isIsoCalendarDay } from "@/lib/isoDate";
 
 describe("isIsoCalendarDay", () => {
-  it.each(["2026-11-12", "2026-01-01", "2024-02-29", "2026-12-31", "2000-02-29"])("accepts %s", (text) => {
+  it.each(["2026-11-12", "2026-01-01", "2024-02-29", "2026-12-31", "2000-02-29", "2000-01-01", "2100-12-31"])("accepts %s", (text) => {
     // Arrange
     // (the table supplies the text)
 
@@ -27,6 +27,9 @@ describe("isIsoCalendarDay", () => {
     ["spaces around a good date", " 2026-11-12 "],
     ["an empty text", ""],
     ["a five-digit year", "12026-11-12"],
+    ["a year before 2000", "1999-12-31"],
+    ["year zero", "0000-01-01"],
+    ["a year after 2100", "2101-01-01"],
   ])("refuses %s", (_label, text) => {
     // Arrange
     // (the table supplies the text)
