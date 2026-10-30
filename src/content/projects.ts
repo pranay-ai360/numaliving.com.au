@@ -9,6 +9,8 @@ import type { ShowcaseProject } from "@/lib/types";
  * Name photo files in lowercase with hyphens and no spaces (for example kitchen-01.jpg):
  * the site is hosted on a case-sensitive server and spaces would need URL-encoding.
  * Keep each path starting with "/"; the site adds its base path when it shows the photo.
+ * Use a lowercase, hyphenated slug (poppy-16, not Poppy_16): it becomes the page address.
+ * Resize photos first: no file may be over 1.5 MB (e2e/image-files.spec.ts fails above that).
  */
 export const projects: ShowcaseProject[] = [
   {
