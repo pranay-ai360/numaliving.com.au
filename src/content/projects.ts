@@ -6,7 +6,8 @@ const GOLF_LINKS_CREDIT = "Photo by Intelier";
 /**
  * Showcase projects for the Projects page and home page.
  *
- * SAMPLE CONTENT — every entry below is invented (sample: true).
+ * SAMPLE CONTENT — the entries marked sample: true are invented. The five US projects (sample: false) are
+ * Numa's own work, with photos it may publish, as the owner confirmed on 30 October 2026.
  * To add a real project: copy one block, change the text, put the photos in
  * /public/projects/<slug>/ and list them in `photos`, the cover first.
  * Name each photo file <slug>-<nn>.jpg, in lowercase with hyphens and no spaces (for example
@@ -69,7 +70,7 @@ export const projects: ShowcaseProject[] = [
       { src: "/projects/amherst/amherst-11.jpg", alt: "Stair landing with a cascading pendant chandelier, a cable railing and a triangle-patterned tile floor", width: 1600, height: 2395 },
     ],
     palette: ["oak", "linen", "lacquer"],
-    sample: true,
+    sample: false,
   },
   {
     slug: "sonate",
@@ -122,7 +123,7 @@ export const projects: ShowcaseProject[] = [
       { src: "/projects/poppy-16/poppy-16-15.jpg", alt: "Pantry corner with open oak shelves holding bowls and small plants above a white counter and deep oak drawers", width: 1600, height: 1067 },
     ],
     palette: ["oak", "linen", "lacquer"],
-    sample: true,
+    sample: false,
   },
   {
     slug: "penthouse25",
@@ -175,7 +176,7 @@ export const projects: ShowcaseProject[] = [
       { src: "/projects/sandy/sandy-11.jpg", alt: "Home bar and card room with lit shelves of bottles, a round game table, wine racks and blue ceiling lighting", width: 1600, height: 1069 },
     ],
     palette: ["oak", "linen", "lacquer"],
-    sample: true,
+    sample: false,
   },
   {
     slug: "golf-links",
@@ -235,7 +236,7 @@ export const projects: ShowcaseProject[] = [
       { src: "/projects/poppy-11/poppy-11-12.jpg", alt: "Long hallway with a potted plant, sculptural wood consoles and large artworks, leading to the kitchen", width: 1600, height: 1068 },
     ],
     palette: ["oak", "linen", "lacquer"],
-    sample: true,
+    sample: false,
   },
   {
     slug: "estacada",
@@ -259,7 +260,7 @@ export const projects: ShowcaseProject[] = [
       { src: "/projects/estacada/estacada-07.jpg", alt: "Powder room with a floating pale oak vanity, brass fixtures, a wavy-edged gold mirror and a wall-hung toilet", width: 1600, height: 2396 },
     ],
     palette: ["oak", "linen", "lacquer"],
-    sample: true,
+    sample: false,
   },
 ];
 
