@@ -82,6 +82,22 @@ describe("CompanyFactsSection", () => {
     expect(profile).toHaveAttribute("href", "https://www.linkedin.com/in/example");
   });
 
+  it.each([
+    ["linkedin.com itself", "https://linkedin.com/in/example", "LinkedIn"],
+    ["a subdomain of linkedin.com", "https://uk.linkedin.com/in/example", "LinkedIn"],
+    ["a host that only ends in the same letters", "https://evillinkedin.com/in/example", "Profile"],
+    ["linkedin.com at the start of another host's name", "https://linkedin.com.example.org/in/example", "Profile"],
+  ])("labels a profile on %s by its real host", (_description, profileUrl, label) => {
+    // Arrange
+    render(<CompanyFactsSection facts={{ ...EMPTY_COMPANY_FACTS, leadership: [{ name: "Ada Lovelace", role: "Managing Director", profileUrl }] }} />);
+
+    // Act
+    const link = screen.getByRole("link", { name: label });
+
+    // Assert
+    expect(link).toHaveAttribute("href", profileUrl);
+  });
+
   it("links the parent group", () => {
     // Arrange
     render(<CompanyFactsSection facts={KNOWN} />);

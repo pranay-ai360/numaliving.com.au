@@ -16,9 +16,15 @@ function ExternalLink({ href, children }: { href: string; children: ReactNode })
   );
 }
 
-/** "LinkedIn" for a LinkedIn address, "Profile" for any other (the addresses are https, checked by `publishableFacts`). */
+const LINKEDIN_HOST = "linkedin.com";
+
+/**
+ * "LinkedIn" for an address on linkedin.com or one of its subdomains (www, uk), "Profile" for any other
+ * host, including one that only ends in the same letters (the addresses are https, checked by `publishableFacts`).
+ */
 function profileLabel(profileUrl: string): string {
-  return new URL(profileUrl).hostname.endsWith("linkedin.com") ? "LinkedIn" : "Profile";
+  const host = new URL(profileUrl).hostname;
+  return host === LINKEDIN_HOST || host.endsWith(`.${LINKEDIN_HOST}`) ? "LinkedIn" : "Profile";
 }
 
 /** One row for each fact that is set, in the order the owner's list gives them; none while nothing is set. */
