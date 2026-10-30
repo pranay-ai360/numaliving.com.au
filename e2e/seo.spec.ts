@@ -21,12 +21,24 @@ function topHeadingCount(html: string): number {
 
 test.skip(({ isMobile }) => isMobile, "Search engines get the same HTML at every screen size.");
 
+/**
+ * Whether a page's robots tag must say "noindex": every page does while the site is a preview, and once it is
+ * public only the client login does. It is written out here, and not read from the page registry, so the test
+ * checks the served HTML against the rule and not against the data that built it.
+ */
+function mustAskNotToBeIndexed(path: string): boolean {
+  return !isIndexable || path === LOGIN_PATH;
+}
+
 for (const path of ALL_PAGES) {
-  test(`${path} asks search engines not to index it`, async ({ request }) => {
+  const asksNotToBeIndexed = mustAskNotToBeIndexed(path);
+  test(`${path} ${asksNotToBeIndexed ? "asks search engines not to index it" : "can be indexed"}`, async ({ request }) => {
     const response = await request.get(pageUrl(path));
 
     expect(response.status()).toBe(200);
-    expect(robotsMetaInHead(await response.text())).toMatch(/\bnoindex\b/);
+    const robots = robotsMetaInHead(await response.text()) ?? "";
+    if (asksNotToBeIndexed) expect(robots).toMatch(/\bnoindex\b/);
+    else expect(robots).not.toMatch(/\bnoindex\b/);
   });
 }
 
