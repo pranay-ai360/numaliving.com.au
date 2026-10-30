@@ -47,10 +47,10 @@ describe("the About page", () => {
     render(<AboutPage />);
 
     // Act
-    const regions = screen.getAllByRole("heading", { level: 3 }).slice(0, 4).map((heading) => heading.textContent);
+    const regions = screen.getAllByRole("heading", { level: 3 }).slice(0, 3).map((heading) => heading.textContent);
 
     // Assert
-    expect(regions).toEqual(["North America", "Middle East", "Australia & Asia", "Europe"]);
+    expect(regions).toEqual(["North America", "Middle East", "Asia"]);
   });
 
   it("has one top-level heading", () => {

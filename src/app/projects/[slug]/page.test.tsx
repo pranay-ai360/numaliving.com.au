@@ -1,11 +1,30 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { projects } from "@/content/projects";
 import { requirePageSeo } from "@/content/seo";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import ProjectPage, { generateMetadata } from "./page";
 
 type ProjectPageProps = Parameters<typeof ProjectPage>[0];
+
+/** Slugs no real project uses: the mock below answers each with a copy of the first project, changed in the one way the test needs. */
+const { PROJECT_WITHOUT_PHOTOS_SLUG, PROJECT_ALONE_IN_SECTOR_SLUG } = vi.hoisted(() => ({
+  PROJECT_WITHOUT_PHOTOS_SLUG: "project-without-photos",
+  PROJECT_ALONE_IN_SECTOR_SLUG: "project-alone-in-its-sector",
+}));
+
+vi.mock("@/content/projects", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/content/projects")>();
+  const [first] = actual.projects;
+  return {
+    ...actual,
+    getProject: (slug: string) => {
+      if (slug === PROJECT_WITHOUT_PHOTOS_SLUG) return { ...first, slug, photos: [] };
+      if (slug === PROJECT_ALONE_IN_SECTOR_SLUG) return { ...first, slug, sector: "Workplaces" as const };
+      return actual.getProject(slug);
+    },
+  };
+});
 
 /** The photos that belong to the project itself: the "More work" cards at the bottom (each a link) show other projects' covers. */
 function ownPhotos(): readonly HTMLElement[] {
@@ -97,9 +116,7 @@ describe("project page gallery", () => {
 
   it("shows a swatch placeholder, and no photo, for a project without photos", async () => {
     // Arrange
-    const project = projects.find((candidate) => candidate.photos.length === 0);
-    if (project === undefined) throw new Error("Every project has photos, so there is no placeholder to test.");
-    await renderProjectPage(project.slug);
+    await renderProjectPage(PROJECT_WITHOUT_PHOTOS_SLUG);
 
     // Act
     const images = ownPhotos();
@@ -139,7 +156,7 @@ describe("project page wording", () => {
 
   it("shows no other-projects heading for a project that is alone in its sector", async () => {
     // Arrange
-    await renderProjectPage("trivandrum-tech-campus");
+    await renderProjectPage(PROJECT_ALONE_IN_SECTOR_SLUG);
 
     // Act
     const heading = screen.queryByRole("heading", { level: 2, name: /^More / });

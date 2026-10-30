@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/app/pageMetadata";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { capabilities, craft, factory } from "@/content/pages";
-import { ButtonLink, Container, FigureValue, PageHero, SectionTitle } from "@/components/ui";
+import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { CraftGallery, PhotoTile } from "@/components/CraftGallery";
 
 export const metadata: Metadata = pageMetadata("/capabilities");
@@ -48,17 +48,6 @@ export default function CapabilitiesPage() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted">{factory.lead}</p>
 
           <PhotoTile photo={factory.photo} className="mt-10 aspect-[16/7] w-full" />
-
-          <dl className="mt-10 grid grid-cols-2 gap-y-8 lg:grid-cols-4">
-            {factory.facts.map((f) => (
-              <div key={f.label} className="flex flex-col-reverse justify-end pr-6">
-                <dt className="text-sm text-ink-muted">{f.label}</dt>
-                <dd className="display mb-1 normal-case text-2xl text-gold-dark">
-                  <FigureValue value={f.value} />
-                </dd>
-              </div>
-            ))}
-          </dl>
 
           <ol className="mt-12 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {factory.zones.map((z, i) => (

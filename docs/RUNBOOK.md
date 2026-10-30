@@ -42,6 +42,7 @@ A push straight to `main` deploys as well, and `verify` still has to pass before
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high           # CI fails the run on a high or critical advisory in the packages that ship
 npm run lint
 npm run typecheck
 npm run test:coverage                              # keep coverage at 80% or more
@@ -61,6 +62,8 @@ CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google 
 ```
 
 CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10). The end-to-end server uses port 4173; to run the tests of two checkouts or worktrees at the same time, give each its own port, for example `E2E_PORT=4180 npm run test:e2e` (a whole number from 1024 to 65535; `npm run serve:pages` reads it too).
+
+Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when any image in `public/` is over 1.5 MB, whether a page uses it or not, and every file stays in git history for good.
 
 ## 4. Install the tools (macOS with Homebrew)
 
@@ -155,10 +158,20 @@ The verdict is at the top of `report.md` in that folder. The "request-aborted" w
 
 Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). Once the site is indexable (`isIndexable` is true) the same checks should show: no `noindex` tag on any page but `/login/`, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for the home page and every other indexable page, never `/login/`. Then submit the sitemap in Search Console. Before the flip, strip serial numbers, edit history and camera settings from every published original photo (keep the orientation); the launch guard names each file that still has them (`photos.metadata`).
 
+The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex`, loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
+
+```bash
+CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:live
+playwright screenshot --full-page --viewport-size="1440, 3000" https://numaliving.us/ home-1440.png
+```
+
+The live test expects `noindex`: change it when the site launches.
+
 ## 10. Known quirks
 
-- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. `tools/seo/browse.py` takes the same seat. A browser launch that fails exits with code 76, most often because another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it.
+- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. `tools/seo/browse.py` takes the same seat. A browser launch that fails exits with code 76, most often because another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it: `ps -o ppid= -p <pid>` gives the parent, and `lsof -a -p <ppid> -d cwd` shows the project it runs from.
 - **Tower stashes for you.** Switching branches in Tower auto-stashes uncommitted work. Look at `git stash list` if something seems to have vanished.
+- **Start new work from `origin/main`, not from an old branch.** Once part of a branch has reached `main` by cherry-pick, carrying on in that branch brings the same change back as conflicts. The `Ramya` branch's content commit went in as an adapted cherry-pick (PR #9), so merging `Ramya` into `main` as it stands conflicts in 7 files (`src/app/page.tsx`, `src/content/pages.ts`, `src/content/projects.ts`, `src/components/PortalPreview.tsx`, `src/components/LoginForm.tsx` and two portal files that `main` no longer has). Its two older commits, the brown ink colour (`94270b8`) and the client portal demo (`bd74207`), are not on `main`. To ship them, branch from `origin/main` and cherry-pick them (`git switch -c feat/portal-demo origin/main`, then `git cherry-pick 94270b8 bd74207`). Expect conflicts in `LoginForm.tsx`: on `main` it is deliberately design-only (no `<form>`, so a password can never reach a URL) and pinned by tests. The demo's data module, `src/lib/portal/demo.ts`, would also fall under the 80% coverage gate.
 - **A lint warning after the coverage run.** `npm run lint` right after `npm run test:coverage` warns about the generated `coverage/block-navigation.js`. CI is not affected.
 - **FormSubmit** is a free third party with no service guarantee. Send a test Quote Request now and then.
 - **Placeholders remain** for the phone number, WhatsApp number, address and the sample projects, so the site stays `noindex` with its Preview ribbon (`src/config/launchGuard.test.ts` enforces this).

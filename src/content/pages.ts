@@ -35,10 +35,10 @@ export const home = {
     "Numa Living crafts details that define a room: paneled walls, kitchens, closets, doors and statement pieces, engineered in-house and installed anywhere in the world.",
   // SAMPLE figures
   stats: [
-    { value: "120+", label: "Projects delivered" },
-    { value: "14", label: "Countries shipped to" },
-    { value: "194,000 sq ft (18,000 m²)", label: "Factory floor" },
-    { value: "250", label: "Craftspeople and engineers" },
+    { value: "45+", label: "Projects delivered" },
+    { value: "4", label: "Countries shipped to" },
+    { value: "8,000 sq ft", label: "Factory floor" },
+    { value: "50", label: "Craftspeople and engineers" },
   ],
   sectors: [
     {
@@ -66,7 +66,7 @@ export const about = {
   ],
   values: [
     { name: "Craft", text: "Bookmatched veneers, hand-finished lacquer and joints you will never see." },
-    { name: "Precision", text: "CNC-driven production from approved shop drawings, checked at every stage." },
+    { name: "Precision", text: "Production from approved shop drawings, checked at every stage." },
     { name: "Transparency", text: "Clients will see their drawings, approvals and production status online once the client portal opens." },
     { name: "Reach", text: "Export-packed, shipped and installed wherever the project is." },
   ],
@@ -106,22 +106,15 @@ export const capabilities = {
 export const factory = {
   title: "The Factory",
   lead: "One roof, from raw board to export crate. Owning every stage is how we control quality and schedule.",
-  /** One wide photo of the factory floor, shown above the factory section. While `src` is "" a wood-tone placeholder shows (see `craft` below, and `sampleContent`). */
-  photo: { src: "", material: "oak", alt: "Numa Living factory floor, Dubai", caption: "The factory floor, Dubai" },
-  // SAMPLE figures — replace with real ones
-  facts: [
-    { value: "194,000 sq ft (18,000 m²)", label: "Production floor" },
-    { value: "6", label: "CNC machining centers" },
-    { value: "4", label: "Pressurized spray booths" },
-    { value: "27,000 sq ft (2,500 m²)", label: "Monthly panel output" },
-  ],
+  /** One wide photo of the factory floor, shown above the factory section. */
+  photo: { src: "/craft/factory-jointer.jpg", material: "oak", alt: "Craftsmen straightening timber on the jointer, Numa Living factory, Dubai", caption: "The factory floor, Dubai" },
   zones: [
-    { name: "Engineering", text: "Shop drawings, cutting lists and CNC programs produced from your approved design." },
-    { name: "Machining", text: "Nested-based CNC, panel saws and edgebanders for repeatable precision." },
-    { name: "Veneer", text: "Veneer selection, bookmatching and pressing, with flitches reserved per project." },
-    { name: "Finishing", text: "Dust-controlled spray booths for lacquer and oil finishes, color-matched to approved samples." },
+    { name: "Engineering", text: "Shop drawings and cutting lists produced from your approved design." },
+    { name: "Machining", text: "Panel saws, edgebanders and boring machines for repeatable precision." },
+    { name: "Veneer", text: "Veneer selection, laying and hot pressing onto panels." },
+    { name: "Finishing", text: "Spray booths for lacquer and paint finishes, matched to approved samples." },
     { name: "Assembly & QC", text: "Pre-assembly and dry-fitting, checked against drawings before anything is packed." },
-    { name: "Export Packing", text: "Crated, labeled by room and sequence, ready for container or air freight." },
+    { name: "Export Packing", text: "Crated, labeled by room and sequence, ready for container shipping." },
   ],
 };
 
@@ -153,35 +146,34 @@ export const delivery = {
   regions: [
     { name: "North America", countries: ["United States"] },
     { name: "Middle East", countries: ["UAE", "Qatar"] },
-    { name: "Australia & Asia", countries: ["Australia", "India"] },
-    { name: "Europe", countries: ["United Kingdom"] },
+    { name: "Asia", countries: ["India"] },
   ],
   points: [
     { name: "Export packing", text: "Moisture-protected, crated and labeled by room and install sequence." },
-    { name: "Freight", text: "Sea and air freight through established logistics partners, with tracking shared with you." },
+    { name: "Freight", text: "Sea freight through established logistics partners, with tracking shared with you." },
     { name: "Installation", text: "Our own installers, or supervision of your local team, wherever the site is." },
     { name: "After care", text: "Spare parts, touch-up kits and a warranty period on every project." },
   ],
 };
 
 /**
- * Photos for the craft gallery on the Capabilities page.
- * While src is "", a wood-tone placeholder shows instead, and `craft` is listed in `sampleContent`
- * below, so the launch guard keeps the site out of search engines until real photos replace them.
- * The first photo is shown large. `material` only picks the placeholder colour:
- * walnut, oak, lacquer, stone, brass or linen.
+ * Photos for the craft gallery on the Capabilities page, from the owner team's update.
+ * While src is "", a wood-tone placeholder shows instead. The first photo is shown large. `material` only
+ * picks the placeholder colour: walnut, oak, lacquer, stone, brass or linen.
  *
- * Do not simply drop a photo in /public/craft/: the image pipeline (scripts/image-plan.mjs) handles
- * public/projects/<slug>/<slug>-NN.jpg only, so a photo set here would load as one full-size JPEG
- * with no AVIF or WebP copies, no srcset and no width and height. Teach the pipeline the new folder
- * first (README, Photos and `npm run images:build`); the same goes for `factory.photo`.
+ * These files sit in /public/craft/, which the image pipeline (scripts/image-plan.mjs) does not handle: it
+ * reads public/projects/<slug>/<slug>-NN.jpg only, so each loads as one full-size JPEG with no AVIF or WebP
+ * copies, no srcset and no width and height. `craft` and `factory.photo` therefore stay listed in
+ * `sampleContent` below, so the launch guard keeps the site out of search engines until the pipeline learns
+ * the folder (README, Photos and `npm run images:build`). Two of the five are renders carrying another
+ * brand's watermark, not photos of the factory: replace them before launch.
  */
 export const craft = [
-  { src: "", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
-  { src: "", material: "oak", alt: "Fluted oak paneling detail", caption: "Fluted oak" },
-  { src: "", material: "brass", alt: "Brass inlay detail in a millwork piece", caption: "Brass inlay" },
-  { src: "", material: "lacquer", alt: "Hand-finished lacquer door", caption: "Hand-finished lacquer" },
-  { src: "", material: "walnut", alt: "Craftsperson finishing a joint by hand", caption: "Joints you never see" },
+  { src: "/craft/living-01-out-1400x788.jpg", material: "walnut", alt: "Render of a living room with a fluted wood-paneled wall, a marble TV panel and veneer cabinetry", caption: "Bookmatched veneer" },
+  { src: "/craft/veneer-laying.jpg", material: "oak", alt: "Craftsmen laying a veneer sheet onto a panel before hot pressing", caption: "Veneer laid by hand" },
+  { src: "/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Render of a lobby with a marble reception desk and wood-and-brass slatted wall panels", caption: "Brass inlay" },
+  { src: "/craft/lacquer-spray-booth.jpg", material: "lacquer", alt: "Finisher spraying lacquer onto a wood-veneer frame in the spray booth", caption: "Hand-finished lacquer" },
+  { src: "/craft/edgebanding.jpg", material: "walnut", alt: "Machinist feeding a panel through the edgebanding machine", caption: "Joints you never see" },
 ];
 
 /** A figure, list or photo that is still invented or missing: `id` is its place in the content (such as "home.stats"), `where` says what to edit. */
@@ -195,10 +187,9 @@ export type SampleContent = Readonly<{ id: string; where: string }>;
  */
 export const sampleContent: readonly SampleContent[] = [
   { id: "home.stats", where: "src/content/pages.ts: home.stats (projects delivered, countries, factory floor, staff)" },
-  { id: "factory.facts", where: "src/content/pages.ts: factory.facts (production floor, machines, spray booths, monthly output)" },
   { id: "delivery.regions", where: "src/content/pages.ts: delivery.regions (the destinations listed on the About page)" },
   { id: "locations.destinations", where: "src/content/locations.ts: destinations (the places on the About page map)" },
-  { id: "craft", where: "src/content/pages.ts: craft (the five photos of the Capabilities gallery are wood-tone placeholders, with no photo file yet)" },
-  { id: "factory.photo", where: "src/content/pages.ts: factory.photo (the wide factory photo on the Capabilities page is a wood-tone placeholder, with no photo file yet)" },
+  { id: "craft", where: "src/content/pages.ts: craft (the five Capabilities gallery photos load as single full-size JPEGs from /public/craft/, and two are watermarked renders, not photos of the factory)" },
+  { id: "factory.photo", where: "src/content/pages.ts: factory.photo (the wide factory photo on the Capabilities page loads as one full-size JPEG from /public/craft/, outside the image pipeline)" },
 ];
 

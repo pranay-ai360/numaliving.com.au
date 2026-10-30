@@ -40,7 +40,7 @@ function wordCount(text: string): number {
 const DISK_TEST_TIMEOUT_MS = 30_000;
 
 describe("project photos", { timeout: DISK_TEST_TIMEOUT_MS }, () => {
-  it("has a gallery of real photos for the four projects that have them", () => {
+  it("has a gallery of real photos for each of the nine projects", () => {
     // Arrange
     const withPhotos = projects.filter((project) => project.photos.length > 0).map((project) => project.slug);
 
@@ -48,7 +48,7 @@ describe("project photos", { timeout: DISK_TEST_TIMEOUT_MS }, () => {
     const [first] = projects;
 
     // Assert
-    expect(withPhotos).toEqual(["marina-villa", "sonate", "penthouse25", "golf-links"]);
+    expect(withPhotos).toEqual(["marina-villa", "amherst", "sonate", "poppy-16", "penthouse25", "sandy", "golf-links", "poppy-11", "estacada"]);
     expect(first.photos.length).toBeGreaterThan(0);
   });
 

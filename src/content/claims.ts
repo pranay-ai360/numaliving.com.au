@@ -59,6 +59,15 @@ export const unconfirmedClaims: readonly UnconfirmedClaim[] = [
     where: "src/content/seo.ts: the About description; src/content/pages.ts (home.intro, about.lead) and site.tagline say it too",
     claim: "delivered worldwide",
   },
+  { id: "claims.seaFreight", where: "src/content/pages.ts: delivery.points, Freight", claim: "Sea freight through established logistics partners, with tracking shared with you." },
+  { id: "claims.factoryMachining", where: "src/content/pages.ts: factory.zones, Machining", claim: "Panel saws, edgebanders and boring machines for repeatable precision." },
+  { id: "claims.factoryVeneer", where: "src/content/pages.ts: factory.zones, Veneer", claim: "Veneer selection, laying and hot pressing onto panels." },
+  { id: "claims.factoryFinishing", where: "src/content/pages.ts: factory.zones, Finishing", claim: "Spray booths for lacquer and paint finishes, matched to approved samples." },
+  { id: "claims.projectAmherst", where: "src/content/projects.ts: amherst (Los Altos Hills, USA, 2023)", claim: "Amherst Ct" },
+  { id: "claims.projectEstacada", where: "src/content/projects.ts: estacada (Los Altos Hills, USA, 2024)", claim: "Estacada" },
+  { id: "claims.projectPoppy11", where: "src/content/projects.ts: poppy-11 (Pebble Beach, USA, 2025)", claim: "Poppy 11" },
+  { id: "claims.projectPoppy16", where: "src/content/projects.ts: poppy-16 (Pebble Beach, USA, 2025)", claim: "Poppy 16" },
+  { id: "claims.projectSandy", where: "src/content/projects.ts: sandy (Morgan Hill, USA, 2023)", claim: "Sandy Ct" },
 ];
 
 /** One sentence for each claim still waiting for the owner; empty once every entry is deleted. */
