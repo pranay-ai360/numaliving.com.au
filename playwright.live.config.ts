@@ -16,6 +16,8 @@ export default defineConfig({
   workers: 1,
   retries: 1,
   timeout: 60_000,
+  // Photos take a moment over a real network: polls and assertions wait up to 20 s, not the default 5 s.
+  expect: { timeout: 20_000 },
   reporter: [["list"]],
   use: {
     baseURL: LIVE_URL,

@@ -60,17 +60,19 @@ test.describe("as served", () => {
   });
 });
 
-test("every page loads without errors, failed requests or broken photos", async ({ page }) => {
-  const problems = watchProblems(page);
+// One test per page: each gets its own timeout, so a slow page (some projects carry several MB of photos)
+// cannot use up the time of the pages after it, and a failure names the page.
+for (const path of ALL_PAGES) {
+  test(`${path} loads without errors, failed requests or broken photos`, async ({ page }) => {
+    const problems = watchProblems(page);
 
-  for (const path of ALL_PAGES) {
     await page.goto(pageUrl(path));
     await scrollThroughPhotos(page);
-    await expect.poll(() => unloadedPhotos(page), { message: `${path}: photos that did not load` }).toEqual([]);
-  }
 
-  expect(problems()).toEqual([]);
-});
+    await expect.poll(() => unloadedPhotos(page), { message: "photos that did not load" }).toEqual([]);
+    expect(problems()).toEqual([]);
+  });
+}
 
 test("the home page shows the hero line and figures the site's content describes", async ({ page }) => {
   await page.goto(pageUrl("/"));
@@ -82,10 +84,10 @@ test("the home page shows the hero line and figures the site's content describes
   }
 });
 
-test("every project page shows all of its photos", async ({ page }) => {
-  for (const project of projects) {
+for (const project of projects) {
+  test(`/projects/${project.slug} shows all of its photos`, async ({ page }) => {
     await page.goto(pageUrl(`/projects/${project.slug}`));
 
-    await expect.soft(page.getByRole("img", { name: project.name, exact: true }), project.slug).toHaveCount(project.images.length);
-  }
-});
+    await expect(page.getByRole("img", { name: project.name, exact: true })).toHaveCount(project.images.length);
+  });
+}

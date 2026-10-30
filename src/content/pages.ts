@@ -140,9 +140,9 @@ export const delivery = {
  * walnut, oak, lacquer, stone, brass or linen.
  */
 export const craft = [
-  { src: "/craft/living-01-out-1400x788.jpg", material: "walnut", alt: "Bookmatched walnut veneer wall panel", caption: "Bookmatched veneer" },
+  { src: "/craft/living-01-out-1400x788.jpg", material: "walnut", alt: "Render of a living room with a fluted wood-panelled wall, a marble TV panel and veneer cabinetry", caption: "Bookmatched veneer" },
   { src: "/craft/veneer-laying.jpg", material: "oak", alt: "Craftsmen laying a veneer sheet onto a panel before hot pressing", caption: "Veneer laid by hand" },
-  { src: "/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Brass inlay detail in a joinery piece", caption: "Brass inlay" },
+  { src: "/craft/lobby-out-2-1400x788.jpg", material: "brass", alt: "Render of a lobby with a marble reception desk and wood-and-brass slatted wall panels", caption: "Brass inlay" },
   { src: "/craft/lacquer-spray-booth.jpg", material: "lacquer", alt: "Finisher spraying lacquer onto a wood-veneer frame in the spray booth", caption: "Hand-finished lacquer" },
   { src: "/craft/edgebanding.jpg", material: "walnut", alt: "Machinist feeding a panel through the edgebanding machine", caption: "Joints you never see" },
 ];

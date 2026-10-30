@@ -14,7 +14,7 @@ const STATS = [
 ] as const;
 
 const PORTAL_LAPTOP = { alt: /client portal on a laptop/i, src: "/portal-preview/portal-desktop.jpg" } as const;
-const PORTAL_PHONE = { alt: "The same project on a phone", src: "/portal-preview/portal-mobile.jpg" } as const;
+const PORTAL_PHONE = { alt: /client portal on a phone/i, src: "/portal-preview/portal-mobile.jpg" } as const;
 
 /** True when `first` comes before `second` in the page's markup. */
 async function comesBefore(first: Locator, second: Locator): Promise<boolean> {
@@ -62,7 +62,7 @@ test.describe("desktop", () => {
 
   test("a laptop and a phone show the client portal, both loaded from below the base path", async ({ page }) => {
     await expectLoadedFrom(page.getByRole("img", { name: PORTAL_LAPTOP.alt }), PORTAL_LAPTOP.src);
-    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt, exact: true }), PORTAL_PHONE.src);
+    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt }), PORTAL_PHONE.src);
   });
 });
 
@@ -71,6 +71,6 @@ test.describe("phone", () => {
 
   test("only the phone screenshot shows, loaded from below the base path", async ({ page }) => {
     await expect(page.getByRole("img", { name: PORTAL_LAPTOP.alt })).toBeHidden();
-    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt, exact: true }), PORTAL_PHONE.src);
+    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt }), PORTAL_PHONE.src);
   });
 });

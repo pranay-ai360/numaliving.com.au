@@ -30,7 +30,7 @@ export function PortalPreview() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={withBasePath("/portal-preview/portal-mobile.jpg")}
-          alt="The same project on a phone"
+          alt="The Numa client portal on a phone: project stage and the shop drawings and samples approved so far"
           {...LAZY_IMAGE_PROPS}
           className="block aspect-[390/844] w-full object-cover object-top"
         />
