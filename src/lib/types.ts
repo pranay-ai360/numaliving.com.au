@@ -72,7 +72,7 @@ export type PageSeo = Readonly<{
   /** The page title without the brand; the layout adds " | Numa Living" (see TITLE_TEMPLATE in src/lib/seo/metadata.ts). */
   title: string;
   description: string;
-  /** False for a page search engines must never list, whatever `isIndexable` says (the client login). */
+  /** False for a page search engines must never list, whatever `isIndexable` says (no page is marked so). */
   indexable: boolean;
   /** The day the page's content last changed in a way worth telling search engines, as YYYY-MM-DD: the sitemap's lastmod. Never "today" by code. */
   updated: string;

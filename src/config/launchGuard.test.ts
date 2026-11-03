@@ -11,14 +11,19 @@
  * (src/lib/photoMetadata.ts): none may still carry a camera serial number, an edit history, Lightroom
  * settings or a GPS position. That scan runs only when the site is indexable.
  *
- * The guard reads `isIndexable` and `showSampleNotice` as imported values, so a last describe block
- * requires both to be plain `true` or `false` literals in src/config/site.ts: a value computed from an
- * environment variable would be false here and could be true in the build.
+ * The owner can accept the blockers and have the site indexed anyway: `launchBlockersAccepted` in
+ * src/config/site.ts (true since 3 November 2026, see
+ * docs/adr/0006-index-every-page-before-the-launch-blockers-are-cleared.md). The guard then passes while
+ * blockers remain, and skips the photo scan; set the switch back to false to see the list again.
+ *
+ * The guard reads `isIndexable`, `showSampleNotice` and `launchBlockersAccepted` as imported values, so a
+ * last describe block requires all three to be plain `true` or `false` literals in src/config/site.ts: a
+ * value computed from an environment variable would be false here and could be true in the build.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isIndexable, showSampleNotice, site } from "@/config/site";
+import { isIndexable, launchBlockersAccepted, showSampleNotice, site } from "@/config/site";
 import { EMPTY_COMPANY_FACTS, LISTED_CLAIMS, LISTED_FIGURES, PENDING_LEGAL_DRAFTS } from "@/content/blockerFixtures";
 import { claimBlockers } from "@/content/claims";
 import { companyFactsBlockers } from "@/content/company";
@@ -36,6 +41,8 @@ type ProjectFlags = Readonly<Pick<ShowcaseProject, "slug" | "sample">>;
 /** What the guard looks at: the search-engine switch, and everything that must be real before it is on. */
 type LaunchState = Readonly<{
   isIndexable: boolean;
+  /** The owner has chosen to have the site indexed while blockers remain (`launchBlockersAccepted` in src/config/site.ts). */
+  blockersAccepted: boolean;
   contact: ContactDetails;
   showSampleNotice: boolean;
   projects: readonly ProjectFlags[];
@@ -66,6 +73,7 @@ const REAL_CONTACT: ContactDetails = {
 /** A site that is ready for search engines, for the tests of the guard itself. */
 const READY_STATE: LaunchState = {
   isIndexable: true,
+  blockersAccepted: false,
   contact: REAL_CONTACT,
   showSampleNotice: false,
   projects: [{ slug: "real-villa" }, { slug: "real-office", sample: false }],
@@ -126,9 +134,9 @@ function previewBlockers(state: LaunchState): readonly string[] {
   return [...ribbon, ...sampleProjects];
 }
 
-/** Everything that still blocks indexing; nothing while the site is not indexable. */
+/** Everything that still blocks indexing; nothing while the site is not indexable, or once the owner has accepted the blockers. */
 function launchBlockers(state: LaunchState): readonly string[] {
-  if (!state.isIndexable) return [];
+  if (!state.isIndexable || state.blockersAccepted) return [];
   return [...contactBlockers(state.contact), ...previewBlockers(state), ...state.contentBlockers, ...state.photoMetadata];
 }
 
@@ -146,15 +154,17 @@ function launchGuardMessage(blockers: readonly string[]): string {
 }
 
 describe("launch guard", () => {
-  it("keeps the site out of search engines until its placeholder and sample content is replaced", async () => {
+  it("keeps the site out of search engines until its placeholder and sample content is replaced, unless the owner has accepted it", async () => {
     // Arrange
     const state: LaunchState = {
       isIndexable,
+      blockersAccepted: launchBlockersAccepted,
       contact: site.contact,
       showSampleNotice,
       projects,
       contentBlockers: contentBlockers(),
-      photoMetadata: await photoMetadataIfIndexable(isIndexable),
+      // No scan once the owner has accepted the blockers: its findings could not fail the guard.
+      photoMetadata: await photoMetadataIfIndexable(isIndexable && !launchBlockersAccepted),
     };
 
     // Act
@@ -295,6 +305,7 @@ describe("launchBlockers", () => {
     // Arrange
     const state: LaunchState = {
       isIndexable: true,
+      blockersAccepted: false,
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
@@ -324,6 +335,7 @@ describe("launchBlockers", () => {
     // Arrange
     const state: LaunchState = {
       isIndexable: false,
+      blockersAccepted: false,
       contact: PLACEHOLDER_CONTACT,
       showSampleNotice: true,
       projects: [{ slug: "marina-villa", sample: true }],
@@ -337,6 +349,37 @@ describe("launchBlockers", () => {
     // Assert
     expect(OPEN_CONTENT_BLOCKERS.length).toBeGreaterThan(0);
     expect(blockers).toEqual([]);
+  });
+
+  it("lets the site be indexed with every kind of blocker left once the owner has accepted them", () => {
+    // Arrange
+    const state: LaunchState = {
+      isIndexable: true,
+      blockersAccepted: true,
+      contact: PLACEHOLDER_CONTACT,
+      showSampleNotice: true,
+      projects: [{ slug: "marina-villa", sample: true }],
+      contentBlockers: OPEN_CONTENT_BLOCKERS,
+      photoMetadata: photoMetadataBlockers(DIRTY_PHOTOS),
+    };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(OPEN_CONTENT_BLOCKERS.length).toBeGreaterThan(0);
+    expect(blockers).toEqual([]);
+  });
+
+  it("still names the blockers of an indexable site whose owner has not accepted them", () => {
+    // Arrange
+    const state: LaunchState = { ...READY_STATE, blockersAccepted: false, contact: PLACEHOLDER_CONTACT, showSampleNotice: true };
+
+    // Act
+    const blockers = launchBlockers(state);
+
+    // Assert
+    expect(blockers).toHaveLength(4 + 1);
   });
 
   it("tells the owner what to replace, and where", () => {
@@ -490,6 +533,7 @@ describe("the switches the guard reads", () => {
   it.each([
     ["isIndexable", isIndexable],
     ["showSampleNotice", showSampleNotice],
+    ["launchBlockersAccepted", launchBlockersAccepted],
   ])("%s is a plain true or false in src/config/site.ts, the value the build uses", (name, value) => {
     // Arrange
     // (the table supplies the imported value)

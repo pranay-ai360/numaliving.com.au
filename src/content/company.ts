@@ -5,7 +5,7 @@
  * structured data search engines read (src/config/site.ts passes them on).
  *
  * Each missing fact is a launch blocker (`companyFactsBlockers`, collected by src/content/readiness.ts),
- * so the launch guard keeps the site out of search engines until they are filled in. To publish
+ * so the launch guard reports them until they are filled in. To publish
  * without a fact Numa cannot supply, delete its row in FACT_RULES below instead of inventing a value.
  */
 import { isHttpsUrl } from "@/lib/httpsUrl";

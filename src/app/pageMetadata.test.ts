@@ -15,15 +15,15 @@ describe("pageMetadata", () => {
     expect(metadata).toEqual(expected);
   });
 
-  it("gives the client login the never-indexed treatment from its registry entry", () => {
+  it("gives the client login the same robots rule as every other page, whatever isIndexable says", () => {
     // Arrange
-    const path = "/login";
+    const otherPage = pageMetadata("/about");
 
     // Act
-    const metadata = pageMetadata(path);
+    const login = pageMetadata("/login");
 
     // Assert
-    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(login.robots).toEqual(otherPage.robots);
   });
 
   it("gives the home page an absolute title", () => {

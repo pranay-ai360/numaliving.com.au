@@ -40,8 +40,8 @@ We promise no rankings. The domain is days old, the site is `noindex` while it i
 
 ### 1.2 Where we start
 
-- The domain is days old and `isIndexable` is `false` in [src/config/site.ts](../../src/config/site.ts).
-- `site.contact.phone` and `site.contact.address` are placeholders, the "Preview" ribbon is on, and every project is marked `sample: true`. The launch guard in [src/config/launchGuard.test.ts](../../src/config/launchGuard.test.ts) keeps the site out of search engines until those are real.
+- The domain is days old. `isIndexable` in [src/config/site.ts](../../src/config/site.ts) was `false` until 3 November 2026, when the owner had every page indexed ([ADR 0006](../adr/0006-index-every-page-before-the-launch-blockers-are-cleared.md)).
+- `site.contact.phone` and `site.contact.address` are placeholders, the "Preview" ribbon is on, and every project is marked `sample: true`. The launch guard in [src/config/launchGuard.test.ts](../../src/config/launchGuard.test.ts) lists them as blockers; the owner accepted them on 3 November 2026.
 - The brand searches ("numa living", "numa living millwork", "numa living dubai") return other businesses with the same name. See [brand-and-profiles.md](brand-and-profiles.md), section 3.
 - The parent-group line "A Conqueror Group company" could not be corroborated by search. The brand search for it returned directory listings for a Dubai building-materials trading company and a business-setup consultancy, and nothing that names Numa Living. We do not know whether either is related.
 

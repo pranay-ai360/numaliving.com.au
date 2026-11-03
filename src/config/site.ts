@@ -32,7 +32,8 @@ export const site = {
   verification: { google: null, bing: null } as SearchVerification,
 
   // The email is real. TODO(Ramya): replace the placeholder phone, WhatsApp number and address. Until
-  // then, src/config/launchGuard.test.ts fails the tests (and the deploy) if isIndexable below is true.
+  // then the launch guard (src/config/launchGuard.test.ts) lists them as blockers; it fails the tests
+  // and the deploy for them only while launchBlockersAccepted below is false.
   // The guard judges the shape (src/lib/realContact.ts), not the exact stubs: a phone or WhatsApp number
   // needs 7 or more digits and no run of four zeros (the WhatsApp number digits only), the address a number.
   contact: {
@@ -65,10 +66,20 @@ export const showSampleNotice = true;
 
 /**
  * Whether search engines may index the site (the robots meta tag follows this; robots.txt lets
- * crawlers in either way so they can read that tag, see src/lib/robots.ts).
- * Keep false while the site is a preview; flip to true when the real domain is live and the
- * contact details above are real (src/config/launchGuard.test.ts checks the second part).
+ * crawlers in either way so they can read that tag, see src/lib/robots.ts). True since 3 November
+ * 2026: the owner chose to have every page indexed, the client login included
+ * (docs/adr/0006-index-every-page-before-the-launch-blockers-are-cleared.md).
  * Keep it a plain `true` or `false`: the guard reads the value the tests see, so a test requires the
  * literal in this file (a value computed from an environment variable could differ in the build).
  */
-export const isIndexable = false;
+export const isIndexable = true;
+
+/**
+ * The owner's decision of 3 November 2026 to have the site indexed before the launch blockers are
+ * cleared: the placeholder contact details, the sample projects and figures, the Preview ribbon, the
+ * unconfirmed claims, the draft legal pages, the missing company facts and the photo metadata. While
+ * this is true the launch guard (src/config/launchGuard.test.ts) lets the tests and the deploy pass with
+ * them left; set it to false to make the guard block again and print the list. What clears each one is
+ * in docs/seo/owner-input-pack.md. Keep it a plain `true` or `false`, like isIndexable.
+ */
+export const launchBlockersAccepted = true;

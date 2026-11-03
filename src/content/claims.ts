@@ -2,7 +2,8 @@
  * What the pages say about Numa that nothing in the repository backs: that it ships to US job sites,
  * supports installers around the clock, answers within two business days and so on. Only the owner can
  * confirm them, so each one is a launch blocker (`claimBlockers`, collected by src/content/readiness.ts)
- * and the launch guard keeps the site out of search engines while any is listed.
+ * that the launch guard reports while it is listed (and that blocks indexing unless the owner has
+ * accepted the blockers, `launchBlockersAccepted` in src/config/site.ts).
  *
  * An entry is removed ONLY on the owner's word, in the commit that records the answer: a yes deletes
  * the entry, a no changes or removes the sentence on the page and then deletes the entry. Never delete
