@@ -41,7 +41,7 @@ The AVIF and WebP files, at 480, 800, 1200 and 1600 px wide, that `npm run image
 _Avoid_: thumbnails, resized images, optimized images
 
 **Sample content**:
-Invented figures, lists, projects and placeholder photos the site still shows while it is a preview (marked `sample: true` or `SAMPLE`, and the entries named in `sampleContent` in `src/content/pages.ts`). The launch guard keeps the site out of search engines until none is left.
+Invented figures, lists, projects and placeholder photos the site still shows (marked `sample: true` or `SAMPLE`, and the entries named in `sampleContent` in `src/content/pages.ts`). The launch guard lists each one; it kept the site out of search engines until the owner accepted the blockers on 3 November 2026 (ADR 0006).
 _Avoid_: dummy content, placeholder text
 
 **Company facts**:
@@ -49,7 +49,7 @@ The facts about the company that only the owner can supply (legal name, founding
 _Avoid_: About data, company info
 
 **Launch blockers**:
-The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the content side still keeps the site out of search engines: Sample content, Company facts not yet supplied, Legal drafts and Unconfirmed claims. The launch guard reads this list and nothing else from the content. A module with blockers of its own adds its function to the list.
+The one list, `contentBlockers()` in `src/content/readiness.ts`, of what on the content side the launch guard reports as not ready: Sample content, Company facts not yet supplied, Legal drafts and Unconfirmed claims. It blocked indexing until the owner accepted the blockers on 3 November 2026 (`launchBlockersAccepted`, ADR 0006). The launch guard reads this list and nothing else from the content. A module with blockers of its own adds its function to the list.
 _Avoid_: TODO list, checklist
 
 **Legal draft**:

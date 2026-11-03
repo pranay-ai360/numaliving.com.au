@@ -141,31 +141,31 @@ Roll back the domain with the first command alone (`cname: null`), then redeploy
 curl -sI http://numaliving.us/ | grep -iE '^(HTTP|location)'          # 301 to https://numaliving.us/
 curl -sI https://www.numaliving.us/ | grep -iE '^(HTTP|location)'     # 301 to https://numaliving.us/
 curl -s https://numaliving.us/contact/ | grep -oE 'projects@numaliving\.[a-z]+' | sort | uniq -c   # only .us
-curl -s https://numaliving.us/ | grep -o '<meta name="robots"[^>]*>'  # noindex, nofollow
-curl -s https://numaliving.us/robots.txt                              # Allow: /, and no Sitemap line while the site is a preview
-curl -s https://numaliving.us/sitemap.xml                             # an empty <urlset> while the site is a preview
+curl -s https://numaliving.us/ | grep -o '<meta name="robots"[^>]*>'  # nothing: no page says noindex (indexable since 3 November 2026)
+curl -s https://numaliving.us/robots.txt                              # Allow: /, and Sitemap: https://numaliving.us/sitemap.xml
+curl -s https://numaliving.us/sitemap.xml                             # one <loc> per page, the client login included
 curl -s https://numaliving.us/about/ | grep -oE '<link rel="canonical"[^>]*>|<title>[^<]*</title>|<meta name="description"[^>]*>'   # one canonical: https://numaliving.us/about/
-curl -s https://numaliving.us/ | grep -o 'application/ld+json' | wc -l   # 2 on the home page (Organization, WebSite), 3 on an inner page
+curl -s https://numaliving.us/ | grep -o '<script type="application/ld+json"' | wc -l   # 2 on the home page (Organization, WebSite), 3 on an inner page
 curl -sI https://numaliving.us/og/default.jpg | grep -iE '^(HTTP|content-type)'   # 200, image/jpeg
 curl -sI https://numaliving.us/projects/golf-links/golf-links-01-800.avif | grep -iE '^(HTTP|content-type)'   # 200, image/avif (GitHub Pages must serve AVIF with that type)
 echo | openssl s_client -connect numaliving.us:443 -servername numaliving.us 2>/dev/null | openssl x509 -noout -issuer -subject -dates
 # every page at four screen widths (needs the one free CloakBrowser seat)
 python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
-  --out-dir "${TMPDIR:-/tmp}/numa-live-check" --expect-https --expect-noindex
+  --out-dir "${TMPDIR:-/tmp}/numa-live-check" --expect-https
 ```
 
 The verdict is at the top of `report.md` in that folder. The "request-aborted" warnings are the browser cancelling prefetches and are harmless.
 
-Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). Once the site is indexable (`isIndexable` is true) the same checks should show: no `noindex` tag on any page but `/login/`, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for the home page and every other indexable page, never `/login/`. Then submit the sitemap in Search Console. Before the flip, strip serial numbers, edit history and camera settings from every published original photo (keep the orientation); the launch guard names each file that still has them (`photos.metadata`). The end-to-end tests (`e2e/seo.spec.ts`) follow `isIndexable` themselves, so the flip change needs no test edits: run them on the change before it is merged.
+Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). With the site indexable (`isIndexable` is true since 3 November 2026) the checks show no `noindex` tag on any page, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for every page, the client login included. After a deploy that changes the list of pages, submit the sitemap in Search Console again (paste `sitemap.xml` into "Add a new sitemap" and click Submit). Photos that still carry serial numbers, edit history or camera settings are a launch blocker the owner accepted (`photos.metadata`, ADR 0006): strip them when you can, keeping the orientation. The end-to-end tests (`e2e/seo.spec.ts`) follow `isIndexable` themselves.
 
-The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex`, loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
+The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex` only while the site is a preview (none does now), loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
 
 ```bash
 CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:live
 playwright screenshot --full-page --viewport-size="1440, 3000" https://numaliving.us/ home-1440.png
 ```
 
-The live test expects `noindex`: change it when the site launches.
+The live test follows `isIndexable`: while it is `true` it fails on any page that says `noindex`.
 
 ## 10. Known quirks
 
@@ -174,7 +174,7 @@ The live test expects `noindex`: change it when the site launches.
 - **Start new work from `origin/main`, not from an old branch.** Once part of a branch has reached `main` by cherry-pick, carrying on in that branch brings the same change back as conflicts. The `Ramya` branch's content commit went in as an adapted cherry-pick (PR #9), so merging `Ramya` into `main` as it stands conflicts in 7 files (`src/app/page.tsx`, `src/content/pages.ts`, `src/content/projects.ts`, `src/components/PortalPreview.tsx`, `src/components/LoginForm.tsx` and two portal files that `main` no longer has). Its two older commits, the brown ink colour (`94270b8`) and the client portal demo (`bd74207`), are not on `main`. To ship them, branch from `origin/main` and cherry-pick them (`git switch -c feat/portal-demo origin/main`, then `git cherry-pick 94270b8 bd74207`). Expect conflicts in `LoginForm.tsx`: on `main` it is deliberately design-only (no `<form>`, so a password can never reach a URL) and pinned by tests. The demo's data module, `src/lib/portal/demo.ts`, would also fall under the 80% coverage gate.
 - **A lint warning after the coverage run.** `npm run lint` right after `npm run test:coverage` warns about the generated `coverage/block-navigation.js`. CI is not affected.
 - **FormSubmit** is a free third party with no service guarantee. Send a test Quote Request now and then.
-- **Placeholders remain** for the phone number, WhatsApp number, address and the sample projects, so the site stays `noindex` with its Preview ribbon (`src/config/launchGuard.test.ts` enforces this).
+- **Placeholders remain** for the phone number, WhatsApp number, address and four sample projects, and the Preview ribbon is on. Since 3 November 2026 the site is indexed with them: the owner accepted the launch blockers (`launchBlockersAccepted`, ADR 0006). Set that switch to `false` to make `src/config/launchGuard.test.ts` block again and list them.
 
 ## 11. Add or change project photos
 

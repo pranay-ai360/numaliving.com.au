@@ -22,7 +22,7 @@ const US_COPY_DATE = "2026-10-18";
 
 const PROJECTS_PATH = "/projects";
 
-/** In the order of the main menu, then the two legal pages (linked from the footer), then the client login, which is never indexed. */
+/** In the order of the main menu, then the two legal pages (linked from the footer), then the client login. */
 const PAGES: readonly PageSeo[] = [
   {
     path: "/",
@@ -84,7 +84,7 @@ const PAGES: readonly PageSeo[] = [
     path: "/login",
     title: "Client Login",
     description: "Sign-in page for Numa Living clients. The client portal opens soon: drawings, approvals, RFIs and production status for your project in one place.",
-    indexable: false,
+    indexable: true,
     updated: US_COPY_DATE,
   },
 ];

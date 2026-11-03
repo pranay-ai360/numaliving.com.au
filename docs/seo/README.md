@@ -1,6 +1,6 @@
 # US SEO research and decisions
 
-numaliving.us is a preview that is `noindex` by design. This folder records why and how it is being prepared for US search, with the research behind it. The decision is [ADR 0003](../adr/0003-us-seo-strategy.md); the scripts that produced the data are in [`tools/seo/`](../../tools/seo/README.md).
+numaliving.us was a `noindex` preview until 3 November 2026, when the owner had every page indexed before the launch blockers were cleared ([ADR 0006](../adr/0006-index-every-page-before-the-launch-blockers-are-cleared.md)). This folder records why and how it is being prepared for US search, with the research behind it. The decision is [ADR 0003](../adr/0003-us-seo-strategy.md); the scripts that produced the data are in [`tools/seo/`](../../tools/seo/README.md).
 
 | Page | What it holds |
 | --- | --- |
@@ -20,10 +20,10 @@ The plan has seven phases, each its own branch and pull request, in order:
 | 2 | US wording and trust repairs: vocabulary, a first screen that says what and for whom, real facts, contact, privacy and terms | yes (copy, small code) |
 | 3 | New pages in two content waves (the URL map is final before this starts) | yes |
 | 4 | Authority, entity and links: profiles, trade listings, earned links | mostly operations |
-| 5 | Launch gate and go-live: one pull request flips `isIndexable`, only with the owner's approval | yes |
+| 5 | Launch gate and go-live: one pull request flips `isIndexable`, only with the owner's approval (done 3 November 2026, with the launch blockers accepted: ADR 0006) | yes |
 | 6 | A 90-day loop of measuring, refreshing and publishing | ongoing |
 
-The site stays `noindex` until the launch guard (`src/config/launchGuard.test.ts`) passes and the launch gates listed in the ADR are met. Open owner decisions are in the owner input pack.
+The site has been indexable since 3 November 2026, before the launch guard's (`src/config/launchGuard.test.ts`) blockers were cleared: the owner accepted them (ADR 0006). Open owner decisions are still in the owner input pack.
 
 ## Repeat the study
 

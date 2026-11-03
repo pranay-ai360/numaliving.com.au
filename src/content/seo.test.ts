@@ -281,7 +281,7 @@ describe("page registry dates and flags", () => {
     expect(future.map((entry) => entry.path)).toEqual([]);
   });
 
-  it("marks only the client login as never indexable", () => {
+  it("marks every page as indexable, the client login included", () => {
     // Arrange
     const neverIndexable = pageRegistry.filter((entry) => !entry.indexable);
 
@@ -289,7 +289,7 @@ describe("page registry dates and flags", () => {
     const paths = neverIndexable.map((entry) => entry.path);
 
     // Assert
-    expect(paths).toEqual([LOGIN_PATH]);
+    expect(paths).toEqual([]);
   });
 });
 
@@ -424,7 +424,7 @@ describe("getPageSeo and requirePageSeo", () => {
 });
 
 describe("the indexable preview", () => {
-  it("asks for no noindex on any page but the client login when the site is indexable", () => {
+  it("asks for no noindex on any page, the client login included, when the site is indexable", () => {
     // Arrange
     const options = { isIndexable: true };
 
@@ -432,19 +432,19 @@ describe("the indexable preview", () => {
     const noindexed = pageRegistry.filter((entry) => buildPageMetadata(entry, options).robots !== undefined).map((entry) => entry.path);
 
     // Assert
-    expect(noindexed).toEqual([LOGIN_PATH]);
+    expect(noindexed).toEqual([]);
   });
 
-  it("lists exactly the indexable pages in the sitemap when the site is indexable", () => {
+  it("lists every page in the sitemap, the client login included, when the site is indexable", () => {
     // Arrange
-    const expected = pageRegistry.filter((entry) => entry.indexable).map((entry) => canonicalUrl(entry.path));
+    const expected = pageRegistry.map((entry) => canonicalUrl(entry.path));
 
     // Act
     const listed = buildSitemap(pageRegistry, { isIndexable: true }).map((entry) => entry.url);
 
     // Assert
     expect(listed).toEqual(expected);
-    expect(listed).not.toContain(canonicalUrl(LOGIN_PATH));
+    expect(listed).toContain(canonicalUrl(LOGIN_PATH));
   });
 
   it("asks every page, the client login included, not to be indexed while the site is not indexable", () => {

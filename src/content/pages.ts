@@ -164,7 +164,7 @@ export const delivery = {
  * These files sit in /public/craft/, in lower case with hyphens. `npm run images:build` makes their AVIF and
  * WebP copies next to them (README, Photos) and `Photo` shows them with their `width` and `height`; each
  * description is 8 to 20 words, and src/content/craftPhotos.test.ts checks all of it. `craft` stays listed in
- * `sampleContent` below, so the launch guard keeps the site out of search engines, because two of the five
+ * `sampleContent` below, so the launch guard reports it as a blocker, because two of the five
  * are renders carrying another brand's watermark, not photos of the factory: replace them before launch.
  */
 export const craft = [

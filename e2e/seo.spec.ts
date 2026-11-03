@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { isIndexable, site } from "../src/config/site";
 import { BASE_PATH, SERVER_ORIGIN } from "./env";
 import { bodyText } from "./page-text";
-import { ALL_PAGES, LOGIN_PATH, pageUrl } from "./site";
+import { ALL_PAGES, pageUrl } from "./site";
 
 const ROBOTS_META = /<meta\s+name="robots"\s+content="([^"]*)"/i;
 const H1_OPEN_TAG = /<h1[\s>]/gi;
@@ -22,16 +22,15 @@ function topHeadingCount(html: string): number {
 test.skip(({ isMobile }) => isMobile, "Search engines get the same HTML at every screen size.");
 
 /**
- * Whether a page's robots tag must say "noindex": every page does while the site is a preview, and once it is
- * public only the client login does. It is written out here, and not read from the page registry, so the test
- * checks the served HTML against the rule and not against the data that built it.
+ * Whether every page's robots tag must say "noindex": all of them do while the site is a preview, and none does
+ * once it is public, the client login included (the owner's decision of 3 November 2026, see
+ * docs/adr/0006-index-every-page-before-the-launch-blockers-are-cleared.md). It is written out here, and not read
+ * from the page registry, so the test checks the served HTML against the rule and not against the data that built it.
  */
-function mustAskNotToBeIndexed(path: string): boolean {
-  return !isIndexable || path === LOGIN_PATH;
-}
+const PAGES_ASK_NOT_TO_BE_INDEXED = !isIndexable;
 
 for (const path of ALL_PAGES) {
-  const asksNotToBeIndexed = mustAskNotToBeIndexed(path);
+  const asksNotToBeIndexed = PAGES_ASK_NOT_TO_BE_INDEXED;
   test(`${path} ${asksNotToBeIndexed ? "asks search engines not to index it" : "can be indexed"}`, async ({ request }) => {
     const response = await request.get(pageUrl(path));
 
@@ -73,7 +72,6 @@ test("robots.txt below the base path lets crawlers fetch every page", async ({ r
 /** The longest title a search result shows in full, brand included. */
 const MAX_TITLE_CHARACTERS = 60;
 const INDEXABLE_DESCRIPTION = { min: 120, max: 160 };
-const NOINDEX_DESCRIPTION = { min: 50, max: 160 };
 const HTML_ENTITIES: Readonly<Record<string, string>> = { amp: "&", lt: "<", gt: ">", quot: '"', "#x27": "'", "#39": "'" };
 const ANCHOR_HREF = /<a\b[^>]*?\shref="([^"]*)"/g;
 const INDEX_HTML_ADDRESS = /(^|\/)index\.html?([?#]|$)/;
@@ -146,10 +144,8 @@ test("every page has a description of the right length, and no two pages share o
 
   const descriptions = pages.map((page) => ({ path: page.path, text: metaContent(page.head, "name", "description") ?? "" }));
 
-  const outOfRange = descriptions.filter(({ path, text }) => {
-    const range = path === LOGIN_PATH ? NOINDEX_DESCRIPTION : INDEXABLE_DESCRIPTION;
-    return text.length < range.min || text.length > range.max;
-  });
+  // Every page may be indexed, the client login included, so every description is held to the search-result range.
+  const outOfRange = descriptions.filter(({ text }) => text.length < INDEXABLE_DESCRIPTION.min || text.length > INDEXABLE_DESCRIPTION.max);
   expect(outOfRange.map(({ path, text }) => `${path} (${text.length} characters)`), "descriptions outside their range").toEqual([]);
   expect(duplicatesOf(descriptions.map(({ text }) => text)), "descriptions used by more than one page").toEqual([]);
 });
@@ -249,7 +245,7 @@ test("robots.txt names the sitemap only once the site is indexable", async ({ re
   expect(sitemapLine).toBe(isIndexable ? `${site.url}${BASE_PATH}/sitemap.xml` : undefined);
 });
 
-test("sitemap.xml is well-formed, and lists no page while the site is not indexable", async ({ request }) => {
+test("sitemap.xml is well-formed, lists no page while the site is not indexable, and every page once it is", async ({ request }) => {
   const response = await request.get("sitemap.xml");
   const text = await response.text();
 
@@ -265,7 +261,7 @@ test("sitemap.xml is well-formed, and lists no page while the site is not indexa
     return;
   }
   const pages = await fetchPages(request);
-  const expected = pages.filter((page) => page.path !== LOGIN_PATH).map((page) => canonicalIn(page.head));
+  const expected = pages.map((page) => canonicalIn(page.head));
   expect(locations).toEqual(expected);
 });
 

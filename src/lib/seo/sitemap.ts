@@ -12,8 +12,8 @@ export type SitemapOptions = Readonly<{
 /**
  * The entries of /sitemap.xml: the canonical address of every indexable page, with the day its
  * content last changed (the entry's `updated`, a fixed date: the time of a build says nothing
- * about the page). Empty while the site is not indexable, and a page that is never indexable (the
- * client login) is never listed.
+ * about the page). Empty while the site is not indexable, and a page marked never indexable in the
+ * registry (none is) is never listed.
  */
 export function buildSitemap(pages: readonly PageSeo[], options: SitemapOptions): MetadataRoute.Sitemap {
   if (!options.isIndexable) return [];

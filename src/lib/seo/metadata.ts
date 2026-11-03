@@ -54,8 +54,8 @@ export type PageMetadataOptions = Readonly<{
 }>;
 
 /**
- * Everything the page's `<head>` says about it. A page that is never indexable (the client login)
- * always asks not to be indexed; any other page does so until the site itself is indexable.
+ * Everything the page's `<head>` says about it. A page marked never indexable in the registry (none
+ * is) always asks not to be indexed; any other page does so until the site itself is indexable.
  */
 export function buildPageMetadata(seo: PageSeo, options: PageMetadataOptions = {}): Metadata {
   const { isIndexable = siteIsIndexable } = options;

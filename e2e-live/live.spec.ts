@@ -1,7 +1,8 @@
 // Read-only smoke tests of the deployed site (npm run test:live). Nothing is submitted: no test touches
-// the contact form. The site is still a noindex preview, so every page must say so; change that check
-// when the site launches.
+// the contact form. Every page must say noindex while the site is a preview (isIndexable false), and none
+// may once it is public: since 3 November 2026 every page, the client login included, may be indexed.
 import { expect, test, type Page } from "@playwright/test";
+import { isIndexable } from "../src/config/site";
 import { home } from "../src/content/pages";
 import { projects } from "../src/content/projects";
 import { ALL_PAGES, pageUrl } from "../e2e/site";
@@ -48,13 +49,15 @@ async function unloadedPhotos(page: Page): Promise<readonly string[]> {
 test.describe("as served", () => {
   test.skip(({ isMobile }) => isMobile, "Every screen size gets the same HTML.");
 
-  test("every page answers 200, asks search engines not to index it and has one main heading", async ({ request }) => {
+  test("every page answers 200, says noindex only while the site is a preview, and has one main heading", async ({ request }) => {
     for (const path of ALL_PAGES) {
       const response = await request.get(pageUrl(path));
       const html = await response.text();
+      const robots = html.split("</head>")[0].match(ROBOTS_META)?.[1] ?? "";
 
       expect.soft(response.status(), `${path} should answer 200`).toBe(200);
-      expect.soft(html.split("</head>")[0].match(ROBOTS_META)?.[1], `${path} should say noindex`).toMatch(/\bnoindex\b/);
+      if (isIndexable) expect.soft(robots, `${path} should not say noindex`).not.toMatch(/\bnoindex\b/);
+      else expect.soft(robots, `${path} should say noindex`).toMatch(/\bnoindex\b/);
       expect.soft(html.match(H1_OPEN_TAG)?.length ?? 0, `${path} should have one h1`).toBe(1);
     }
   });

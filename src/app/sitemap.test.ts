@@ -39,15 +39,15 @@ describe("sitemap route", () => {
     expect(served).toEqual([]);
   });
 
-  it.runIf(isIndexable)("lists every indexable page, and never the client login, once the site is live", () => {
+  it.runIf(isIndexable)("lists every page, the client login included, once the site is live", () => {
     // Arrange
-    const expected = pageRegistry.filter((entry) => entry.indexable).map((entry) => canonicalUrl(entry.path));
+    const expected = pageRegistry.map((entry) => canonicalUrl(entry.path));
 
     // Act
     const listed = sitemap().map((entry) => entry.url);
 
     // Assert
     expect(listed).toEqual(expected);
-    expect(listed).not.toContain(canonicalUrl("/login"));
+    expect(listed).toContain(canonicalUrl("/login"));
   });
 });
