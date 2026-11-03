@@ -33,4 +33,4 @@ export const site = {
  * Show the "Sample content" ribbon until real content is in place.
  * Set to false once projects, photos and copy are final.
  */
-export const showSampleNotice = true;
+export const showSampleNotice = false;
