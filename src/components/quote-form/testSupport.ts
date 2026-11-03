@@ -62,7 +62,9 @@ export function setUpSending(): () => FetchSpy {
  * that the file input's `accept` filter would otherwise hide from the browser.
  */
 export function renderQuoteForm(options: { isAged?: boolean; applyAccept?: boolean } = {}): UserEvent {
-  const user = userEvent.setup({ applyAccept: options.applyAccept ?? true });
+  // `delay: null` skips the real timer user-event starts between key presses, which adds up to seconds
+  // when a long form is typed on a busy machine. Nothing in these tests depends on that pause.
+  const user = userEvent.setup({ applyAccept: options.applyAccept ?? true, delay: null });
   render(createElement(QuoteForm));
   if (options.isAged ?? true) passTime(MIN_FILL_TIME_MS);
   return user;
@@ -73,9 +75,9 @@ export async function fillRequiredFields(user: UserEvent): Promise<void> {
   await user.type(screen.getByLabelText("Email *"), "ada@example.com");
   await user.selectOptions(screen.getByLabelText("Your role *"), "Architect / designer");
   await user.selectOptions(screen.getByLabelText("Project type *"), "Residences");
-  await user.type(screen.getByLabelText("Site location (city, country) *"), "Dubai, UAE");
+  await user.type(screen.getByLabelText("Site location (city, state or country) *"), "Austin, Texas");
   await user.selectOptions(screen.getByLabelText("Timeline *"), "Start within 3 months");
-  await user.type(screen.getByLabelText("Scope and notes *"), "Walnut wardrobes for twelve villas.");
+  await user.type(screen.getByLabelText("Scope and notes *"), "Walnut closets for twelve units.");
 }
 
 export function getSendButton(): HTMLElement {
@@ -83,7 +85,7 @@ export function getSendButton(): HTMLElement {
 }
 
 export function getDrawingsInput(): HTMLElement {
-  return screen.getByLabelText(/Attach drawings or BOQ/);
+  return screen.getByLabelText(/Attach drawings or a quantity takeoff/);
 }
 
 /** The dashed area around the file picker that also accepts dropped files. */

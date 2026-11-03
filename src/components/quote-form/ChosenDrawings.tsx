@@ -39,7 +39,7 @@ export function ChosenDrawings({ chosen, onRemove, fileInputRef }: Props) {
                 type="button"
                 aria-label={`Remove ${name}`}
                 onClick={() => remove(index)}
-                className="text-gold hover:text-gold-dark"
+                className="text-gold-dark hover:text-ink"
               >
                 Remove
               </button>

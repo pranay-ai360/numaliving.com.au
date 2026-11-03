@@ -73,6 +73,8 @@ test("sends a Quote Request with a PDF to FormSubmit's ordinary endpoint and sho
     Role: QUOTE.role,
     "Project type": QUOTE.projectType,
     "Site location": QUOTE.location,
+    "Project size": QUOTE.projectSize,
+    "Bid date": QUOTE.bidDate,
     Timeline: QUOTE.timeline,
     "Scope and notes": QUOTE.message,
     "Attached drawings": `Expect 1 PDF attached: ${drawing.name} (${formatFileSize(drawing.buffer.length)})`,
@@ -158,6 +160,41 @@ test.describe("when FormSubmit fails", () => {
     await expect(page.getByRole("button", { name: "Send Request" })).toBeEnabled();
     await expect(page.getByRole("heading", { name: "Thank You" })).toHaveCount(0);
   });
+});
+
+test("asks for the site location and the project the way a US bid is written", async ({ page }) => {
+  // Arrange / Act
+  const location = page.getByLabel("Site location");
+  const size = page.getByLabel("Project size");
+  const bidDate = page.getByLabel("Bid date");
+
+  // Assert
+  await expect(page.getByText("Site location (city, state or country)")).toBeVisible();
+  await expect(location).toHaveAttribute("placeholder", "e.g. Austin, Texas");
+  await expect(size).toHaveAttribute("placeholder", "e.g. 45,000 sq ft or 120 units");
+  await expect(bidDate).toHaveAttribute("type", "date");
+  await expect(page.getByLabel("Your role").locator("option", { hasText: "General contractor" })).toHaveCount(1);
+  await expect(page.getByLabel("Timeline").locator("option", { hasText: "Bidding now" })).toHaveCount(1);
+});
+
+test("sends a Quote Request without the bid date and project size, which are optional", async ({ page }) => {
+  // Arrange
+  const calls = await mockFormSubmit(page, FORMSUBMIT_ACCEPTED);
+  await fillQuoteRequest(page);
+  await page.getByLabel("Project size").fill("");
+  await page.getByLabel("Bid date").fill("");
+  await passMinimumFillTime(page);
+
+  // Act
+  await sendRequest(page);
+
+  // Assert
+  await expect(thankYouPanel(page)).toContainText("Thank You");
+  const [call] = calls();
+  const fields = textFields(await readSubmission(call));
+  expect(fields).not.toHaveProperty("Project size");
+  expect(fields).not.toHaveProperty("Bid date");
+  expect(fields).toMatchObject({ "Site location": QUOTE.location });
 });
 
 test("a filled honeypot looks sent to the bot but sends nothing", async ({ page }) => {

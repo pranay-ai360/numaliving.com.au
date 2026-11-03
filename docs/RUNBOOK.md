@@ -29,10 +29,12 @@ A push straight to `main` deploys as well, and `verify` still has to pass before
 | Custom domain and HTTPS | `gh api` | `gh api repos/pranay-ai360/numaliving.com.au/pages --jq '{cname, https_enforced, certificate: .https_certificate.state}'`, `gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages -f cname=numaliving.us`, `gh api -X PUT repos/pranay-ai360/numaliving.com.au/pages -F https_enforced=true`, `gh api repos/pranay-ai360/numaliving.com.au/pages/health` |
 | Commits and pushes | `git` (or Tower) | the commands in section 1 |
 | Lint, types, tests, build | `npm` | section 3 |
+| Project photos (fast copies, share images) | `npm` | `npm run images:build`, section 11 |
 | Cloudflare DNS records | the Python helper in `tools/cloudflare/` (no install needed), or `cf`, or the dashboard | `python3 -I tools/cloudflare/cf_dns.py check`, then `apply --yes` (which deletes other A, AAAA and CNAME records on the bare domain and `www`) |
 | Mail addresses | the Forward Email dashboard (no command line) | add or change the `projects@` alias there |
 | Activating the form | `curl` | README, Going live, step 2 |
 | Checking the live site | `curl`, `dig`, `openssl`, then the CloakBrowser crawl | section 9 |
+| SEO research (pages, sitemaps, search results, screenshots) | the Python tools in `tools/seo/` (standard library only; `serp_search.py` needs the local SearXNG running, `browse.py` needs `python3.14` and the one CloakBrowser seat) | `python3 tools/seo/fetch_pages.py <out-dir> <urls>`, `python3 tools/seo/audit_pages.py <out-dir>/*.html`, `python3 tools/seo/serp_search.py tools/seo/queries/us-study-2026-10.txt`, `python3.14 tools/seo/browse.py shots <urls>`; the steps are in `tools/seo/README.md` and `docs/seo/README.md` |
 
 `gh` handles everything on GitHub. For Cloudflare, the helper is the first choice: it needs only Python's standard library, reads the key file itself and prints no secrets. `cf` (the official Cloudflare CLI) is still a beta; it is installed here but optional.
 
@@ -46,9 +48,12 @@ npm run typecheck
 npm run test:coverage                              # keep coverage at 80% or more
 npm run build:e2e && npm run test:e2e              # static build below /numaliving.com.au, then Playwright
 python3 -m unittest discover -s tools/cloudflare/tests    # the DNS helper's tests; no network
+python3 -m unittest discover -s tools/seo/tests           # the SEO research tools' tests; no network, browser or Docker
 ```
 
-Nothing runs the Python tests automatically (CI only runs the npm checks), so run them when you touch `tools/`.
+Nothing runs the Python tests automatically (CI only runs the npm checks), so run them when you touch `tools/` (the SEO tools' tests included). After you add or change a project photo, run `npm run images:build` first (section 11): the unit tests fail while a photo's copies are missing or out of date.
+
+On a shared or busy machine (other agents, builds or a browser eating the CPU), cap Vitest's workers so it leaves room for them: `npm run test:coverage -- --maxWorkers=50%` (or `npx vitest run --maxWorkers=50%`). A slow run still passes: each test may take 20 seconds, each hook 30, and `findBy*` waits 5 seconds (`vitest.config.mts`, `vitest.setup.ts`, pinned by `src/config/testRunner.test.ts`). If a Quote Request form test still times out, read the test's own duration before raising a limit; the form tests normally take about one second each.
 
 CI uses Playwright's own Chromium. Locally, set `CHROMIUM_EXECUTABLE_PATH` to any Chrome-family browser; the installed Google Chrome works:
 
@@ -56,7 +61,7 @@ CI uses Playwright's own Chromium. Locally, set `CHROMIUM_EXECUTABLE_PATH` to an
 CHROMIUM_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:e2e
 ```
 
-CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10).
+CloakBrowser's Chromium also works, but only while its single free licence seat is free (section 10). The end-to-end server uses port 4173; to run the tests of two checkouts or worktrees at the same time, give each its own port, for example `E2E_PORT=4180 npm run test:e2e` (a whole number from 1024 to 65535; `npm run serve:pages` reads it too).
 
 Photos: resize phone and camera photos before you add them. `e2e/image-files.spec.ts` fails when any image in `public/` is over 1.5 MB, whether a page uses it or not, and every file stays in git history for good.
 
@@ -82,6 +87,7 @@ On Windows or Linux, the same tools come from `winget install GitHub.cli`, `apt 
 | `git` | GitHub's web editor (press `.` on the repository page) commits to a branch and opens a pull request. Tower and GitHub Desktop work too. |
 | Node and npm | Skip the local checks: open the pull request and let the `verify` job run lint, types, tests and E2E. |
 | `cf` | Use `tools/cloudflare/cf_dns.py`, or the Cloudflare dashboard (DNS > Records), or `curl` against `https://api.cloudflare.com/client/v4/` with the scoped token (pass the header the same way, from stdin). |
+| SearXNG, or Docker Desktop is not running | `tools/seo/serp_search.py` stops and says what to do: start Docker Desktop, run `docker compose up -d` in the SearXNG checkout, and try again (quit Docker Desktop afterwards if you do not want it running). Set `SEARXNG_CLIENT_DIR` when that checkout is not next to this repository. |
 | CloakBrowser, or its seat is taken | Check with `curl`, `dig` and `openssl` (section 9) and the Playwright suite, then click through the live site by hand. Do not close another project's browser without asking. |
 | Everything (for example on a phone) | github.com in a browser: press `.` to edit and commit to a branch, open the pull request, watch the Checks tab and merge. GitHub's runners do the install, tests, build and deploy. |
 
@@ -136,6 +142,12 @@ curl -sI http://numaliving.us/ | grep -iE '^(HTTP|location)'          # 301 to h
 curl -sI https://www.numaliving.us/ | grep -iE '^(HTTP|location)'     # 301 to https://numaliving.us/
 curl -s https://numaliving.us/contact/ | grep -oE 'projects@numaliving\.[a-z]+' | sort | uniq -c   # only .us
 curl -s https://numaliving.us/ | grep -o '<meta name="robots"[^>]*>'  # noindex, nofollow
+curl -s https://numaliving.us/robots.txt                              # Allow: /, and no Sitemap line while the site is a preview
+curl -s https://numaliving.us/sitemap.xml                             # an empty <urlset> while the site is a preview
+curl -s https://numaliving.us/about/ | grep -oE '<link rel="canonical"[^>]*>|<title>[^<]*</title>|<meta name="description"[^>]*>'   # one canonical: https://numaliving.us/about/
+curl -s https://numaliving.us/ | grep -o 'application/ld+json' | wc -l   # 2 on the home page (Organization, WebSite), 3 on an inner page
+curl -sI https://numaliving.us/og/default.jpg | grep -iE '^(HTTP|content-type)'   # 200, image/jpeg
+curl -sI https://numaliving.us/projects/golf-links/golf-links-01-800.avif | grep -iE '^(HTTP|content-type)'   # 200, image/avif (GitHub Pages must serve AVIF with that type)
 echo | openssl s_client -connect numaliving.us:443 -servername numaliving.us 2>/dev/null | openssl x509 -noout -issuer -subject -dates
 # every page at four screen widths (needs the one free CloakBrowser seat)
 python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
@@ -143,6 +155,8 @@ python3.14 tools/site-qa/site_check.py --base-url https://numaliving.us/ \
 ```
 
 The verdict is at the top of `report.md` in that folder. The "request-aborted" warnings are the browser cancelling prefetches and are harmless.
+
+Every page's canonical link must be its own `https://numaliving.us/...` address with a trailing slash (not `/index.html`, not a `github.io` address). Once the site is indexable (`isIndexable` is true) the same checks should show: no `noindex` tag on any page but `/login/`, a `Sitemap: https://numaliving.us/sitemap.xml` line in `robots.txt`, and a sitemap with one `<loc>` for the home page and every other indexable page, never `/login/`. Then submit the sitemap in Search Console. Before the flip, strip serial numbers, edit history and camera settings from every published original photo (keep the orientation); the launch guard names each file that still has them (`photos.metadata`). The end-to-end tests (`e2e/seo.spec.ts`) follow `isIndexable` themselves, so the flip change needs no test edits: run them on the change before it is merged.
 
 The same pages again with Playwright, which needs no CloakBrowser seat. `npm run test:live` (the specs in `e2e-live/`, never run by CI) checks that every page answers 200 and says `noindex`, loads without console errors, failed requests or broken photos, and that the home page and every project page show what the code says. It only reads: it never submits the contact form. `LIVE_URL` points it at another address. The Playwright CLI takes a quick picture of one page:
 
@@ -155,9 +169,21 @@ The live test expects `noindex`: change it when the site launches.
 
 ## 10. Known quirks
 
-- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. A browser launch that exits with code 76 means another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it: `ps -o ppid= -p <pid>` gives the parent, and `lsof -a -p <ppid> -d cwd` shows the project it runs from.
+- **One CloakBrowser session at a time.** The free licence has one seat; `cloakbrowser info` shows `Sessions: 0/1` when it is free. `tools/seo/browse.py` takes the same seat. A browser launch that fails exits with code 76, most often because another process holds the seat: look with `pgrep -fl 'Chromium.app/Contents/MacOS/Chromium'` (a plain `grep chromium` also matches unrelated processes). Find out whose it is before closing it: `ps -o ppid= -p <pid>` gives the parent, and `lsof -a -p <ppid> -d cwd` shows the project it runs from.
 - **Tower stashes for you.** Switching branches in Tower auto-stashes uncommitted work. Look at `git stash list` if something seems to have vanished.
 - **Start new work from `origin/main`, not from an old branch.** Once part of a branch has reached `main` by cherry-pick, carrying on in that branch brings the same change back as conflicts. The `Ramya` branch's content commit went in as an adapted cherry-pick (PR #9), so merging `Ramya` into `main` as it stands conflicts in 7 files (`src/app/page.tsx`, `src/content/pages.ts`, `src/content/projects.ts`, `src/components/PortalPreview.tsx`, `src/components/LoginForm.tsx` and two portal files that `main` no longer has). Its two older commits, the brown ink colour (`94270b8`) and the client portal demo (`bd74207`), are not on `main`. To ship them, branch from `origin/main` and cherry-pick them (`git switch -c feat/portal-demo origin/main`, then `git cherry-pick 94270b8 bd74207`). Expect conflicts in `LoginForm.tsx`: on `main` it is deliberately design-only (no `<form>`, so a password can never reach a URL) and pinned by tests. The demo's data module, `src/lib/portal/demo.ts`, would also fall under the 80% coverage gate.
 - **A lint warning after the coverage run.** `npm run lint` right after `npm run test:coverage` warns about the generated `coverage/block-navigation.js`. CI is not affected.
 - **FormSubmit** is a free third party with no service guarantee. Send a test Quote Request now and then.
 - **Placeholders remain** for the phone number, WhatsApp number, address and the sample projects, so the site stays `noindex` with its Preview ribbon (`src/config/launchGuard.test.ts` enforces this).
+
+## 11. Add or change project photos
+
+1. Put the original JPEG in `public/projects/<project-slug>/` as `<project-slug>-<nn>.jpg`: lower case, hyphens, no spaces (GitHub Pages treats capitals as different letters). `-01` is the cover. To rename a photo, use `git mv`.
+2. List it in that project's `photos` in `src/content/projects.ts` with its `src` (starting with `/`), pixel `width` and `height`, and an `alt`: what the picture shows, 8 to 20 words, different from every other photo's.
+3. `npm run images:build` makes the AVIF and WebP copies (480, 800, 1200 and 1600 px wide, never wider than the photo, without metadata) and the 1200 x 630 share images in `public/og/`, and updates `scripts/images.manifest.json`. All 30 photos take about two minutes the first time; later runs make only what is missing or out of date and remove copies nobody asks for any more. `node scripts/optimize-images.mjs --check` changes nothing and exits with 1 if a copy is missing, out of date or left over.
+4. Commit the photo, the content change, the copies, the share images and the manifest together. The unit tests fail if the copies are out of date (`src/content/projects.test.ts`) or if a page would load more than 1.5 MB of images on first view (`src/components/firstViewBudget.test.tsx`).
+
+The pipeline handles the project photos and the craft and factory photos (`public/craft/`): run `npm run images:build` after you add or change any of them (README, Photos). The `craft` entry in `sampleContent` stays until the two watermarked renders in the gallery are replaced with photos of the factory.
+
+The pipeline needs `sharp` (a development dependency, installed by `npm ci`). Its settings (widths, formats, quality, the photo the site-wide share image is cut from) are in `scripts/image-plan.mjs`.
+

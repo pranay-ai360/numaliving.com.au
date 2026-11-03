@@ -1,76 +1,49 @@
-import type { Locator } from "@playwright/test";
-import { BASE_PATH } from "./env";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { MAX_LAYOUT_SHIFT, recordLayoutShifts, totalLayoutShift } from "./layout-shift";
 import { pageUrl } from "./site";
 
-const HERO_REGIONS = "UAE · Qatar · USA";
+/** Widths where the Inquire Now side tab shows (from 768 px) and the page's content starts close to the left edge. */
+const TAB_WIDTHS = [768, 1024, 1280, 1366, 1379, 1380, 1440] as const;
+const VIEWPORT_HEIGHT = 900;
+/** The room the hero's text keeps between itself and the side tab. */
+const MIN_GAP_FROM_TAB_PX = 8;
 
-/** The figures beside the craft story, as the page shows them. */
-const STATS = [
-  { label: "Projects delivered", value: "45+" },
-  { label: "Countries shipped to", value: "4" },
-  { label: "Factory floor", value: "8,000 sq ft" },
-  { label: "Craftspeople and engineers", value: "50" },
-] as const;
-
-const PORTAL_LAPTOP = { alt: /client portal on a laptop/i, src: "/portal-preview/portal-desktop.jpg" } as const;
-const PORTAL_PHONE = { alt: /client portal on a phone/i, src: "/portal-preview/portal-mobile.jpg" } as const;
-
-/** True when `first` comes before `second` in the page's markup. */
-async function comesBefore(first: Locator, second: Locator): Promise<boolean> {
-  return first.evaluate((a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING), await second.elementHandle());
+function heroContent(page: Page): readonly Locator[] {
+  const hero = page.getByRole("region", { name: /Custom millwork/ });
+  return [hero.getByRole("heading", { level: 1 }), hero.locator("p").first(), hero.locator("p").nth(1), hero.locator("p").nth(2), hero.getByRole("link", { name: "Request a Quote" })];
 }
 
-/** The photo loads lazily, so scroll to it, then wait until it has really decoded and check where it came from. */
-async function expectLoadedFrom(photo: Locator, sitePath: string): Promise<void> {
-  await photo.scrollIntoViewIfNeeded();
-  await expect(photo).toHaveAttribute("src", `${BASE_PATH}${sitePath}`);
-  await expect
-    .poll(() => photo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0), { message: `${sitePath} did not load` })
-    .toBe(true);
-}
+test.describe("the home page's first screen", () => {
+  test.describe("on wide screens", () => {
+    test.skip(({ isMobile }) => isMobile, "The Inquire Now tab only shows on wide screens.");
 
-test.beforeEach(async ({ page }) => {
-  await page.goto(pageUrl("/"));
-});
+    for (const width of TAB_WIDTHS) {
+      test(`keeps its text clear of the Inquire Now tab at ${width} px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: VIEWPORT_HEIGHT });
+        await page.goto(pageUrl("/"));
 
-test("the hero names UAE, Qatar and USA, and no other country", async ({ page }) => {
-  const main = page.getByRole("main");
+        const tab = await page.getByRole("link", { name: "Inquire Now", exact: true }).boundingBox();
+        const lefts = await Promise.all(heroContent(page).map(async (locator) => (await locator.boundingBox())?.x));
 
-  await expect(main.getByText(HERO_REGIONS, { exact: true })).toBeVisible();
-  await expect(main).not.toContainText(/Australia|United Kingdom/);
-});
-
-for (const { label, value } of STATS) {
-  test(`the figure "${label}" reads ${value}`, async ({ page }) => {
-    const figure = page.getByRole("main").locator("dl > div").filter({ has: page.getByText(label, { exact: true }) });
-
-    await expect(figure.locator("dd")).toHaveText(value);
+        expect(tab).not.toBeNull();
+        const tabRight = (tab?.x ?? 0) + (tab?.width ?? 0);
+        expect(lefts.filter((left) => left === undefined || left < tabRight + MIN_GAP_FROM_TAB_PX)).toEqual([]);
+      });
+    }
   });
-}
 
-test("Selected Work comes before the craft story, and the sectors section is gone", async ({ page }) => {
-  const selectedWork = page.getByRole("heading", { name: "Selected Work" });
-  const craftStory = page.getByRole("heading", { name: "The Craft Behind Great Interiors" });
+  test("shows the photo, sharp and in place, and the page does not shift while it loads", async ({ page }) => {
+    await recordLayoutShifts(page);
 
-  expect(await comesBefore(selectedWork, craftStory)).toBe(true);
-  await expect(page.getByRole("heading", { name: "Who We Build For" })).toHaveCount(0);
-});
+    await page.goto(pageUrl("/"));
+    await page.waitForLoadState("networkidle");
+    const photo = page.getByRole("region", { name: /Custom millwork/ }).getByRole("img");
+    await expect(photo).toBeVisible();
+    const loaded = await photo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0);
+    const shift = await totalLayoutShift(page);
 
-test.describe("desktop", () => {
-  test.skip(({ isMobile }) => isMobile, "The laptop screenshot only shows from the sm breakpoint up.");
-
-  test("a laptop and a phone show the client portal, both loaded from below the base path", async ({ page }) => {
-    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_LAPTOP.alt }), PORTAL_LAPTOP.src);
-    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt }), PORTAL_PHONE.src);
-  });
-});
-
-test.describe("phone", () => {
-  test.skip(({ isMobile }) => !isMobile, "Phone emulation only.");
-
-  test("only the phone screenshot shows, loaded from below the base path", async ({ page }) => {
-    await expect(page.getByRole("img", { name: PORTAL_LAPTOP.alt })).toBeHidden();
-    await expectLoadedFrom(page.getByRole("img", { name: PORTAL_PHONE.alt }), PORTAL_PHONE.src);
+    expect(loaded).toBe(true);
+    expect(shift).toBeLessThanOrEqual(MAX_LAYOUT_SHIFT);
   });
 });

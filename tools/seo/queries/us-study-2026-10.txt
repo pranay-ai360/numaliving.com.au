@@ -1,0 +1,58 @@
+# The 45 US-locale queries of the 18 Oct 2026 study (docs/seo/competitor-analysis-2026-10.md).
+# One query per line; blank lines and lines starting with # are skipped.
+# Run: python3 tools/seo/serp_search.py tools/seo/queries/us-study-2026-10.txt
+
+# --- head and commercial terms
+custom millwork manufacturer
+architectural millwork manufacturer
+architectural woodwork manufacturer
+custom millwork
+luxury custom millwork
+high end millwork manufacturer
+custom millwork for luxury homes
+commercial millwork manufacturer
+multifamily millwork manufacturer
+multifamily cabinets supplier
+hospitality millwork manufacturer
+custom wood wall paneling
+custom wall panels manufacturer
+fluted wood wall panels manufacturer
+custom walk-in closet manufacturer
+luxury custom kitchen cabinets manufacturer
+custom wood doors manufacturer luxury
+fire rated wood doors manufacturer
+custom reception desk manufacturer
+FF&E manufacturer custom furniture hospitality
+
+# --- import / overseas angle
+import custom millwork from overseas
+overseas millwork manufacturer for US projects
+international millwork supplier for US architects
+Dubai millwork manufacturer
+luxury joinery manufacturer Dubai
+
+# --- informational, standards, compliance
+what is architectural millwork
+millwork vs casework
+AWI premium grade millwork
+WI certified compliance program millwork
+how much does custom millwork cost
+millwork submittals shop drawings process
+TSCA Title VI imported composite wood panels
+CARB phase 2 compliant plywood import
+veneer wall panels fire rated ASTM E84 class A
+millwork lead times
+
+# --- geo modifiers: how is local intent served
+custom millwork New York
+custom millwork Los Angeles
+custom millwork Miami
+custom millwork Dallas
+custom millwork Las Vegas
+architectural millwork Chicago
+
+# --- competitor intel
+site:millwork-usa.com
+site:vintage-millworks.com
+millwork usa california
+vintage millworks nashville

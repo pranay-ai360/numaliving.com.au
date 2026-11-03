@@ -1,5 +1,5 @@
 import type { Page, Request } from "@playwright/test";
-import { craft, factoryPhoto } from "../src/content/pages";
+import { craft, factory } from "../src/content/pages";
 import { projects } from "../src/content/projects";
 import { BASE_PATH, SERVER_ORIGIN } from "./env";
 import { expect, test } from "./fixtures";
@@ -21,8 +21,8 @@ type PageWithPhotos = { path: string; photos: readonly string[] };
 const PAGES_WITH_PHOTOS: readonly PageWithPhotos[] = [
   { path: "/", photos: [] },
   { path: PROJECTS_PATH, photos: [] },
-  { path: "/capabilities", photos: [...craft.map((photo) => photo.src), factoryPhoto.src].filter((src) => src !== "") },
-  ...projects.map((project) => ({ path: `${PROJECTS_PATH}/${project.slug}`, photos: project.images })),
+  { path: "/capabilities", photos: [...craft.map((photo) => photo.src), factory.photo.src].filter((src) => src !== "") },
+  ...projects.map((project) => ({ path: `${PROJECTS_PATH}/${project.slug}`, photos: project.photos.map((photo) => photo.src) })),
 ];
 
 type NetworkLog = { requested: () => readonly string[]; failures: () => Promise<readonly string[]> };
@@ -81,6 +81,22 @@ async function loadedImagePaths(page: Page): Promise<readonly string[]> {
   );
 }
 
+/**
+ * True when a loaded file is the photo or one of its fast copies: the page asks for "/projects/x/x-03-800.avif",
+ * not for the original "/projects/x/x-03.jpg", which is only the fallback for a browser without AVIF and WebP.
+ */
+function isShownAs(loadedPath: string, photo: string): boolean {
+  const stem = `${BASE_PATH}${photo.replace(/\.jpg$/, "")}`;
+  return loadedPath === `${stem}.jpg` || (loadedPath.startsWith(`${stem}-`) && /-\d+\.(avif|webp)$/.test(loadedPath));
+}
+
+/** Opens every "Show all" control, which keeps the extra photos of a project, so that they load too. */
+async function openAllDetails(page: Page): Promise<void> {
+  for (const summary of await page.locator("details > summary").all()) {
+    await summary.click();
+  }
+}
+
 /** Stylesheets, scripts, preloads (fonts, images) and icons the page refers to. */
 async function referencedAssets(page: Page): Promise<readonly string[]> {
   return page.evaluate(() => [
@@ -114,12 +130,14 @@ for (const { path, photos } of PAGES_WITH_PHOTOS) {
 
     // Act
     await page.goto(pageUrl(path));
+    await openAllDetails(page);
     await scrollThroughImages(page);
 
-    // Assert: every image loaded, including all of this project's own photos
+    // Assert: every image loaded, including all of this project's own photos (as their AVIF or WebP copies)
     await expect.poll(() => brokenImages(page), { message: "images that did not load" }).toEqual([]);
     const shownPhotos = await loadedImagePaths(page);
-    expect(photos.map((photo) => `${BASE_PATH}${photo}`).filter((photo) => !shownPhotos.includes(photo))).toEqual([]);
+    expect(photos.filter((photo) => !shownPhotos.some((shown) => isShownAs(shown, photo)))).toEqual([]);
+    expect(network.requested().filter((url) => /\/projects\/.+\.jpe?g$/.test(url)), "the original JPEGs, which are only a fallback").toEqual([]);
 
     // Assert: the site's own fonts loaded and none failed
     const fonts = (await fontStates(page)).filter((font) => !isNextFontFallback(font));
@@ -143,3 +161,30 @@ for (const { path, photos } of PAGES_WITH_PHOTOS) {
     expect(await network.failures()).toEqual([]);
   });
 }
+
+test("the photos behind a closed Show all control are not fetched until it is opened", async ({ page }) => {
+  // Arrange
+  const project = projects.find((candidate) => candidate.photos.length > 7);
+  if (project === undefined) throw new Error("No project has more photos than fit on its page.");
+  const hidden = project.photos.slice(7).map((photo) => photo.src);
+  const network = watchNetwork(page);
+  const requestedHidden = (): readonly string[] =>
+    hidden.filter((photo) => network.requested().some((url) => isShownAs(decodeURIComponent(new URL(url).pathname), photo)));
+
+  // Act: load the page and scroll to the very bottom, as a visitor reading to the end would
+  await page.goto(pageUrl(`${PROJECTS_PATH}/${project.slug}`));
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForLoadState("networkidle");
+
+  // Assert: nothing inside the closed details was asked for
+  expect(requestedHidden()).toEqual([]);
+
+  // Act: open it
+  await page.getByText(`Show all ${project.photos.length} photos`).click();
+  await scrollThroughImages(page);
+
+  // Assert: now every one of them loads
+  await expect.poll(requestedHidden, { message: "photos inside the opened details" }).toEqual(hidden);
+  await expect.poll(() => brokenImages(page), { message: "images that did not load" }).toEqual([]);
+});
+

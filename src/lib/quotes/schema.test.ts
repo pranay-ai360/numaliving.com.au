@@ -41,7 +41,9 @@ describe("quoteRequestSchema", () => {
       // Arrange
       const input = makeRequest({
         company: "Lovelace Interiors",
-        phone: "+971 50 000 0000",
+        phone: "+1 512 555 0100",
+        projectSize: "45,000 sq ft or 120 units",
+        bidDate: "2026-11-12",
         drawingsLink: "https://drive.google.com/drive/folders/abc123",
       });
 
@@ -58,12 +60,14 @@ describe("quoteRequestSchema", () => {
         name: "  Ada Lovelace  ",
         company: "  Lovelace Interiors ",
         email: "  ada@example.com ",
-        phone: " +971 50 000 0000 ",
-        role: "Main contractor",
+        phone: " +1 512 555 0100 ",
+        role: "General contractor",
         projectType: "Office",
         location: "  Sydney, Australia ",
-        timeline: "Tendering now",
-        message: "  Reception desk and joinery.  ",
+        projectSize: " 120 units ",
+        bidDate: " 2026-11-12 ",
+        timeline: "Bidding now",
+        message: "  Reception desk and millwork.  ",
         drawingsLink: " https://www.dropbox.com/sh/abc ",
       };
 
@@ -75,12 +79,14 @@ describe("quoteRequestSchema", () => {
         name: "Ada Lovelace",
         company: "Lovelace Interiors",
         email: "ada@example.com",
-        phone: "+971 50 000 0000",
-        role: "Main contractor",
+        phone: "+1 512 555 0100",
+        role: "General contractor",
         projectType: "Office",
         location: "Sydney, Australia",
-        timeline: "Tendering now",
-        message: "Reception desk and joinery.",
+        projectSize: "120 units",
+        bidDate: "2026-11-12",
+        timeline: "Bidding now",
+        message: "Reception desk and millwork.",
         drawingsLink: "https://www.dropbox.com/sh/abc",
       });
       // The option lists the form shows are the ones the schema accepts.
@@ -91,7 +97,7 @@ describe("quoteRequestSchema", () => {
 
     it("treats blank optional fields as absent", () => {
       // Arrange
-      const input = makeRequest({ company: "", phone: "   ", drawingsLink: "  " });
+      const input = makeRequest({ company: "", phone: "   ", projectSize: " ", bidDate: "  ", drawingsLink: "  " });
 
       // Act
       const output = parsed(input);
@@ -99,6 +105,8 @@ describe("quoteRequestSchema", () => {
       // Assert
       expect(output.company).toBeUndefined();
       expect(output.phone).toBeUndefined();
+      expect(output.projectSize).toBeUndefined();
+      expect(output.bidDate).toBeUndefined();
       expect(output.drawingsLink).toBeUndefined();
     });
 
@@ -231,6 +239,60 @@ describe("quoteRequestSchema", () => {
       expect(firstProblem(makeRequest({ location: "l".repeat(161) }))).toBe(
         "The site location must be 160 characters or fewer.",
       );
+    });
+  });
+
+  describe("projectSize", () => {
+    it("is optional, so a request without it is valid", () => {
+      expect(firstProblem(withoutField(makeRequest(), "projectSize"))).toBeUndefined();
+    });
+
+    it("accepts a size of exactly 60 characters", () => {
+      expect(firstProblem(makeRequest({ projectSize: "s".repeat(60) }))).toBeUndefined();
+    });
+
+    it("measures the 60 character limit after trimming", () => {
+      expect(firstProblem(makeRequest({ projectSize: `  ${"s".repeat(60)}  ` }))).toBeUndefined();
+    });
+
+    it("rejects a size of 61 characters", () => {
+      expect(firstProblem(makeRequest({ projectSize: "s".repeat(61) }))).toBe("The project size must be 60 characters or fewer.");
+    });
+  });
+
+  describe("bidDate", () => {
+    const PROBLEM = "Please enter the bid date as YYYY-MM-DD, for example 2026-11-12, in a year from 2000 to 2100.";
+
+    it("is optional, so a request without it is valid", () => {
+      expect(firstProblem(withoutField(makeRequest(), "bidDate"))).toBeUndefined();
+    });
+
+    it.each(["2026-11-12", "2027-01-01", "2028-02-29"])("accepts the day %s", (bidDate) => {
+      expect(firstProblem(makeRequest({ bidDate }))).toBeUndefined();
+    });
+
+    it.each([
+      ["a US-style date", "11/12/2026"],
+      ["a day that does not exist", "2026-02-30"],
+      ["a month that does not exist", "2026-13-01"],
+      ["a date with no zeros", "2026-1-5"],
+      ["words", "next Friday"],
+      ["a date with a time", "2026-11-12T10:00"],
+      ["a year before 2000", "1999-12-31"],
+      ["a year after 2100", "2101-01-01"],
+    ])("rejects %s with a message that shows the form to use", (_label, bidDate) => {
+      expect(firstProblem(makeRequest({ bidDate }))).toBe(PROBLEM);
+    });
+
+    it("names the field in the problem, so the form can mark and focus it", () => {
+      // Arrange
+      const result = quoteRequestSchema.safeParse(makeRequest({ bidDate: "soon" }));
+
+      // Act
+      const path = result.success ? [] : result.error.issues[0]?.path;
+
+      // Assert
+      expect(path).toEqual(["bidDate"]);
     });
   });
 

@@ -1,0 +1,10 @@
+# The 8 brand and entity queries of the 18 Oct 2026 study.
+# Run: python3 tools/seo/serp_search.py tools/seo/queries/brand-2026-10.txt
+numa living
+numaliving.us
+numaliving.com.au
+numa living millwork
+numa living dubai
+numa living usa
+conqueror group dubai millwork
+"numa living" joinery

@@ -9,8 +9,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 :root {
-  --brand-gold: #ac8f50;        /* Condor gold: logo, links, buttons */
-  --brand-gold-dark: #8a713b;   /* hover / pressed */
+  --brand-gold: #ac8f50;        /* Condor gold: logo, lines, large text, and text on the dark ink bands (3.1:1 on white: not for small text) */
+  --brand-gold-dark: #7d6532;   /* small gold text and the fill of solid buttons: 5.6:1 on white, 5.1 on linen, 4.7 on the cream tint */
   --brand-gold-soft: #f3ead9;   /* cream tint: chips, highlights */
   --brand-ink: #1c1b19;         /* headings and body text */
   --brand-ink-muted: #6b665e;   /* secondary text */
@@ -35,6 +35,11 @@
 html {
   scroll-behavior: smooth;
 }
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
 
 main {
   overflow-x: clip;
@@ -55,13 +60,14 @@ body {
     line-height: 1.15;
   }
 
-  /* Letter-spaced small caps used under the logo and for eyebrows */
+  /* Letter-spaced small caps used under the logo and for eyebrows. The dark gold reads on white, linen and
+     the cream tint; on a dark ink band add text-gold (the light gold reads there, the dark one does not). */
   .eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.32em;
     font-size: 0.72rem;
     font-weight: 600;
-    color: var(--brand-gold);
+    color: var(--brand-gold-dark);
   }
 
   /* Large outlined "ghost" word behind section titles (e.g. ABOUT) */

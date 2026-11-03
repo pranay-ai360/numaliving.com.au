@@ -1,41 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { pageMetadata } from "@/app/pageMetadata";
 import { home } from "@/content/pages";
 import { projects } from "@/content/projects";
 import { site } from "@/config/site";
-import { LineArt, Wordmark } from "@/components/Brand";
-import { ButtonLink, Container, ProjectCard, SectionTitle } from "@/components/ui";
+import { HomeHero } from "@/components/HomeHero";
+import { ButtonLink, Container, FigureValue, ProjectCard, SectionTitle } from "@/components/ui";
 import { PortalPreview } from "@/components/PortalPreview";
+
+export const metadata: Metadata = pageMetadata("/");
 
 export default function HomePage() {
   const featured = projects.filter((p) => p.featured).slice(0, 3);
 
   return (
     <>
-      {/* Hero */}
-      <section className="linen relative overflow-hidden">
-        <LineArt
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[85%] w-full text-gold/45"
-          style={{ maskImage: "radial-gradient(ellipse 38% 55% at 50% 45%, transparent 55%, black 100%)", WebkitMaskImage: "radial-gradient(ellipse 38% 55% at 50% 45%, transparent 55%, black 100%)" }}
-        />
-        <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-20 text-center sm:min-h-[640px]">
-          <Wordmark size="lg" />
-          <h1 className="display mt-12 text-3xl sm:text-5xl">{home.heroTitle}</h1>
-          <p className="display mt-6 text-sm text-ink sm:text-lg">{home.heroSub}</p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/contact">Request a Quote</ButtonLink>
-            <ButtonLink href="/projects" variant="outline">
-              View Projects
-            </ButtonLink>
-          </div>
-        </div>
-      </section>
+      <HomeHero eyebrow={home.eyebrow} title={home.heroTitle} statement={home.heroSub} audience={home.heroAudience} photo={home.heroPhoto} />
 
       {/* Featured projects */}
       <section className="py-24">
         <Container>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <SectionTitle ghost="Projects" title="Selected Work" />
-            <Link href="/projects" className="text-sm font-medium text-gold hover:text-gold-dark">
+            <Link href="/projects" className="text-sm font-medium text-gold-dark hover:text-ink">
               All projects →
             </Link>
           </div>
@@ -63,7 +50,9 @@ export default function HomePage() {
             {home.stats.map((s) => (
               <div key={s.label} className="bg-paper p-6 sm:p-8">
                 <dt className="text-sm text-ink-muted">{s.label}</dt>
-                <dd className="display mt-2 normal-case text-2xl text-gold sm:text-3xl">{s.value}</dd>
+                <dd className="display mt-2 normal-case text-2xl text-gold sm:text-3xl">
+                  <FigureValue value={s.value} />
+                </dd>
               </div>
             ))}
           </dl>
@@ -74,11 +63,11 @@ export default function HomePage() {
       <section className="bg-ink py-24 text-white">
         <Container className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="eyebrow">How we work</p>
-            <h2 className="display mt-4 text-2xl sm:text-3xl">Every Approval, Online</h2>
+            <p className="eyebrow text-gold">How we work</p>
+            <h2 className="display mt-4 text-2xl sm:text-3xl">A Client Portal, Opening Soon</h2>
             <p className="mt-6 max-w-lg leading-relaxed text-white/70">
-              Clients, architects and contractors follow their project in the Numa client portal: drawings, shop drawing
-              approvals, RFIs, samples and production status in one place.
+              Clients, architects and contractors will follow their project in the Numa client portal: drawings, shop drawing
+              approvals, RFIs, samples and production status in one place. It opens soon.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/process">Our Process</ButtonLink>
@@ -94,9 +83,9 @@ export default function HomePage() {
       {/* CTA */}
       <section className="py-24">
         <Container className="text-center">
-          <SectionTitle ghost="Enquire" title="Start a Project" align="center" />
+          <SectionTitle ghost="Inquire" title="Start a Project" align="center" />
           <p className="mx-auto mt-8 max-w-xl text-lg text-ink-muted">
-            Send drawings, a BOQ or a scanned sketch (PDF). We reply with scope, programme and a priced proposal.
+            Send drawings, a quantity takeoff or a scanned sketch (PDF). We reply with scope, schedule and a priced proposal.
           </p>
           <div className="mt-8">
             <ButtonLink href="/contact">Request a Quote</ButtonLink>

@@ -1,9 +1,10 @@
 /**
- * The site's pages, taken from the same settings and content the site is built from, so the
- * tests follow when a page or project is added.
+ * The site's pages, taken from the page registry (src/content/seo.ts) that the site's metadata and
+ * sitemap are built from, so every page added to the registry is covered by the tests that loop over
+ * ALL_PAGES without anyone editing this file.
  */
 import { site } from "../src/config/site";
-import { projects } from "../src/content/projects";
+import { pageRegistry } from "../src/content/seo";
 import { BASE_URL } from "./env";
 
 export type NavItem = { readonly label: string; readonly href: string };
@@ -14,11 +15,10 @@ export const LOGIN_PATH = "/login";
 export const CONTACT_PATH = "/contact";
 export const PROJECTS_PATH = "/projects";
 
-export const STATIC_PAGES: readonly string[] = [...NAV_ITEMS.map((item) => item.href), LOGIN_PATH];
+/** Every page of the site, as the registry lists it: the menu pages, the client login, the project pages and any page added later. */
+export const ALL_PAGES: readonly string[] = pageRegistry.map((entry) => entry.path);
 
-export const PROJECT_PAGES: readonly string[] = projects.map((project) => `${PROJECTS_PATH}/${project.slug}`);
-
-export const ALL_PAGES: readonly string[] = [...STATIC_PAGES, ...PROJECT_PAGES];
+export const PROJECT_PAGES: readonly string[] = ALL_PAGES.filter((path) => path.startsWith(`${PROJECTS_PATH}/`));
 
 /**
  * A site path such as "/about" as a URL relative to the base URL ("about/"; "./" for the home

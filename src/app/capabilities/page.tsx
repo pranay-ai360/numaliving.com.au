@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { capabilities, craft, factory, factoryPhoto } from "@/content/pages";
+import { pageMetadata } from "@/app/pageMetadata";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { capabilities, craft, factory } from "@/content/pages";
 import { ButtonLink, Container, PageHero, SectionTitle } from "@/components/ui";
 import { CraftGallery, PhotoTile } from "@/components/CraftGallery";
 
-export const metadata: Metadata = { title: "Capabilities & Factory" };
+export const metadata: Metadata = pageMetadata("/capabilities");
 
 export default function CapabilitiesPage() {
   return (
     <>
+      <Breadcrumbs items={[{ name: "Capabilities", path: "/capabilities" }]} />
       <PageHero eyebrow="Capabilities" title="What We Make, and Where" lead={capabilities.lead} />
 
       {/* Craft photos */}
@@ -23,7 +26,7 @@ export default function CapabilitiesPage() {
           <div className="grid gap-px bg-line md:grid-cols-2 lg:grid-cols-3">
             {capabilities.groups.map((g) => (
               <div key={g.name} className="bg-paper p-7">
-                <h2 className="display text-sm text-gold">{g.name}</h2>
+                <h2 className="display text-sm text-gold-dark">{g.name}</h2>
                 <ul className="mt-4 space-y-2">
                   {g.items.map((item) => (
                     <li key={item} className="flex gap-3 text-sm">
@@ -44,12 +47,13 @@ export default function CapabilitiesPage() {
           <SectionTitle ghost="Factory" title={factory.title} />
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted">{factory.lead}</p>
 
-          <PhotoTile photo={factoryPhoto} className="mt-10 aspect-[16/7] w-full" />
+          {/* The container is at most 1232 px wide: max-w-7xl less its side padding. */}
+          <PhotoTile photo={factory.photo} sizes="(min-width: 1280px) 1232px, 100vw" className="mt-10 aspect-[16/7] w-full" />
 
           <ol className="mt-12 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {factory.zones.map((z, i) => (
               <li key={z.name} className="border-t-2 border-gold pt-4">
-                <span className="display text-xs text-gold">{String(i + 1).padStart(2, "0")}</span>
+                <span className="display text-xs text-gold-dark">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="mt-1 font-semibold">{z.name}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink-muted">{z.text}</p>
               </li>

@@ -27,7 +27,7 @@ test.describe("Projects page", () => {
 
     await expect(page.getByText("5 projects", { exact: true })).toBeVisible();
     for (const { name } of USA_PROJECTS) {
-      await expect(page.getByRole("main").getByRole("heading", { level: 3, name, exact: true })).toBeVisible();
+      await expect(page.getByRole("main").getByRole("heading", { name, exact: true })).toBeVisible();
     }
   });
 });
@@ -41,6 +41,10 @@ for (const { slug, name, city } of USA_PROJECTS) {
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
     await expect(page.locator("aside")).toContainText(`${city}, USA`);
-    await expect(page.getByRole("img", { name, exact: true })).toHaveCount(project.images.length);
+    for (const photo of project.photos) {
+      // By attribute, not by role: past the first few photos the gallery keeps the rest in a closed <details>,
+      // which the accessibility tree rightly leaves out, but the photos are on the page.
+      await expect(page.locator(`img[alt="${photo.alt}"]`)).toHaveCount(1);
+    }
   });
 }

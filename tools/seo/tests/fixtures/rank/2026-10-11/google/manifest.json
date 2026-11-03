@@ -1,0 +1,22 @@
+{
+ "queries": [
+  {
+   "query": "custom millwork manufacturer",
+   "blocked": false,
+   "error": null,
+   "label": "custom-millwork-manufacturer-1f04d3"
+  },
+  {
+   "query": "numa living",
+   "blocked": false,
+   "error": null,
+   "label": "numa-living-2ad871"
+  },
+  {
+   "query": "how much does custom millwork cost",
+   "blocked": true,
+   "error": null,
+   "label": "how-much-does-custom-millwork-cost-eba74b"
+  }
+ ]
+}

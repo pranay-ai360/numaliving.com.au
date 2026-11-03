@@ -51,6 +51,8 @@ function tableEntries(request: QuoteRequest, files: readonly File[], reference: 
     ["Role", request.role],
     ["Project type", request.projectType],
     ["Site location", request.location],
+    ["Project size", request.projectSize],
+    ["Bid date", request.bidDate],
     ["Timeline", request.timeline],
     ["Scope and notes", request.message],
     ["Drawings link", request.drawingsLink],

@@ -21,14 +21,14 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-[0.95rem] transition-colors hover:text-gold ${isActive(item.href) ? "text-gold" : "text-ink"}`}
+              className={`text-[0.95rem] transition-colors hover:text-gold-dark ${isActive(item.href) ? "text-gold-dark" : "text-ink"}`}
             >
               {item.label}
             </Link>
           ))}
           <Link
             href="/login"
-            className="rounded-sm border border-gold px-4 py-2 text-sm font-medium text-gold transition-colors hover:bg-gold hover:text-white"
+            className="rounded-sm border border-gold-dark px-4 py-2 text-sm font-medium text-gold-dark transition-colors hover:bg-gold-dark hover:text-white"
           >
             Client Login
           </Link>
@@ -57,7 +57,7 @@ export function Header() {
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className={`block border-b border-line py-3.5 ${isActive(item.href) ? "text-gold" : "text-ink"}`}
+              className={`block border-b border-line py-3.5 ${isActive(item.href) ? "text-gold-dark" : "text-ink"}`}
             >
               {item.label}
             </Link>
@@ -65,7 +65,7 @@ export function Header() {
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="mt-5 block rounded-sm bg-gold py-3 text-center font-medium text-white"
+            className="mt-5 block rounded-sm bg-gold-dark py-3 text-center font-medium text-white"
           >
             Client Login
           </Link>

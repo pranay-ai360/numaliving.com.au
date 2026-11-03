@@ -17,6 +17,8 @@ export const QUOTE_REQUEST_FIELDS = [
   "role",
   "projectType",
   "location",
+  "projectSize",
+  "bidDate",
   "timeline",
   "message",
   "drawingsLink",
@@ -24,12 +26,12 @@ export const QUOTE_REQUEST_FIELDS = [
 
 export type QuoteRequestField = (typeof QUOTE_REQUEST_FIELDS)[number];
 
-export const ROLE_OPTIONS = ["Owner / developer", "Architect / designer", "Main contractor", "Other"] as const;
+export const ROLE_OPTIONS = ["Owner / developer", "Architect / designer", "General contractor", "Other"] as const;
 
 export const PROJECT_TYPE_OPTIONS = ["Residences", "Office", "Multifamily", "Hospitality", "Other"] as const;
 
 export const TIMELINE_OPTIONS = [
-  "Tendering now",
+  "Bidding now",
   "Start within 3 months",
   "Start in 3 to 6 months",
   "Later / exploring",
@@ -42,6 +44,7 @@ export const TEXT_LIMITS = {
   email: 254,
   phone: 40,
   location: 160,
+  projectSize: 60,
   message: 5000,
   drawingsLink: 500,
 } as const satisfies Partial<Record<QuoteRequestField, number>>;

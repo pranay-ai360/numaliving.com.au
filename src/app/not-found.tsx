@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { ButtonLink, Container } from "@/components/ui";
+import { renderedTitle } from "@/lib/seo/metadata";
+
+// The page sits in the root layout's own folder, which the layout's title template does not reach, so
+// the title is written out whole. Next.js adds `noindex` to a 404 page by itself.
+export const metadata: Metadata = { title: { absolute: renderedTitle({ title: "Page Not Found" }) } };
 
 export default function NotFound() {
   return (

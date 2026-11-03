@@ -28,8 +28,8 @@ export function LogoLink() {
 }
 
 /**
- * Thin gold line-art of joinery elevations (wall panels, a tall
- * wardrobe, a door), echoing the building line-art on the Condor site.
+ * Thin gold line-art of millwork elevations (wall panels, a tall
+ * closet, a door), echoing the building line-art on the Condor site.
  */
 export function LineArt({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -39,7 +39,7 @@ export function LineArt({ className = "", style }: { className?: string; style?:
       {Array.from({ length: 9 }, (_, i) => (
         <line key={`f${i}`} x1={40 + i * 20} y1="60" x2={40 + i * 20} y2="420" />
       ))}
-      {/* tall wardrobe with shaker doors */}
+      {/* tall closet with shaker doors */}
       <rect x="250" y="20" width="260" height="400" />
       <line x1="380" y1="20" x2="380" y2="420" />
       <rect x="270" y="40" width="90" height="230" />

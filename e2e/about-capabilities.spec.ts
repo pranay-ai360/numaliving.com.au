@@ -3,10 +3,11 @@ import { pageUrl } from "./site";
 
 test.skip(({ isMobile }) => isMobile, "The content is the same at every screen size.");
 
+/** The stack lists the United States first, as its US positioning asks. */
 const REGIONS = [
+  { name: "North America", countries: "United States" },
   { name: "Middle East", countries: "UAE, Qatar" },
   { name: "Asia", countries: "India" },
-  { name: "North America", countries: "United States" },
 ] as const;
 
 /** The map's accessible name ends with the stops it draws a route to; its visible labels only show from the md breakpoint up. */
@@ -19,7 +20,7 @@ test.describe("About", () => {
     await page.goto(pageUrl("/about"));
   });
 
-  test("lists Middle East, Asia and North America with their countries", async ({ page }) => {
+  test("lists North America, Middle East and Asia with their countries", async ({ page }) => {
     const reach = page.locator("section").filter({ has: page.getByRole("img", { name: /World map/ }) });
 
     await expect(reach.getByRole("heading", { level: 3 })).toHaveText(REGIONS.map((region) => region.name));

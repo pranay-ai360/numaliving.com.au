@@ -22,7 +22,7 @@ export function ProcessDiagram({ steps }: { steps: readonly Step[] }) {
         <li key={g.phase}>
           {/* phase heading */}
           <div className="mx-2 flex items-center gap-4">
-            <span className="display text-xs text-gold">{String(gi + 1).padStart(2, "0")}</span>
+            <span className="display text-xs text-gold-dark">{String(gi + 1).padStart(2, "0")}</span>
             <span className="eyebrow">{g.phase}</span>
             <span className="h-px flex-1 bg-gold/40" aria-hidden="true" />
           </div>
@@ -42,9 +42,9 @@ export function ProcessDiagram({ steps }: { steps: readonly Step[] }) {
                   <span aria-hidden="true" className={`absolute left-0 right-1/2 top-8 h-px bg-gold/40 ${leftLine}`} />
                   <span aria-hidden="true" className={`absolute left-1/2 right-0 top-8 h-px bg-gold/40 ${rightLine}`} />
 
-                  <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-gold bg-paper text-gold">
+                  <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-gold-dark bg-paper text-gold-dark">
                     <ProcessIcon name={step.icon} className="h-7 w-7" />
-                    <span className="display absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-gold text-[0.62rem] text-white">
+                    <span className="display absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-gold-dark text-[0.62rem] text-white">
                       {n + 1}
                     </span>
                   </div>

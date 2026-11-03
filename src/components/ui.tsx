@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { withBasePath } from "@/lib/assetPath";
 import type { Material, ShowcaseProject } from "@/lib/types";
 import { LineArt } from "./Brand";
+import { Photo } from "./Photo";
+import type { PhotoLoading } from "./photoLoading";
+
+// The loading modes live in photoLoading.ts (Photo.tsx needs them too); these are re-exported for the code that imports them from here.
+export { LAZY_IMAGE_PROPS } from "./photoLoading";
+export type { PhotoLoading } from "./photoLoading";
 
 /** Section title with the large outlined ghost word behind it. */
 export function SectionTitle({ ghost, title, eyebrow, align = "left" }: { ghost?: string; title: string; eyebrow?: string; align?: "left" | "center" }) {
@@ -37,15 +42,42 @@ export function PageHero({ eyebrow, title, lead }: { eyebrow: string; title: str
   );
 }
 
+/**
+ * A figure as the content writes it, such as "194,000 sq ft (18,000 m²)": the number large (in the
+ * heading font its parent sets), the unit and the metric twin small on the line below, so a long figure
+ * still fits a narrow tile and the unit never splits across lines. A figure with no unit, such as
+ * "120+", is shown as it is.
+ */
+export function FigureValue({ value }: { value: string }) {
+  const [figure, ...unitWords] = value.split(" ");
+  if (unitWords.length === 0) return <>{figure}</>;
+  return (
+    <>
+      {figure} <span className="mt-1 block font-sans text-sm font-medium tracking-normal text-ink-muted">{unitWords.join(" ")}</span>
+    </>
+  );
+}
+
 export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-export function ButtonLink({ href, children, variant = "solid" }: { href: string; children: React.ReactNode; variant?: "solid" | "outline" }) {
+/**
+ * `light` is the outline button for a dark background or a photo: white, where `outline` is gold. Both
+ * golds are the dark gold, which gives white and its own text 4.5:1 or better on white (src/app/colors.test.ts);
+ * the light gold is only 3.1:1. On hover the solid button turns light gold with dark text (5.6:1), which
+ * shows on a white page and on the dark hero alike.
+ */
+const BUTTON_STYLES = {
+  solid: "bg-gold-dark text-white hover:bg-gold hover:text-ink",
+  outline: "border border-gold-dark text-gold-dark hover:bg-gold-dark hover:text-white",
+  light: "border border-paper text-paper hover:bg-paper hover:text-ink",
+} as const;
+
+export function ButtonLink({ href, children, variant = "solid" }: { href: string; children: React.ReactNode; variant?: keyof typeof BUTTON_STYLES }) {
   const base = "inline-flex items-center justify-center rounded-sm px-6 py-3 text-sm font-medium tracking-wide transition-colors";
-  const style = variant === "solid" ? "bg-gold text-white hover:bg-gold-dark" : "border border-gold text-gold hover:bg-gold hover:text-white";
   return (
-    <Link href={href} className={`${base} ${style}`}>
+    <Link href={href} className={`${base} ${BUTTON_STYLES[variant]}`}>
       {children}
     </Link>
   );
@@ -66,7 +98,7 @@ export const MATERIAL_FILL: Record<Material, string> = {
 
 /**
  * Placeholder visual built from a project's material palette.
- * Shown until real photos are added to the project's `images`.
+ * Shown until real photos are added to the project's `photos`.
  */
 export function MaterialVisual({ palette, className = "" }: { palette: Material[]; className?: string }) {
   const [a, b, c] = [palette[0] ?? "oak", palette[1] ?? "linen", palette[2] ?? "brass"];
@@ -79,37 +111,28 @@ export function MaterialVisual({ palette, className = "" }: { palette: Material[
   );
 }
 
-/** For photos below the fold: fetched only as they near the screen, and decoded off the main thread. */
-export const LAZY_IMAGE_PROPS = { loading: "lazy", decoding: "async" } as const;
-
-/** For photos in view on arrival, such as the first row of project cards: fetched straight away, decoded off the main thread. */
-const EAGER_IMAGE_PROPS = { loading: "eager", decoding: "async" } as const;
-
-/** For the one photo in view on arrival (a project page's main photo): fetched straight away, ahead of other images. */
-const PRIORITY_IMAGE_PROPS = { loading: "eager", fetchPriority: "high" } as const;
-
 /**
- * How a project photo loads: "lazy" (the default) below the fold, "eager" when it is in view on
- * arrival, and "priority" for a page's main photo.
+ * `sizes` for a project card's photo: three columns from 1024 px wide, two from 640 px, one below
+ * (the grids of the Projects page and the home page). Only px and vw lengths, see Photo.tsx.
  */
-export type PhotoLoading = "lazy" | "eager" | "priority";
+export const CARD_PHOTO_SIZES = "(min-width: 1280px) 390px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
 
-const PHOTO_LOADING_PROPS = {
-  lazy: LAZY_IMAGE_PROPS,
-  eager: EAGER_IMAGE_PROPS,
-  priority: PRIORITY_IMAGE_PROPS,
-} as const satisfies Record<PhotoLoading, object>;
+/** `sizes` for the photo at the top of a project page: the width of the page's content, 1232 px at most. */
+export const HERO_PHOTO_SIZES = "(min-width: 1280px) 1232px, 100vw";
 
 type ProjectVisualProps = {
   project: ShowcaseProject;
+  /** How wide the photo is drawn at each screen width, for the browser to pick a copy (CARD_PHOTO_SIZES, HERO_PHOTO_SIZES). */
+  sizes: string;
   className?: string;
   photoLoading?: PhotoLoading;
 };
 
-export function ProjectVisual({ project, className = "", photoLoading = "lazy" }: ProjectVisualProps) {
-  if (project.images.length > 0) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={withBasePath(project.images[0])} alt={project.name} {...PHOTO_LOADING_PROPS[photoLoading]} className={`object-cover ${className}`} />;
+/** The project's cover photo, or a swatch drawn from its materials while it has no photos. */
+export function ProjectVisual({ project, sizes, className = "", photoLoading = "lazy" }: ProjectVisualProps) {
+  const [cover] = project.photos;
+  if (cover !== undefined) {
+    return <Photo photo={cover} sizes={sizes} loading={photoLoading} className={`object-cover ${className}`} />;
   }
   return <MaterialVisual palette={project.palette} className={className} />;
 }
@@ -117,21 +140,27 @@ export function ProjectVisual({ project, className = "", photoLoading = "lazy" }
 /** A card's photo is never a page's main photo: "eager" for a card in view on arrival, such as the first row on the Projects page. */
 export type CardPhotoLoading = Exclude<PhotoLoading, "priority">;
 
+/** The level of a card's title: one below the heading of the section the card sits in (H3 under an H2 section title, H2 directly under the page's H1). */
+export type CardHeadingLevel = 2 | 3 | 4;
+
 type ProjectCardProps = {
   project: ShowcaseProject;
   photoLoading?: CardPhotoLoading;
+  /** Defaults to 3, for a card under a section title (H2). A page that shows its cards straight under its H1 passes 2; the outline never skips a level (src/lib/headings.ts). */
+  headingLevel?: CardHeadingLevel;
 };
 
-export function ProjectCard({ project, photoLoading = "lazy" }: ProjectCardProps) {
+export function ProjectCard({ project, photoLoading = "lazy", headingLevel = 3 }: ProjectCardProps) {
+  const Heading = `h${headingLevel}` as const;
   return (
     <Link href={`/projects/${project.slug}`} className="group block">
       <div className="overflow-hidden">
-        <ProjectVisual project={project} photoLoading={photoLoading} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
+        <ProjectVisual project={project} sizes={CARD_PHOTO_SIZES} photoLoading={photoLoading} className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
       </div>
       <p className="eyebrow mt-5">
         {project.sector} · {project.city}, {project.country}
       </p>
-      <h3 className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold">{project.name}</h3>
+      <Heading className="mt-2 text-lg font-semibold transition-colors group-hover:text-gold-dark">{project.name}</Heading>
       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.summary}</p>
     </Link>
   );

@@ -6,7 +6,9 @@ const REFERENCE = "NL-ABC234";
 
 const FULL_REQUEST = makeRequest({
   company: "Lovelace Interiors",
-  phone: "+971 50 000 0000",
+  phone: "+1 512 555 0100",
+  projectSize: "45,000 sq ft",
+  bidDate: "2026-11-12",
   drawingsLink: "https://drive.google.com/drive/folders/abc123",
 });
 
@@ -35,16 +37,18 @@ describe("buildSubmission", () => {
         "Full name": "Ada Lovelace",
         Company: "Lovelace Interiors",
         Email: "ada@example.com",
-        Phone: "+971 50 000 0000",
+        Phone: "+1 512 555 0100",
         Role: "Architect / designer",
         "Project type": "Residences",
-        "Site location": "Dubai, UAE",
+        "Site location": "Austin, Texas",
+        "Project size": "45,000 sq ft",
+        "Bid date": "2026-11-12",
         Timeline: "Start within 3 months",
-        "Scope and notes": "Walnut wardrobes and vanities for twelve villas.",
+        "Scope and notes": "Walnut closets and vanities for twelve units.",
         "Drawings link": "https://drive.google.com/drive/folders/abc123",
         "Attached drawings": "None",
         Reference: REFERENCE,
-        _subject: "Quote Request NL-ABC234: Residences, Dubai, UAE",
+        _subject: "Quote Request NL-ABC234: Residences, Austin, Texas",
         _template: "table",
         _captcha: "false",
         _replyto: "ada@example.com",
@@ -64,6 +68,8 @@ describe("buildSubmission", () => {
         "Role",
         "Project type",
         "Site location",
+        "Project size",
+        "Bid date",
         "Timeline",
         "Scope and notes",
         "Drawings link",
@@ -72,19 +78,21 @@ describe("buildSubmission", () => {
       ]);
     });
 
-    it("leaves out Company, Phone and Drawings link when they were not given", () => {
+    it("leaves out Company, Phone, Project size, Bid date and Drawings link when they were not given", () => {
       // Arrange / Act
       const fields = textFields(buildSubmission(makeRequest(), [], REFERENCE));
 
       // Assert
       expect(fields).not.toHaveProperty("Company");
       expect(fields).not.toHaveProperty("Phone");
+      expect(fields).not.toHaveProperty("Project size");
+      expect(fields).not.toHaveProperty("Bid date");
       expect(fields).not.toHaveProperty("Drawings link");
     });
 
     it("leaves out optional fields that are blank strings", () => {
       // Arrange
-      const request = makeRequest({ company: "", phone: "  ", drawingsLink: "" });
+      const request = makeRequest({ company: "", phone: "  ", projectSize: " ", bidDate: "", drawingsLink: "" });
 
       // Act
       const fields = textFields(buildSubmission(request, [], REFERENCE));
@@ -92,6 +100,8 @@ describe("buildSubmission", () => {
       // Assert
       expect(fields).not.toHaveProperty("Company");
       expect(fields).not.toHaveProperty("Phone");
+      expect(fields).not.toHaveProperty("Project size");
+      expect(fields).not.toHaveProperty("Bid date");
       expect(fields).not.toHaveProperty("Drawings link");
     });
 
@@ -151,7 +161,7 @@ describe("buildSubmission", () => {
       const subject = textFields(buildSubmission(FULL_REQUEST, files, REFERENCE))._subject;
 
       // Assert
-      expect(subject).toBe(`Quote Request NL-ABC234: Residences, Dubai, UAE ${suffix}`);
+      expect(subject).toBe(`Quote Request NL-ABC234: Residences, Austin, Texas ${suffix}`);
     });
 
     it("says nothing about PDFs when there are no attachments", () => {

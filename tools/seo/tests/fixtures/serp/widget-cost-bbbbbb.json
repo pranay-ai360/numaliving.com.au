@@ -1,0 +1,53 @@
+{
+ "query": "how much do widgets cost",
+ "language": "en-US",
+ "fetched_at": "2026-10-17T23:21:02+00:00",
+ "attempts": 2,
+ "results": [
+  {
+   "rank": 1,
+   "url": "https://en.wikipedia.org/wiki/Widget",
+   "domain": "en.wikipedia.org",
+   "title": "Widget - Wikipedia",
+   "snippet": "Fixture snippet six.",
+   "engines": ["duckduckgo"],
+   "score": 2.0,
+   "published": null
+  },
+  {
+   "rank": 2,
+   "url": "https://alpha-fab.example/widgets/cost/",
+   "domain": "alpha-fab.example",
+   "title": "Widget cost guide",
+   "snippet": "Fixture snippet seven.",
+   "engines": ["google cse"],
+   "score": 1.5,
+   "published": null
+  },
+  {
+   "rank": 3,
+   "url": "https://www.beta-works.example/blog/prices",
+   "domain": "www.beta-works.example",
+   "title": "Widget prices",
+   "snippet": "Fixture snippet eight.",
+   "engines": ["google cse", "duckduckgo"],
+   "score": 1.0,
+   "published": null
+  },
+  {
+   "rank": 4,
+   "url": "https://notyelp.com/page",
+   "domain": "notyelp.com",
+   "title": "Not the review site",
+   "snippet": "Fixture snippet nine.",
+   "engines": ["duckduckgo"],
+   "score": 0.4,
+   "published": null
+  }
+ ],
+ "suggestions": [],
+ "answers": ["A short fixture answer"],
+ "corrections": [],
+ "infoboxes": [],
+ "unresponsive": []
+}

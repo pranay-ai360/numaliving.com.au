@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, projects } from "@/content/projects";
-import { withBasePath } from "@/lib/assetPath";
-import { ButtonLink, Container, LAZY_IMAGE_PROPS, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
+import { getPageSeo } from "@/content/seo";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import type { Sector } from "@/lib/types";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ProjectGallery } from "@/components/ProjectGallery";
+import { ButtonLink, Container, HERO_PHOTO_SIZES, ProjectCard, ProjectVisual, MaterialVisual } from "@/components/ui";
+
+/** The heading above the other projects in the same sector, worded as a sentence for every sector. */
+const MORE_WORK_HEADINGS: Readonly<Record<Sector, string>> = {
+  Residences: "More Residential Work",
+  Office: "More Office Work",
+  Multifamily: "More Multifamily Work",
+  Hospitality: "More Hospitality Work",
+};
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -11,8 +22,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const project = getProject(slug);
-  return { title: project?.name ?? "Project", description: project?.summary };
+  const seo = getPageSeo(`/projects/${slug}`);
+  if (seo === undefined) notFound();
+  return buildPageMetadata(seo);
 }
 
 export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
@@ -25,16 +37,17 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
     { label: "Sector", value: project.sector },
     { label: "Location", value: `${project.city}, ${project.country}` },
     { label: "Completed", value: String(project.year) },
-    { label: "Programme", value: `${project.durationWeeks} weeks` },
+    { label: "Duration", value: `${project.durationWeeks} weeks` },
   ];
 
   return (
     <>
-      <Container className="pt-10">
-        <Link href="/projects" className="text-sm text-ink-muted hover:text-gold">
-          ← All projects
-        </Link>
-      </Container>
+      <Breadcrumbs
+        items={[
+          { name: "Projects", path: "/projects" },
+          { name: project.name, path: `/projects/${project.slug}` },
+        ]}
+      />
 
       <section className="py-10">
         <Container>
@@ -42,7 +55,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
             {project.sector} · {project.city}, {project.country}
           </p>
           <h1 className="display mt-4 max-w-4xl text-2xl sm:text-4xl">{project.name}</h1>
-          <ProjectVisual project={project} photoLoading="priority" className="mt-10 aspect-[16/8] w-full" />
+          <ProjectVisual project={project} sizes={HERO_PHOTO_SIZES} photoLoading="priority" className="mt-10 aspect-[16/8] w-full" />
         </Container>
       </section>
 
@@ -72,21 +85,14 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
                 </ul>
               </div>
             </div>
-            {project.images.length === 0 && (
+            {project.photos.length === 0 && (
               <div className="mt-12 grid grid-cols-3 gap-3">
                 {[0, 1, 2].map((i) => (
                   <MaterialVisual key={i} palette={[project.palette[(i + 1) % 3], project.palette[(i + 2) % 3], project.palette[i % 3]]} className="aspect-square" />
                 ))}
               </div>
             )}
-            {project.images.length > 1 && (
-              <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {project.images.slice(1).map((src) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={src} src={withBasePath(src)} alt={project.name} {...LAZY_IMAGE_PROPS} className="aspect-square w-full object-cover" />
-                ))}
-              </div>
-            )}
+            <ProjectGallery photos={project.photos} />
           </div>
 
           <aside className="h-fit bg-linen p-8">
@@ -108,7 +114,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
       {more.length > 0 && (
         <section className="linen py-20">
           <Container>
-            <h2 className="display text-xl">More {project.sector} Work</h2>
+            <h2 className="display text-xl">{MORE_WORK_HEADINGS[project.sector]}</h2>
             <div className="mt-10 grid gap-10 md:grid-cols-3">
               {more.map((p) => (
                 <ProjectCard key={p.slug} project={p} />

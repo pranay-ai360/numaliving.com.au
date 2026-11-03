@@ -37,17 +37,17 @@ export function LoginForm(): ReactElement {
             Password
             <input name="password" type="password" required autoComplete="current-password" disabled className={field} />
           </label>
-          <button type="button" disabled className="w-full rounded-sm bg-gold py-3 font-medium text-white transition-colors hover:bg-gold-dark disabled:opacity-50">
+          <button type="button" disabled className="w-full rounded-sm bg-gold-dark py-3 font-medium text-white disabled:opacity-50">
             Sign In
           </button>
         </fieldset>
       </div>
 
       <div className="mt-6 flex justify-between text-sm">
-        <button type="button" disabled className="text-gold hover:text-gold-dark disabled:opacity-50">
+        <button type="button" disabled className="text-gold-dark disabled:opacity-50">
           Forgot password?
         </button>
-        <Link href="/contact" className="text-ink-muted hover:text-gold">
+        <Link href="/contact" className="text-ink-muted hover:text-gold-dark">
           New project? Get in touch
         </Link>
       </div>

@@ -18,6 +18,23 @@ export type Sector = "Residences" | "Office" | "Multifamily" | "Hospitality";
 /** A material finish used to draw placeholder visuals until photos exist. */
 export type Material = "walnut" | "oak" | "lacquer" | "stone" | "brass" | "linen";
 
+/** A project photo: the source JPEG under /public/projects and what is known about it. */
+export interface ShowcasePhoto {
+  /**
+   * Root-relative path of the source JPEG, such as "/projects/golf-links/golf-links-01.jpg". The
+   * AVIF and WebP copies the page actually loads sit next to it (`npm run images:build`).
+   */
+  src: string;
+  /** What the picture shows, for people who cannot see it: 8 to 20 words, plain description, no brand claims. */
+  alt: string;
+  caption?: string;
+  /** Who to credit, such as "Photo by Intelier". Not shown on the site yet. */
+  credit?: string;
+  /** The source's size in pixels. They stop the page jumping as the photo loads and decide which copies exist. */
+  width: number;
+  height: number;
+}
+
 export interface ShowcaseProject {
   slug: string;
   name: string;
@@ -29,13 +46,39 @@ export interface ShowcaseProject {
   scope: string[];
   materials: string[];
   durationWeeks: number;
-  /** Photo paths under /public/projects. Empty = material placeholder. */
-  images: string[];
+  /** The project's photos, the cover first. Empty = material placeholder. */
+  photos: ShowcasePhoto[];
   palette: Material[];
   featured?: boolean;
   /** Marks invented sample content so it is easy to find and replace. */
   sample?: boolean;
 }
+
+/** An image for social-network link previews, 1200 x 630 pixels, in /public/og (see scripts/optimize-images.mjs). */
+export type OgImage = Readonly<{
+  /** Root-relative path, such as "/og/default.jpg"; the site adds its address and base path. */
+  src: string;
+  /** What the picture shows, for people who cannot see it. */
+  alt: string;
+}>;
+
+/**
+ * What search engines and social networks are told about one page: the entry for it in the page
+ * registry (src/content/seo.ts), which the metadata, the sitemap and the tests all read.
+ */
+export type PageSeo = Readonly<{
+  /** The page's path as in `site.nav`, without a trailing slash: "/about", "/projects/golf-links", "/" for Home. */
+  path: string;
+  /** The page title without the brand; the layout adds " | Numa Living" (see TITLE_TEMPLATE in src/lib/seo/metadata.ts). */
+  title: string;
+  description: string;
+  /** False for a page search engines must never list, whatever `isIndexable` says (the client login). */
+  indexable: boolean;
+  /** The day the page's content last changed in a way worth telling search engines, as YYYY-MM-DD: the sitemap's lastmod. Never "today" by code. */
+  updated: string;
+  /** The image a shared link shows; the site-wide default when left out. */
+  ogImage?: OgImage;
+}>;
 
 /** Why a Quote Request was not sent. */
 export type SubmissionFailureReason =

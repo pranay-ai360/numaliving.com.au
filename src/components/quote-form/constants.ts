@@ -15,4 +15,4 @@ export const REVIEW_MESSAGE = "Please take a moment to review your details, then
 export const SENDING_TEXT = "Sending…";
 
 export const PRIVACY_NOTE =
-  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used only to reply to your enquiry.";
+  "Your details and drawings are sent to Numa Living by email through FormSubmit.co and used to reply to your inquiry.";

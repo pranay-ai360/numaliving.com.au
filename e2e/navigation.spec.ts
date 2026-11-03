@@ -5,7 +5,7 @@ import { expect, test } from "./fixtures";
 import { CONTACT_PATH, LOGIN_PATH, NAV_ITEMS, PROJECTS_PATH, PROJECT_PAGES, type NavItem, pageUrl } from "./site";
 
 /** The header marks the current section in gold. */
-const HIGHLIGHTED = /(^|\s)text-gold(\s|$)/;
+const HIGHLIGHTED = /(^|\s)text-gold-dark(\s|$)/;
 
 const CLIENT_LOGIN: NavItem = { label: "Client Login", href: LOGIN_PATH };
 
@@ -17,6 +17,12 @@ const HOME_CALLS_TO_ACTION: readonly NavItem[] = [
   { label: "All projects →", href: PROJECTS_PATH },
   { label: "Our Process", href: "/process" },
   { label: "Client Login →", href: LOGIN_PATH },
+];
+
+/** The legal pages linked from the footer only, with the heading each opens with. */
+const LEGAL_LINKS: readonly (NavItem & { title: string })[] = [
+  { label: "Privacy", href: "/privacy", title: "Privacy Notice" },
+  { label: "Terms", href: "/terms", title: "Website Terms" },
 ];
 
 function linkIn(container: Locator, item: NavItem): Locator {
@@ -50,7 +56,7 @@ async function openMobileMenu(page: Page): Promise<Locator> {
 }
 
 test.describe("desktop", () => {
-  test.skip(({ isMobile }) => isMobile, "The header links and the Enquire Now tab only show on wide screens.");
+  test.skip(({ isMobile }) => isMobile, "The header links and the Inquire Now tab only show on wide screens.");
 
   test("every header link opens its page, which is then highlighted", async ({ page }) => {
     await openSettled(page, LOGIN_PATH);
@@ -73,10 +79,10 @@ test.describe("desktop", () => {
     }
   });
 
-  test("the Enquire Now tab opens the Contact page", async ({ page }) => {
+  test("the Inquire Now tab opens the Contact page", async ({ page }) => {
     await page.goto(pageUrl(PROJECTS_PATH));
 
-    await page.getByRole("link", { name: "Enquire Now", exact: true }).click();
+    await page.getByRole("link", { name: "Inquire Now", exact: true }).click();
 
     await expectAt(page, CONTACT_PATH);
   });
@@ -97,6 +103,18 @@ test.describe("mobile", () => {
       await page.getByRole("button", { name: "Close menu" }).click();
     }
   });
+});
+
+test("the footer's Privacy and Terms links open their pages", async ({ page }) => {
+  await openSettled(page, "/about");
+  const footer = page.getByRole("contentinfo");
+
+  for (const item of LEGAL_LINKS) {
+    await linkIn(footer, item).click();
+    await expectAt(page, item.href);
+    await expect(page.getByRole("heading", { level: 1, name: item.title })).toBeVisible();
+    await expect(page.getByText(/^Last updated/)).toContainText("October 18, 2026");
+  }
 });
 
 test("the logo returns home", async ({ page }) => {

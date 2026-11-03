@@ -4,7 +4,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { craft, factoryPhoto } from "../src/content/pages";
+import { craft, factory } from "../src/content/pages";
 import { projects } from "../src/content/projects";
 import { BASE_PATH, SERVER_ORIGIN } from "./env";
 
@@ -15,9 +15,9 @@ const MAX_IMAGE_BYTES = 1_500_000;
 const PORTAL_PREVIEW_PHOTOS = ["/portal-preview/portal-desktop.jpg", "/portal-preview/portal-mobile.jpg"] as const;
 
 const PHOTO_PATHS: readonly string[] = [
-  ...projects.flatMap((project) => project.images),
+  ...projects.flatMap((project) => project.photos.map((photo) => photo.src)),
   ...craft.map((photo) => photo.src),
-  factoryPhoto.src,
+  factory.photo.src,
   ...PORTAL_PREVIEW_PHOTOS,
 ].filter((src) => src !== "");
 

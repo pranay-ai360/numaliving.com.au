@@ -88,6 +88,10 @@ for (const project of projects) {
   test(`/projects/${project.slug} shows all of its photos`, async ({ page }) => {
     await page.goto(pageUrl(`/projects/${project.slug}`));
 
-    await expect(page.getByRole("img", { name: project.name, exact: true })).toHaveCount(project.images.length);
+    for (const photo of project.photos) {
+      // By attribute, not by role: past the first few photos the gallery keeps the rest in a closed <details>,
+      // which the accessibility tree rightly leaves out, but the photos are on the page.
+      await expect(page.locator(`img[alt="${photo.alt}"]`)).toHaveCount(1);
+    }
   });
 }
